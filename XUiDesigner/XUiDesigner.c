@@ -3,7 +3,7 @@
  * 
  *                    BSD Zero Clause License
  * 
- *  Copyright (c) 2019 Hermann Meyer
+ *  Copyright (c) 2021 Hermann Meyer
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -18,6 +18,7 @@
  *
  */
 
+#include <stdint.h>
 
 #include "xwidgets.h"
 #include "xmessage-dialog.h"
@@ -32,12 +33,42 @@
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
+                enums
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+enum {
+    XUI_NONE       = 0,
+    XUI_POSITION   = 1,
+    XUI_SIZE       = 2,
+    XUI_WIDTH      = 3,
+    XUI_HEIGHT     = 4,
+};
+ 
+typedef enum {
+    IS_KNOB           ,
+    IS_HSLIDER        ,
+    IS_VSLIDER        ,
+    IS_BUTTON         ,
+    IS_TOGGLE_BUTTON  ,
+    IS_COMBOBOX       ,
+    IS_VALUE_DISPLAY  ,
+    IS_LABEL          ,
+    IS_VMETER         ,
+    IS_HMETER         ,
+} WidgetType;
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
                 struct to hold the info for printout
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
 typedef struct {
     Widget_t * wid;
+    WidgetType is_type;
+    uint32_t port_index;
+    bool have_adjustment;
     const char* type;
 } Controller;
 
@@ -52,15 +83,20 @@ typedef struct {
     Widget_t *ui;
     Widget_t *controller_label;
     Widget_t *widgets;
+    Widget_t *index;
+    Widget_t *set_index;
+    Widget_t *combobox_settings;
+    Widget_t *add_entry;
+    Widget_t *combobox_entry;
+    Widget_t *controller_settings;
+    Widget_t *controller_entry[4];
+    Widget_t *set_adjust;
     int active_wiget_num;
     int pos_x;
     int pos_y;
     int width;
     int height;
-    int set_size;
-    int set_pos;
-    int set_width;
-    int set_height;
+    int modify_mod;
     bool run;
     int wid_counter;
     int select_widget_num;
@@ -84,19 +120,40 @@ static void remove_from_list(XUiDesigner *designer, Widget_t *wid) {
     designer->controls[wid->data].wid = NULL;
 }
 
-static void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type) {
+static void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
+                                    bool have_adjustment, WidgetType is_type) {
     designer->controls[wid->data].wid = wid;
     designer->controls[wid->data].type = type;
+    designer->controls[wid->data].have_adjustment = have_adjustment;
+    designer->controls[wid->data].is_type = is_type;
 }
 
 static void print_list(XUiDesigner *designer) {
     int i = 0;
+    int j = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
-            printf ("%s (\"%s\", %i, %i, %i, %i);\n", designer->controls[i].type, 
-                designer->controls[i].wid->label, designer->controls[i].wid->x,
-                designer->controls[i].wid->y, designer->controls[i].wid-> width,
-                designer->controls[i].wid->height);
+            Widget_t * wid = designer->controls[i].wid;
+            printf ("ui->widget[%i] = %s (ui->widget[%i], %i, \"%s\", %i,  %i, %i, %i);\n", 
+                j, designer->controls[i].type, j,
+                designer->controls[i].port_index, designer->controls[i].wid->label,
+                designer->controls[i].wid->x, designer->controls[i].wid->y,
+                designer->controls[i].wid-> width, designer->controls[i].wid->height);
+            if (designer->controls[i].have_adjustment) {
+                printf ("set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n", 
+                    j, wid->adj->std_value, wid->adj->value, wid->adj->min_value, wid->adj->max_value,
+                    wid->adj->step, wid->adj->type);
+            }
+            if (designer->controls[i].is_type == IS_COMBOBOX) {
+                Widget_t *menu = wid->childlist->childs[1];
+                Widget_t* view_port =  menu->childlist->childs[0];
+                ComboBox_t *comboboxlist = (ComboBox_t*)view_port->parent_struct;
+                unsigned int k = 0;
+                for(; k<comboboxlist->list_size;k++) {
+                    printf ("combobox_add_entry (ui->widget[%i], \"%s\");\n", j, comboboxlist->list_names[k]);
+                }
+            }
+            j++;
         }
     }
 }
@@ -104,12 +161,13 @@ static void print_list(XUiDesigner *designer) {
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
-                text input widget
+                label input widget
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
 static void entry_set_text(XUiDesigner *designer, const char* label) {
-    memset(designer->controller_label->input_label, 0, 32 * (sizeof designer->controller_label->input_label[0]));
+    memset(designer->controller_label->input_label, 0,
+        32 * (sizeof designer->controller_label->input_label[0]));
     if (strlen(label))
         strcat(designer->controller_label->input_label, label);
     strcat(designer->controller_label->input_label, "|");
@@ -236,6 +294,169 @@ static void entry_get_text(void *w_, void *key_, void *user_data) {
     }
 }
 
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                combobox entry input widget
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+static void box_entry_set_text(Widget_t *w, float value) {
+    memset(w->input_label, 0, 32 * (sizeof w->input_label[0]));
+    char buffer[30];
+    snprintf(buffer, sizeof buffer, "%.3f", value);
+    strcat(w->input_label, buffer);
+    strcat(w->input_label, "|");
+    expose_widget(w);
+}
+
+static void draw_box_entry(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (!w) return;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+    int width = attrs.width;
+    int height = attrs.height;
+    if (attrs.map_state != IsViewable) return;
+
+    use_base_color_scheme(w, NORMAL_);
+    cairo_rectangle(w->cr,0,0,width,height);
+    cairo_fill_preserve (w->cr);
+    use_text_color_scheme(w, NORMAL_);
+    cairo_set_line_width(w->cr, 2.0);
+    cairo_stroke(w->cr);
+
+    cairo_set_font_size (w->cr, 9.0);
+
+    cairo_move_to (w->cr, 2, 9);
+    cairo_show_text(w->cr, " ");
+}
+
+static void box_entry_add_text(void  *w_, void *label_) {
+    Widget_t *w = (Widget_t*)w_;
+    if (!w) return;
+    char *label = (char*)label_;
+    if (!label) {
+        label = (char*)"";
+    }
+    draw_box_entry(w,NULL);
+    cairo_text_extents_t extents;
+    use_text_color_scheme(w, NORMAL_);
+    cairo_set_font_size (w->cr, 11.0);
+    if (strlen( w->input_label))
+         w->input_label[strlen( w->input_label)-1] = 0;
+    if (strlen( w->input_label)<30) {
+        if (strlen(label))
+        strcat( w->input_label, label);
+    }
+    w->label = w->input_label;
+    strcat( w->input_label, "|");
+    cairo_set_font_size (w->cr, 12.0);
+    cairo_text_extents(w->cr, w->input_label , &extents);
+
+    cairo_move_to (w->cr, 2, 12.0+extents.height);
+    cairo_show_text(w->cr,  w->input_label);
+
+}
+
+static void box_entry_clip(Widget_t *w) {
+    draw_entry(w,NULL);
+    cairo_text_extents_t extents;
+    use_text_color_scheme(w, NORMAL_);
+    cairo_set_font_size (w->cr, 11.0);
+
+    // check for UTF 8 char
+    if (strlen( w->input_label)>=2) {
+        int i = strlen( w->input_label)-1;
+        int j = 0;
+        int u = 0;
+        for(;i>0;i--) {
+            if(IS_UTF8(w->input_label[i])) {
+                 u++;
+            }
+            j++;
+            if (u == 1) break;
+            if (j>2) break;
+        }
+        if (!u) j =2;
+
+        memset(&w->input_label[strlen( w->input_label)-(sizeof(char)*(j))],0,sizeof(char)*(j));
+        strcat( w->input_label, "|");
+    }
+    cairo_set_font_size (w->cr, 12.0);
+    cairo_text_extents(w->cr, w->input_label , &extents);
+
+    cairo_move_to (w->cr, 2, 12.0+extents.height);
+    cairo_show_text(w->cr,  w->input_label);
+
+}
+
+static void box_entry_get_text(void *w_, void *key_, void *user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (!w) return;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    XKeyEvent *key = (XKeyEvent*)key_;
+    if (!key) return;
+    int nk = key_mapping(w->app->dpy, key);
+    if (nk == 11) {
+        box_entry_clip(w);
+    } else {
+        Status status;
+        KeySym keysym;
+        char buf[32];
+        Xutf8LookupString(w->xic, key, buf, sizeof(buf) - 1, &keysym, &status);
+        if (keysym == XK_Return) {
+            if (active_widget != NULL) {
+                if (strlen(w->input_label)>1) {
+                    w->input_label[strlen( w->input_label)-1] = 0;
+                    if (designer->controls[designer->active_wiget_num].is_type == IS_COMBOBOX ) {
+                        combobox_add_entry(designer->controls[designer->active_wiget_num].wid, w->input_label);
+                        memset(w->input_label, 0, 32 * (sizeof w->input_label[0]));
+                        strcat(w->input_label, "|");
+                        expose_widget(w);
+                    }
+                   // if (designer->controls[designer->active_wiget_num].have_adjustment) {
+                        
+                   // }
+                }
+            }
+            return;
+        }
+        if(status == XLookupChars || status == XLookupBoth){
+            if (designer->controls[designer->active_wiget_num].have_adjustment) {
+                if (key->keycode == XKeysymToKeycode(w->app->dpy, XK_0) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_1) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_2) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_3) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_4) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_5) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_6) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_7) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_8) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_9) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_period)) {
+                    box_entry_add_text(w, buf);
+                }
+            } else {
+                box_entry_add_text(w, buf);
+            }
+        }
+    }
+}
+
+Widget_t *add_input_box(Widget_t *parent, int x, int y, int width, int height) {
+    Widget_t *wid = create_widget(parent->app, parent, x, y, width, height);
+    memset(wid->input_label, 0, 32 * (sizeof wid->input_label[0]) );
+    wid->func.expose_callback = box_entry_add_text;
+    wid->func.key_press_callback = box_entry_get_text;
+    wid->flags &= ~USE_TRANSPARENCY;
+    //wid->scale.gravity = EASTWEST;
+    Cursor c = XCreateFontCursor(parent->app->dpy, XC_xterm);
+    XDefineCursor (parent->app->dpy, wid->widget, c);
+    XFreeCursor(parent->app->dpy, c);
+    return wid;
+}
+
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 designer function calls
@@ -246,6 +467,64 @@ static void draw_window(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     use_bg_color_scheme(w, NORMAL_);
     cairo_paint (w->crb);
+}
+
+static void set_port_index(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        if (active_widget != NULL) {
+            designer->controls[designer->active_wiget_num].port_index =
+                (int)adj_get_value(designer->index->adj);
+        }
+    }
+}
+
+static void add_combobox_entry(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        if (designer->controls[designer->active_wiget_num].is_type == IS_COMBOBOX ) {
+            if (strlen(designer->combobox_entry->input_label)>1) {
+                designer->combobox_entry->input_label[strlen(designer->combobox_entry->input_label)-1] = 0;
+                combobox_add_entry(designer->controls[designer->active_wiget_num].wid,
+                                                designer->combobox_entry->input_label);
+                memset(designer->combobox_entry->input_label, 0, 32 *
+                    (sizeof designer->combobox_entry->input_label[0]));
+                strcat(designer->combobox_entry->input_label, "|");
+                expose_widget(designer->combobox_entry);
+            }
+        }
+    }
+}
+
+static void set_controller_adjustment(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        if (designer->controls[designer->active_wiget_num].have_adjustment) {
+            if (strlen(designer->controller_entry[0]->input_label)>1) {
+                designer->controller_entry[0]->input_label[strlen(designer->controller_entry[0]->input_label)-1] = 0;
+                active_widget->adj->min_value = atof(designer->controller_entry[0]->input_label);
+                strcat(designer->controller_entry[0]->input_label, "|");
+            }
+            if (strlen(designer->controller_entry[1]->input_label)>1) {
+                designer->controller_entry[1]->input_label[strlen(designer->controller_entry[1]->input_label)-1] = 0;
+                active_widget->adj->max_value = atof(designer->controller_entry[1]->input_label);
+                strcat(designer->controller_entry[1]->input_label, "|");
+            }
+            if (strlen(designer->controller_entry[2]->input_label)>1) {
+                designer->controller_entry[2]->input_label[strlen(designer->controller_entry[2]->input_label)-1] = 0;
+                active_widget->adj->value = atof(designer->controller_entry[2]->input_label);
+                strcat(designer->controller_entry[2]->input_label, "|");
+            }
+            if (strlen(designer->controller_entry[3]->input_label)>1) {
+                designer->controller_entry[3]->input_label[strlen(designer->controller_entry[3]->input_label)-1] = 0;
+                active_widget->adj->step = atof(designer->controller_entry[3]->input_label);
+                strcat(designer->controller_entry[3]->input_label, "|");
+            }
+        }
+    }
 }
 
 static void set_widget_callback(void *w_, void* user_data) {
@@ -284,105 +563,122 @@ static void set_h_axis_callback(void *w_, void* user_data) {
 
 static void move_wid(void *w_, void *xmotion_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    Widget_t *p = (Widget_t*)w->parent;
+    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
     XMotionEvent *xmotion = (XMotionEvent*)xmotion_;
     static int is_curser = 2;
-    if (designer->set_pos) {
-        XMoveWindow(w->app->dpy,w->widget,w->x + (xmotion->x_root-designer->pos_x), w->y+ (xmotion->y_root-designer->pos_y));
-        adj_set_value(x_axis->adj, w->x + (xmotion->x_root-designer->pos_x));
-        adj_set_value(y_axis->adj, w->y + (xmotion->y_root-designer->pos_y));
-    } else if (designer->set_size) {
-        XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), max(10,w->height+ (xmotion->x_root-designer->pos_x)));
-        adj_set_value(w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
-        adj_set_value(h_axis->adj, w->height+ ((xmotion->x_root-designer->pos_x)));
-        w->scale.ascale = 1.0;
-        designer->pos_x = xmotion->x_root;
-    } else if (designer->set_width) {
-        XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), w->height);
-        adj_set_value(w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
-        w->scale.ascale = 1.0;
-        designer->pos_x = xmotion->x_root;
-    } else if (designer->set_height) {
-        XResizeWindow(w->app->dpy, w->widget, w->width, max(10,w->height + (xmotion->y_root-designer->pos_y)));
-        adj_set_value(h_axis->adj, w->height + ((xmotion->y_root-designer->pos_y)));
-        w->scale.ascale = 1.0;
-        designer->pos_y = xmotion->y_root;
-    } else {
-        if (xmotion->x > w->width/1.2 && xmotion->y > w->height/1.2 && is_curser != 1) {
-            is_curser = 1;
-            Cursor c = XCreateFontCursor(w->app->dpy, XC_bottom_right_corner);
-            XDefineCursor (w->app->dpy, w->widget, c);
-            XFreeCursor(w->app->dpy, c);
-        } else if ( xmotion->y > w->height/1.2 && is_curser != 4) {
-            is_curser = 4;
-            Cursor c = XCreateFontCursor(w->app->dpy, XC_bottom_side);
-            XDefineCursor (w->app->dpy, w->widget, c);
-            XFreeCursor(w->app->dpy, c);
-        } else if (xmotion->x > w->width/1.2 && is_curser != 3) {
-            is_curser = 3;
-            Cursor c = XCreateFontCursor(w->app->dpy, XC_right_side);
-            XDefineCursor (w->app->dpy, w->widget, c);
-            XFreeCursor(w->app->dpy, c);
-        } else if ((xmotion->x <= w->width/1.2 && xmotion->y <= w->height/1.2) && is_curser != 2) {
-            is_curser = 2;
-            Cursor c = XCreateFontCursor(w->app->dpy, XC_hand2);
-            XDefineCursor (w->app->dpy, w->widget, c);
-            XFreeCursor(w->app->dpy, c);
-        } else {
-            is_curser = 0;
-        }
-   }
+    switch(designer->modify_mod) {
+        case XUI_POSITION:
+            XMoveWindow(w->app->dpy,w->widget,w->x + (xmotion->x_root-designer->pos_x), w->y+ (xmotion->y_root-designer->pos_y));
+            adj_set_value(x_axis->adj, w->x + (xmotion->x_root-designer->pos_x));
+            adj_set_value(y_axis->adj, w->y + (xmotion->y_root-designer->pos_y));
+        break;
+        case XUI_SIZE:
+            XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), max(10,w->height+ (xmotion->x_root-designer->pos_x)));
+            adj_set_value(w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
+            adj_set_value(h_axis->adj, w->height+ ((xmotion->x_root-designer->pos_x)));
+            w->scale.ascale = 1.0;
+            designer->pos_x = xmotion->x_root;
+        break;
+        case XUI_WIDTH:
+            XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), w->height);
+            adj_set_value(w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
+            w->scale.ascale = 1.0;
+            designer->pos_x = xmotion->x_root;
+        break;
+        case XUI_HEIGHT:
+            XResizeWindow(w->app->dpy, w->widget, w->width, max(10,w->height + (xmotion->y_root-designer->pos_y)));
+            adj_set_value(h_axis->adj, w->height + ((xmotion->y_root-designer->pos_y)));
+            w->scale.ascale = 1.0;
+            designer->pos_y = xmotion->y_root;
+        break;
+        case XUI_NONE:
+            if (xmotion->x > w->width/1.2 && xmotion->y > w->height/1.2 && is_curser != 1) {
+                is_curser = 1;
+                Cursor c = XCreateFontCursor(w->app->dpy, XC_bottom_right_corner);
+                XDefineCursor (w->app->dpy, w->widget, c);
+                XFreeCursor(w->app->dpy, c);
+            } else if ( xmotion->y > w->height/1.2 && is_curser != 4) {
+                is_curser = 4;
+                Cursor c = XCreateFontCursor(w->app->dpy, XC_bottom_side);
+                XDefineCursor (w->app->dpy, w->widget, c);
+                XFreeCursor(w->app->dpy, c);
+            } else if (xmotion->x > w->width/1.2 && is_curser != 3) {
+                is_curser = 3;
+                Cursor c = XCreateFontCursor(w->app->dpy, XC_right_side);
+                XDefineCursor (w->app->dpy, w->widget, c);
+                XFreeCursor(w->app->dpy, c);
+            } else if ((xmotion->x <= w->width/1.2 && xmotion->y <= w->height/1.2) && is_curser != 2) {
+                is_curser = 2;
+                Cursor c = XCreateFontCursor(w->app->dpy, XC_hand2);
+                XDefineCursor (w->app->dpy, w->widget, c);
+                XFreeCursor(w->app->dpy, c);
+            } else {
+                is_curser = 0;
+            }
+        break;
+        default:
+        break;
+    }
 }
 
 static void set_pos_wid(void *w_, void *button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
     XWindowAttributes attrs;
     XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
     int width = attrs.width;
     int height = attrs.height;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     if(xbutton->button == Button1) {
         active_widget = (Widget_t*)w_;
-        designer->active_wiget_num = designer->wid_counter;
+        designer->active_wiget_num = w->data;
         designer->pos_x = xbutton->x_root;
         designer->pos_y = xbutton->y_root;
         entry_set_text(designer, w->label);
         adj_set_value(w_axis->adj, w->width);
         adj_set_value(h_axis->adj, w->height);
+        adj_set_value(designer->index->adj, 
+            (float)designer->controls[designer->active_wiget_num].port_index);
+
+        if (designer->controls[designer->active_wiget_num].have_adjustment) {
+            widget_show_all(designer->controller_settings);
+            box_entry_set_text(designer->controller_entry[0], active_widget->adj->min_value);
+            box_entry_set_text(designer->controller_entry[1], active_widget->adj->max_value);
+            box_entry_set_text(designer->controller_entry[2], active_widget->adj->value);
+            box_entry_set_text(designer->controller_entry[3], active_widget->adj->step);
+
+        } else {
+            widget_hide(designer->controller_settings);
+        }
+        if (designer->controls[designer->active_wiget_num].is_type == IS_COMBOBOX) {
+            widget_show_all(designer->combobox_settings);
+        } else {
+            widget_hide(designer->combobox_settings);
+        }
     }
     if (xbutton->x > width/1.2 && xbutton->y > height/1.2) {
-        designer->set_size = 1;
-        designer->set_pos = 0;
-        designer->set_width = 0;
-        designer->set_height = 0;
+        designer->modify_mod = XUI_SIZE;
     } else if (xbutton->y > height/1.2) {
-        designer->set_size = 0;
-        designer->set_pos = 0;
-        designer->set_width = 0;
-        designer->set_height = 1;
+        designer->modify_mod = XUI_HEIGHT;
     } else if (xbutton->x > width/1.2) {
-        designer->set_size = 0;
-        designer->set_pos = 0;
-        designer->set_width = 1;
-        designer->set_height = 0;
+        designer->modify_mod = XUI_WIDTH;
     } else {
-        designer->set_width = 0;
-        designer->set_height = 0;
-        designer->set_size = 0;
-        designer->set_pos = 1;
+        designer->modify_mod = XUI_POSITION;
     }
 }
 
 static void fix_pos_wid(void *w_, void *button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
     XWindowAttributes attrs;
     XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
     int x = attrs.x;
     int y = attrs.y;
     int width = attrs.width;
     int height = attrs.height;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     if(xbutton->button == Button1) {
         w->x = x;
@@ -394,20 +690,13 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
         w->scale.init_width = width;
         w->scale.init_height = height;
         w->scale.ascale = 1.0;
-        designer->set_size = 0;
-        designer->set_pos = 0;
-        designer->set_width = 0;
-        designer->set_height = 0;
+        designer->modify_mod = XUI_NONE;
         active_widget = (Widget_t*)w_;
-        //fprintf(stderr, " x = %i y = %i %s %lu\n", x, y,w->label, active_widget->widget);
         designer->active_wiget_num = w->data;
         adj_set_value(x_axis->adj, w->x);
         adj_set_value(y_axis->adj, w->y);
     } else if(xbutton->button == Button3) {
-        designer->set_size = 0;
-        designer->set_pos = 0;
-        designer->set_width = 0;
-        designer->set_height = 0;
+        designer->modify_mod = XUI_NONE;
         active_widget = NULL;
         remove_from_list(designer, w);
         destroy_widget(w, w->app);
@@ -416,6 +705,8 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
         adj_set_value(y_axis->adj, 0.0);
         adj_set_value(w_axis->adj, 10.0);
         adj_set_value(h_axis->adj, 10.0);
+        widget_hide(designer->combobox_settings);
+        widget_hide(designer->controller_settings);
     }
 }
 
@@ -448,13 +739,15 @@ static void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid) {
                     |ButtonPressMask|Button1MotionMask|PointerMotionMask);
     wid->data = designer->wid_counter;
     wid->scale.gravity = NONE;
-    wid->parent_struct = designer;
+    //wid->parent_struct = designer;
     wid->func.button_press_callback = set_pos_wid;
     wid->func.button_release_callback = fix_pos_wid;
     wid->func.motion_callback = move_wid;
     designer->active_wiget_num = designer->wid_counter;
     entry_set_text(designer, wid->label);
     active_widget = wid;
+    adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)+1.0);
+    designer->controls[designer->wid_counter].port_index = adj_get_value(designer->index->adj);
     set_designer_callbacks((float)wid->x, (float)wid->y, (float)wid->width, (float)wid->height);
     designer->wid_counter++;
     Cursor c = XCreateFontCursor(wid->app->dpy, XC_hand2);
@@ -479,56 +772,70 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
             case 1:
                 wid = add_knob(w, "Knob", xbutton->x, xbutton->y, 60, 80);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_knob");
+                add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
             break;
             case 2:
                 wid = add_hslider(w, "HSlider", xbutton->x, xbutton->y, 120, 30);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_hslider");
+                add_to_list(designer, wid, "add_lv2_hslider", true, IS_HSLIDER);
             break;
             case 3:
                 wid = add_vslider(w, "VSlider", xbutton->x, xbutton->y, 30, 120);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_vslider");
+                add_to_list(designer, wid, "add_lv2_vslider", true, IS_VSLIDER);
             break;
             case 4:
                 wid = add_button(w, "Button", xbutton->x, xbutton->y, 60, 60);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_button");
+                add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
             break;
             case 5:
                 wid = add_toggle_button(w, "Switch", xbutton->x, xbutton->y, 60, 60);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_toggle_button");
+                add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
             break;
             case 6:
                 wid = add_combobox(w, "Combobox", xbutton->x, xbutton->y, 120, 30);
-                combobox_add_entry(wid, "Combobox");
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_combobox");
+                add_to_list(designer, wid, "add_lv2_combobox", false, IS_COMBOBOX);
             break;
             case 7:
                 wid = add_valuedisplay(w, "", xbutton->x, xbutton->y, 40, 30);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_valuedisplay");
+                add_to_list(designer, wid, "add_lv2_valuedisplay", false, IS_VALUE_DISPLAY);
             break;
             case 8:
                 wid = add_label(w, "Label", xbutton->x, xbutton->y, 60, 30);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_label");
+                add_to_list(designer, wid, "add_lv2_label", false, IS_LABEL);
             break;
             case 9:
                 wid = add_vmeter(w, "VMeter", false, xbutton->x, xbutton->y, 10, 120);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_vmeter");
+                add_to_list(designer, wid, "add_lv2_vmeter", false, IS_VMETER);
             break;
             case 10:
                 wid = add_hmeter(w, "hMeter", false, xbutton->x, xbutton->y, 120, 10);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_hmeter");
+                add_to_list(designer, wid, "add_lv2_hmeter", false, IS_HMETER);
             break;
             default:
             break;
+        }
+        if (designer->controls[designer->active_wiget_num].have_adjustment) {
+            widget_show_all(designer->controller_settings);
+            box_entry_set_text(designer->controller_entry[0], active_widget->adj->min_value);
+            box_entry_set_text(designer->controller_entry[1], active_widget->adj->max_value);
+            box_entry_set_text(designer->controller_entry[2], active_widget->adj->value);
+            box_entry_set_text(designer->controller_entry[3], active_widget->adj->step);
+
+        } else {
+            widget_hide(designer->controller_settings);
+        }
+        if (designer->controls[designer->active_wiget_num].is_type == IS_COMBOBOX) {
+            widget_show_all(designer->combobox_settings);
+        } else {
+            widget_hide(designer->combobox_settings);
         }
     }
 }
@@ -541,14 +848,12 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
 
 int main (int argc, char ** argv) {
     XUiDesigner *designer = (XUiDesigner*)malloc(sizeof(XUiDesigner));
-    designer->set_pos = 0;
-    designer->set_size = 0;
-    designer->set_width = 0;
-    designer->set_height = 0;
+    designer->modify_mod = XUI_NONE;
     designer->select_widget_num = 0;
     designer->active_wiget_num = 0;
     active_widget = NULL;
     designer->wid_counter = 0;
+
     Xputty app;
     main_init(&app);
     designer->new_label = NULL;
@@ -601,30 +906,63 @@ int main (int argc, char ** argv) {
     Cursor c = XCreateFontCursor(app.dpy, XC_xterm);
     XDefineCursor (app.dpy, designer->controller_label->widget, c);
     XFreeCursor(app.dpy, c);
+
+    add_label(designer->w, "Port Index", 1000, 80, 180, 30);
+    designer->index = add_combobox(designer->w, "", 1000, 120, 70, 30);
+    designer->index->parent_struct = designer;
+    combobox_add_numeric_entrys(designer->index, 0, 114);
+    combobox_set_active_entry(designer->index, 0);
+    designer->set_index = add_button(designer->w, "Set", 1090, 120, 60, 30);
+    designer->set_index->parent_struct = designer;
+    designer->set_index->func.value_changed_callback = set_port_index;
     
-    add_label(designer->w, "Position/Size", 1000, 80, 180, 30);
+    add_label(designer->w, "Position/Size", 1000, 150, 180, 30);
    
-    x_axis = add_hslider(designer->w, "X", 1000, 120, 180, 30);
+    x_axis = add_hslider(designer->w, "X", 1000, 200, 180, 30);
     x_axis->parent_struct = designer;
     set_adjustment(x_axis->adj,0.0, 0.0, 0.0, 600.0, 1.0, CL_CONTINUOS);
     x_axis->func.value_changed_callback = set_x_axis_callback;
 
-    y_axis = add_hslider(designer->w, "Y", 1000, 160, 180, 30);
+    y_axis = add_hslider(designer->w, "Y", 1000, 240, 180, 30);
     y_axis->parent_struct = designer;
     set_adjustment(y_axis->adj,0.0, 0.0, 0.0, 600.0, 1.0, CL_CONTINUOS);
     y_axis->func.value_changed_callback = set_y_axis_callback;
 
-    w_axis = add_hslider(designer->w, "Width", 1000, 200, 180, 30);
+    w_axis = add_hslider(designer->w, "Width", 1000, 280, 180, 30);
     w_axis->parent_struct = designer;
     set_adjustment(w_axis->adj,10.0, 10.0, 10.0, 300.0, 1.0, CL_CONTINUOS);
     w_axis->func.value_changed_callback = set_w_axis_callback;
 
-    h_axis = add_hslider(designer->w, "Height", 1000, 240, 180, 30);
+    h_axis = add_hslider(designer->w, "Height", 1000, 320, 180, 30);
     h_axis->parent_struct = designer;
     set_adjustment(h_axis->adj,10.0, 10.0, 10.0, 300.0, 1.0, CL_CONTINUOS);
     h_axis->func.value_changed_callback = set_h_axis_callback;
 
     widget_show_all(designer->w);
+
+    designer->combobox_settings = create_widget(&app, designer->w, 1000, 360, 180, 200);
+    add_label(designer->combobox_settings, "Add Combobox Entry", 0, 0, 180, 30);
+    designer->combobox_entry = add_input_box(designer->combobox_settings, 0, 40, 140, 30);
+    designer->combobox_entry->parent_struct = designer;
+    
+    designer->add_entry = add_button(designer->combobox_settings, "Add", 140, 40, 40, 30);
+    designer->add_entry->parent_struct = designer;
+    designer->add_entry->func.value_changed_callback = add_combobox_entry;
+
+    designer->controller_settings = create_widget(&app, designer->w, 1000, 360, 180, 250);
+    add_label(designer->controller_settings, "Controller Settings", 0, 0, 180, 30);
+    const char* labels[4] = { "Min","Max","Default", "Step Size"};
+    int k = 0;
+    for (;k<4;k++) {
+        add_label(designer->controller_settings, labels[k], 0, (k+1)*40, 100, 30);
+        designer->controller_entry[k] = add_input_box(designer->controller_settings, 120, (k+1)*40, 40, 30);
+        designer->controller_entry[k]->parent_struct = designer;
+    }
+
+    designer->set_adjust = add_button(designer->controller_settings, "Set", 120, 200, 40, 30);
+    designer->set_adjust->parent_struct = designer;
+    designer->set_adjust->func.value_changed_callback = set_controller_adjustment;
+
     widget_show_all(designer->ui);
     main_run(&app);
     print_list(designer);
