@@ -987,6 +987,12 @@ void load_plugin(void* w_, void* user_data) {
             lilv_node_free(nd);
             unsigned int num_ports = lilv_plugin_get_num_ports(plugin);
             for (unsigned int n = 0; n < num_ports; n++) {
+                if (designer->wid_counter >= MAX_CONTROLS) {
+                    Widget_t *dia = open_message_dialog(designer->ui, INFO_BOX, _("INFO"), _("MAX CONTROL COUNTER OVERFLOW"),NULL);
+                    XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+                    break;
+                }
+
                 const LilvPort* port = lilv_plugin_get_port_by_index(plugin, n);
                 if (lilv_port_is_a(plugin, port, lv2_AudioPort)) {
                     if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
