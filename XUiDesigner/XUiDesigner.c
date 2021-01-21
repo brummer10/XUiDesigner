@@ -19,6 +19,22 @@
  */
 
 #include <stdint.h>
+#include <unistd.h>
+#include <limits.h>
+
+#include <lilv/lilv.h>
+#include "lv2/lv2plug.in/ns/ext/presets/presets.h"
+#include "lv2/lv2plug.in/ns/ext/state/state.h"
+#include "lv2/lv2plug.in/ns/ext/urid/urid.h"
+#include <lv2/lv2plug.in/ns/ext/atom/atom.h>
+#include <lv2/lv2plug.in/ns/ext/buf-size/buf-size.h>
+#include <lv2/lv2plug.in/ns/ext/options/options.h>
+#include <lv2/lv2plug.in/ns/ext/uri-map/uri-map.h>
+#include <lv2/lv2plug.in/ns/ext/port-props/port-props.h>
+
+#ifndef LV2_CORE__enabled
+#define LV2_CORE__enabled LV2_CORE_PREFIX "enabled"
+#endif
 
 #include "xwidgets.h"
 #include "xmessage-dialog.h"
@@ -79,6 +95,23 @@ typedef struct {
 ----------------------------------------------------------------------*/
 
 typedef struct {
+    bool is_input_port;
+    bool is_output_port;
+    bool is_toggle_port;
+    bool is_enum_port;
+    bool is_int;
+    bool have_adjustment;
+    int Port_Index;
+    const char *name;
+    float min;
+    float max;
+    float def;
+} LV2_CONTROLLER;
+
+typedef struct {
+    LilvWorld* world;
+    const LilvPlugins* lv2_plugins;        
+    
     Widget_t *w;
     Widget_t *ui;
     Widget_t *controller_label;
@@ -91,7 +124,8 @@ typedef struct {
     Widget_t *controller_settings;
     Widget_t *controller_entry[4];
     Widget_t *set_adjust;
-    int active_wiget_num;
+    Widget_t *lv2_uris;
+    int active_widget_num;
     int pos_x;
     int pos_y;
     int width;
@@ -101,6 +135,7 @@ typedef struct {
     int wid_counter;
     int select_widget_num;
     char** new_label ;
+    LV2_CONTROLLER lv2c;
     Controller controls[MAX_CONTROLS];
 } XUiDesigner;
 
@@ -133,17 +168,29 @@ static void print_list(XUiDesigner *designer) {
     int j = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
+            j++;
+        }
+    }
+    if (j) {
+        printf ("#define CONTROLS %i\n", j);
+        Window w = (Window)designer->ui->widget;
+        char *name;
+        XFetchName(designer->ui->app->dpy, w, &name);
+        if (name != NULL) printf ("name = %s\n", name);
+        printf ("width = %i;\nheight = %i;\n", designer->ui->width, designer->ui->height);
+    } else {
+        return;
+    }
+    i = 0;
+    j = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL) {
             Widget_t * wid = designer->controls[i].wid;
             printf ("ui->widget[%i] = %s (ui->widget[%i], %i, \"%s\", %i,  %i, %i, %i);\n", 
                 j, designer->controls[i].type, j,
                 designer->controls[i].port_index, designer->controls[i].wid->label,
                 designer->controls[i].wid->x, designer->controls[i].wid->y,
                 designer->controls[i].wid-> width, designer->controls[i].wid->height);
-            if (designer->controls[i].have_adjustment) {
-                printf ("set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n", 
-                    j, wid->adj->std_value, wid->adj->value, wid->adj->min_value, wid->adj->max_value,
-                    wid->adj->step, wid->adj->type);
-            }
             if (designer->controls[i].is_type == IS_COMBOBOX) {
                 Widget_t *menu = wid->childlist->childs[1];
                 Widget_t* view_port =  menu->childlist->childs[0];
@@ -152,6 +199,11 @@ static void print_list(XUiDesigner *designer) {
                 for(; k<comboboxlist->list_size;k++) {
                     printf ("combobox_add_entry (ui->widget[%i], \"%s\");\n", j, comboboxlist->list_names[k]);
                 }
+            }
+            if (designer->controls[i].have_adjustment) {
+                printf ("set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n", 
+                    j, wid->adj->std_value, wid->adj->value, wid->adj->min_value, wid->adj->max_value,
+                    wid->adj->step, wid->adj->type);
             }
             j++;
         }
@@ -272,9 +324,9 @@ static void entry_get_text(void *w_, void *key_, void *user_data) {
         if (keysym == XK_Return) {
             if (active_widget != NULL) {
                 if (strlen(w->input_label)) {
-                    asprintf (&designer->new_label[designer->active_wiget_num], "%s", w->input_label);
-                    designer->new_label[designer->active_wiget_num][strlen( w->input_label)-1] = 0;
-                    active_widget->label = (const char*)designer->new_label[designer->active_wiget_num];
+                    asprintf (&designer->new_label[designer->active_widget_num], "%s", w->input_label);
+                    designer->new_label[designer->active_widget_num][strlen( w->input_label)-1] = 0;
+                    active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
                     expose_widget(active_widget);
                 }
             }
@@ -284,9 +336,9 @@ static void entry_get_text(void *w_, void *key_, void *user_data) {
             entry_add_text(w, buf);
             if (active_widget != NULL) {
                 if (strlen(w->input_label)) {
-                    asprintf (&designer->new_label[designer->active_wiget_num], "%s", w->input_label);
-                    designer->new_label[designer->active_wiget_num][strlen( w->input_label)-1] = 0;
-                    active_widget->label = (const char*)designer->new_label[designer->active_wiget_num];
+                    asprintf (&designer->new_label[designer->active_widget_num], "%s", w->input_label);
+                    designer->new_label[designer->active_widget_num][strlen( w->input_label)-1] = 0;
+                    active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
                     expose_widget(active_widget);
                 }
             }
@@ -294,10 +346,9 @@ static void entry_get_text(void *w_, void *key_, void *user_data) {
     }
 }
 
-
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
-                combobox entry input widget
+                text/numeric entry input widget
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
@@ -394,7 +445,6 @@ static void box_entry_clip(Widget_t *w) {
 static void box_entry_get_text(void *w_, void *key_, void *user_data) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     XKeyEvent *key = (XKeyEvent*)key_;
     if (!key) return;
     int nk = key_mapping(w->app->dpy, key);
@@ -406,24 +456,13 @@ static void box_entry_get_text(void *w_, void *key_, void *user_data) {
         char buf[32];
         Xutf8LookupString(w->xic, key, buf, sizeof(buf) - 1, &keysym, &status);
         if (keysym == XK_Return) {
-            if (active_widget != NULL) {
-                if (strlen(w->input_label)>1) {
-                    w->input_label[strlen( w->input_label)-1] = 0;
-                    if (designer->controls[designer->active_wiget_num].is_type == IS_COMBOBOX ) {
-                        combobox_add_entry(designer->controls[designer->active_wiget_num].wid, w->input_label);
-                        memset(w->input_label, 0, 32 * (sizeof w->input_label[0]));
-                        strcat(w->input_label, "|");
-                        expose_widget(w);
-                    }
-                   // if (designer->controls[designer->active_wiget_num].have_adjustment) {
-                        
-                   // }
-                }
+            if (strlen(w->input_label)>1) {
+                w->func.user_callback(w, (void*)w->input_label);
             }
             return;
         }
         if(status == XLookupChars || status == XLookupBoth){
-            if (designer->controls[designer->active_wiget_num].have_adjustment) {
+            if (w->data) {
                 if (key->keycode == XKeysymToKeycode(w->app->dpy, XK_0) ||
                     key->keycode == XKeysymToKeycode(w->app->dpy, XK_1) ||
                     key->keycode == XKeysymToKeycode(w->app->dpy, XK_2) ||
@@ -444,9 +483,11 @@ static void box_entry_get_text(void *w_, void *key_, void *user_data) {
     }
 }
 
-Widget_t *add_input_box(Widget_t *parent, int x, int y, int width, int height) {
+// data = 0; textinput / data = 1; numeric input
+Widget_t *add_input_box(Widget_t *parent, int data, int x, int y, int width, int height) {
     Widget_t *wid = create_widget(parent->app, parent, x, y, width, height);
     memset(wid->input_label, 0, 32 * (sizeof wid->input_label[0]) );
+    wid->data = data;
     wid->func.expose_callback = box_entry_add_text;
     wid->func.key_press_callback = box_entry_get_text;
     wid->flags &= ~USE_TRANSPARENCY;
@@ -474,8 +515,24 @@ static void set_port_index(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         if (active_widget != NULL) {
-            designer->controls[designer->active_wiget_num].port_index =
+            designer->controls[designer->active_widget_num].port_index =
                 (int)adj_get_value(designer->index->adj);
+        }
+    }
+}
+
+static void set_combobox_entry(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX ) {
+        if (strlen(designer->combobox_entry->input_label)>1) {
+            designer->combobox_entry->input_label[strlen(designer->combobox_entry->input_label)-1] = 0;
+            combobox_add_entry(designer->controls[designer->active_widget_num].wid,
+                                            designer->combobox_entry->input_label);
+            memset(designer->combobox_entry->input_label, 0, 32 *
+                (sizeof designer->combobox_entry->input_label[0]));
+            strcat(designer->combobox_entry->input_label, "|");
+            expose_widget(designer->combobox_entry);
         }
     }
 }
@@ -484,10 +541,10 @@ static void add_combobox_entry(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        if (designer->controls[designer->active_wiget_num].is_type == IS_COMBOBOX ) {
+        if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX ) {
             if (strlen(designer->combobox_entry->input_label)>1) {
                 designer->combobox_entry->input_label[strlen(designer->combobox_entry->input_label)-1] = 0;
-                combobox_add_entry(designer->controls[designer->active_wiget_num].wid,
+                combobox_add_entry(designer->controls[designer->active_widget_num].wid,
                                                 designer->combobox_entry->input_label);
                 memset(designer->combobox_entry->input_label, 0, 32 *
                     (sizeof designer->combobox_entry->input_label[0]));
@@ -502,7 +559,7 @@ static void set_controller_adjustment(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        if (designer->controls[designer->active_wiget_num].have_adjustment) {
+        if (designer->controls[designer->active_widget_num].have_adjustment) {
             if (strlen(designer->controller_entry[0]->input_label)>1) {
                 designer->controller_entry[0]->input_label[strlen(designer->controller_entry[0]->input_label)-1] = 0;
                 active_widget->adj->min_value = atof(designer->controller_entry[0]->input_label);
@@ -516,6 +573,7 @@ static void set_controller_adjustment(void *w_, void* user_data) {
             if (strlen(designer->controller_entry[2]->input_label)>1) {
                 designer->controller_entry[2]->input_label[strlen(designer->controller_entry[2]->input_label)-1] = 0;
                 active_widget->adj->value = atof(designer->controller_entry[2]->input_label);
+                active_widget->adj->std_value = atof(designer->controller_entry[2]->input_label);
                 strcat(designer->controller_entry[2]->input_label, "|");
             }
             if (strlen(designer->controller_entry[3]->input_label)>1) {
@@ -633,26 +691,26 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     if(xbutton->button == Button1) {
         active_widget = (Widget_t*)w_;
-        designer->active_wiget_num = w->data;
+        designer->active_widget_num = w->data;
         designer->pos_x = xbutton->x_root;
         designer->pos_y = xbutton->y_root;
         entry_set_text(designer, w->label);
         adj_set_value(w_axis->adj, w->width);
         adj_set_value(h_axis->adj, w->height);
         adj_set_value(designer->index->adj, 
-            (float)designer->controls[designer->active_wiget_num].port_index);
+            (float)designer->controls[designer->active_widget_num].port_index);
 
-        if (designer->controls[designer->active_wiget_num].have_adjustment) {
+        if (designer->controls[designer->active_widget_num].have_adjustment) {
             widget_show_all(designer->controller_settings);
             box_entry_set_text(designer->controller_entry[0], active_widget->adj->min_value);
             box_entry_set_text(designer->controller_entry[1], active_widget->adj->max_value);
-            box_entry_set_text(designer->controller_entry[2], active_widget->adj->value);
+            box_entry_set_text(designer->controller_entry[2], active_widget->adj->std_value);
             box_entry_set_text(designer->controller_entry[3], active_widget->adj->step);
 
         } else {
             widget_hide(designer->controller_settings);
         }
-        if (designer->controls[designer->active_wiget_num].is_type == IS_COMBOBOX) {
+        if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX) {
             widget_show_all(designer->combobox_settings);
         } else {
             widget_hide(designer->combobox_settings);
@@ -692,7 +750,7 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
         w->scale.ascale = 1.0;
         designer->modify_mod = XUI_NONE;
         active_widget = (Widget_t*)w_;
-        designer->active_wiget_num = w->data;
+        designer->active_widget_num = w->data;
         adj_set_value(x_axis->adj, w->x);
         adj_set_value(y_axis->adj, w->y);
     } else if(xbutton->button == Button3) {
@@ -743,7 +801,7 @@ static void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid) {
     wid->func.button_press_callback = set_pos_wid;
     wid->func.button_release_callback = fix_pos_wid;
     wid->func.motion_callback = move_wid;
-    designer->active_wiget_num = designer->wid_counter;
+    designer->active_widget_num = designer->wid_counter;
     entry_set_text(designer, wid->label);
     active_widget = wid;
     adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)+1.0);
@@ -797,7 +855,7 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
             case 6:
                 wid = add_combobox(w, "Combobox", xbutton->x, xbutton->y, 120, 30);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_lv2_combobox", false, IS_COMBOBOX);
+                add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
             break;
             case 7:
                 wid = add_valuedisplay(w, "", xbutton->x, xbutton->y, 40, 30);
@@ -810,29 +868,29 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 add_to_list(designer, wid, "add_lv2_label", false, IS_LABEL);
             break;
             case 9:
-                wid = add_vmeter(w, "VMeter", false, xbutton->x, xbutton->y, 10, 120);
+                wid = add_vmeter(w, "VMeter", true, xbutton->x, xbutton->y, 10, 120);
                 set_controller_callbacks(designer, wid);
                 add_to_list(designer, wid, "add_lv2_vmeter", false, IS_VMETER);
             break;
             case 10:
-                wid = add_hmeter(w, "hMeter", false, xbutton->x, xbutton->y, 120, 10);
+                wid = add_hmeter(w, "hMeter", true, xbutton->x, xbutton->y, 120, 10);
                 set_controller_callbacks(designer, wid);
                 add_to_list(designer, wid, "add_lv2_hmeter", false, IS_HMETER);
             break;
             default:
             break;
         }
-        if (designer->controls[designer->active_wiget_num].have_adjustment) {
+        if (designer->controls[designer->active_widget_num].have_adjustment) {
             widget_show_all(designer->controller_settings);
             box_entry_set_text(designer->controller_entry[0], active_widget->adj->min_value);
             box_entry_set_text(designer->controller_entry[1], active_widget->adj->max_value);
-            box_entry_set_text(designer->controller_entry[2], active_widget->adj->value);
+            box_entry_set_text(designer->controller_entry[2], active_widget->adj->std_value);
             box_entry_set_text(designer->controller_entry[3], active_widget->adj->step);
 
         } else {
             widget_hide(designer->controller_settings);
         }
-        if (designer->controls[designer->active_wiget_num].is_type == IS_COMBOBOX) {
+        if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX) {
             widget_show_all(designer->combobox_settings);
         } else {
             widget_hide(designer->combobox_settings);
@@ -842,15 +900,272 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
+                lv2 ttl handling
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+void load_plugin(void* w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t * wid = NULL;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    widget_set_title(designer->ui, "");
+    int ch = childlist_has_child(designer->ui->childlist);
+    if (ch) {
+        for(;ch>0;ch--) {
+            remove_from_list(designer, designer->ui->childlist->childs[ch-1]);
+            destroy_widget(designer->ui->childlist->childs[ch-1],w->app);
+        }
+    }
+    int i = 0;
+    for (;i<designer->wid_counter-1; i++) {
+        free(designer->new_label[i]);
+    }
+    free(designer->new_label);
+    designer->new_label = NULL;
+    designer->new_label = (char **)realloc(designer->new_label, (MAX_CONTROLS) * sizeof(char *));
+
+    designer->modify_mod = XUI_NONE;
+    active_widget = NULL;
+    entry_set_text(designer, "");
+    adj_set_value(x_axis->adj, 0.0);
+    adj_set_value(y_axis->adj, 0.0);
+    adj_set_value(w_axis->adj, 10.0);
+    adj_set_value(h_axis->adj, 10.0);
+    widget_hide(designer->combobox_settings);
+    widget_hide(designer->controller_settings);
+
+    adj_set_value(designer->index->adj,0.0);
+    designer->wid_counter = 0;
+    designer->active_widget_num = 0;
+    designer->lv2c.is_enum_port = false;
+    designer->lv2c.is_toggle_port = false;
+    designer->lv2c.have_adjustment = false;
+    int x = 40;
+    int y = 40;
+    int width = designer->ui->width;
+    int v = (int)adj_get_value(w->adj);
+    if (v) {
+        LilvNode* lv2_AudioPort;
+        LilvNode* lv2_ControlPort;
+        LilvNode* lv2_InputPort;
+        LilvNode* lv2_OutputPort;
+        LilvNode* lv2_AtomPort;
+
+        lv2_AudioPort = (lilv_new_uri(designer->world, LV2_CORE__AudioPort));
+        lv2_ControlPort = (lilv_new_uri(designer->world, LV2_CORE__ControlPort));
+        lv2_InputPort = (lilv_new_uri(designer->world, LV2_CORE__InputPort));
+        lv2_OutputPort = (lilv_new_uri(designer->world, LV2_CORE__OutputPort));
+        lv2_AtomPort = (lilv_new_uri(designer->world, LV2_ATOM__AtomPort));
+
+        const LilvNode* uri = lilv_new_uri(designer->world, w->label);
+        const LilvPlugin* plugin = lilv_plugins_get_by_uri(designer->lv2_plugins, uri);
+        if (plugin) {
+            LilvNode* nd = NULL;
+            //const LilvNode* uri = lilv_plugin_get_uri(plugin);
+            nd = lilv_plugin_get_name(plugin);
+            if (nd) {
+                widget_set_title(designer->ui, lilv_node_as_string(nd));
+            }
+            int n_in = 0;
+            int n_out = 0;
+            int n_atoms = 0;
+            lilv_node_free(nd);
+            unsigned int num_ports = lilv_plugin_get_num_ports(plugin);
+            for (unsigned int n = 0; n < num_ports; n++) {
+                const LilvPort* port = lilv_plugin_get_port_by_index(plugin, n);
+                if (lilv_port_is_a(plugin, port, lv2_AudioPort)) {
+                    if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
+                        n_in += 1;
+                    } else {
+                        n_out += 1;
+                    }
+                    continue;
+                } else if (lilv_port_is_a(plugin, port, lv2_ControlPort)) {
+                    LilvNode* nm = lilv_port_get_name(plugin, port);
+                    designer->lv2c.Port_Index = n;
+                    designer->lv2c.name = lilv_node_as_string(nm);
+                    asprintf (&designer->new_label[designer->active_widget_num], "%s",lilv_node_as_string(nm));
+                    lilv_node_free(nm);
+                    if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
+                        designer->lv2c.is_input_port = true;
+                        designer->lv2c.is_output_port = false;
+                    } else if (lilv_port_is_a(plugin, port, lv2_OutputPort)) {
+                        designer->lv2c.is_input_port = false;
+                        designer->lv2c.is_output_port = true;
+                    }
+
+                    LilvNode *pdflt, *pmin, *pmax;
+                    lilv_port_get_range(plugin, port, &pdflt, &pmin, &pmax);
+                    if (pmin) {
+                        designer->lv2c.min = lilv_node_as_float(pmin);
+                        lilv_node_free(pmin);
+                    }
+                    if (pmax) {
+                        designer->lv2c.max = lilv_node_as_float(pmax);
+                        lilv_node_free(pmax);
+                    }
+                    if (pdflt) {
+                        designer->lv2c.def = lilv_node_as_float(pdflt);
+                        lilv_node_free(pdflt);
+                    }
+                    LilvNode* is_int = lilv_new_uri(designer->world, LV2_CORE__integer);
+                    if (lilv_port_has_property(plugin, port, is_int)) {
+                        designer->lv2c.is_int = true;
+                    } else {
+                        designer->lv2c.is_int = false;
+                    }
+                    lilv_node_free(is_int);
+                    LilvNode* is_tog = lilv_new_uri(designer->world, LV2_CORE__toggled);
+                    if (lilv_port_has_property(plugin, port, is_tog)) {
+                        designer->lv2c.is_toggle_port = true;
+                    } else {
+                        designer->lv2c.is_toggle_port = false;
+                    }
+                    lilv_node_free(is_tog);
+                    LilvScalePoints* sp = lilv_port_get_scale_points(plugin, port);
+                    int num_sp = lilv_scale_points_size(sp);
+                    if (num_sp > 0) {
+                        designer->lv2c.is_enum_port = true;
+                    } else {
+                        designer->lv2c.is_enum_port = false;
+                    }
+                    lilv_scale_points_free(sp);
+
+                } else if (lilv_port_is_a(plugin, port, lv2_AtomPort)) {
+                    if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
+                        //fprintf(stderr, "Is Input Port\n");
+                    } else if (lilv_port_is_a(plugin, port, lv2_OutputPort)) {
+                        //fprintf(stderr, "Is Output Port\n");
+                    }
+                    n_atoms++;
+                    LilvNode* nm = lilv_port_get_name(plugin, port);
+                    //fprintf(stderr, "Is Atom Port %s\n", lilv_node_as_string(nm));
+                    lilv_node_free(nm);
+                    designer->lv2c.is_input_port = false;
+                    designer->lv2c.is_output_port = false;
+                }
+                if (designer->lv2c.is_input_port) {
+                    if (designer->lv2c.is_toggle_port) {
+                        if (x >= width-70) {
+                            y += 90;
+                            x = 40;
+                        }
+                        wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
+                        set_controller_callbacks(designer, wid);
+                        add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+                        designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+                        x += 80;
+                    } else if (designer->lv2c.is_enum_port) {
+                        if (x >= width-130) {
+                            y += 90;
+                            x = 40;
+                        }
+                        wid = add_combobox(designer->ui, designer->new_label[designer->active_widget_num], x, y, 120, 30);
+                        set_controller_callbacks(designer, wid);
+                        
+                        LilvScalePoints* sp = lilv_port_get_scale_points(plugin, port);
+                        int num_sp = lilv_scale_points_size(sp);
+                        if (num_sp > 0) {
+                            for (LilvIter* it = lilv_scale_points_begin(sp);
+                                    !lilv_scale_points_is_end(sp, it);
+                                    it = lilv_scale_points_next(sp, it)) {
+                                const LilvScalePoint* p = lilv_scale_points_get(sp, it);
+                                combobox_add_entry(wid,lilv_node_as_string(lilv_scale_point_get_label(p)));
+                            }
+                        }
+                        lilv_scale_points_free(sp);
+
+                        set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max, designer->lv2c.is_int? 1.0:0.01,3);
+                        add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
+                        designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+                        x += 140;
+                    } else {
+                        if (x >= width-70) {
+                            y += 90;
+                            x = 40;
+                        }
+                        wid = add_knob(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 80);
+                        set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max, designer->lv2c.is_int? 1:0.01,2);
+                        set_controller_callbacks(designer, wid);
+                        add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
+                        designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+                        x += 80;
+                    }
+                } else if (designer->lv2c.is_output_port) {
+                    if (x >= width-20) {
+                        y += 90;
+                        x = 40;
+                    }
+                    wid = add_vmeter(designer->ui, designer->new_label[designer->active_widget_num], false, x, y, 10, 120);
+                    set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max, designer->lv2c.is_int? 1:0.01,2);
+                    set_controller_callbacks(designer, wid);
+                    add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
+                    designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+                    x += 30;
+                }
+            }
+        }
+        lilv_node_free(lv2_AudioPort);
+        lilv_node_free(lv2_ControlPort);
+        lilv_node_free(lv2_InputPort);
+        lilv_node_free(lv2_OutputPort);
+        lilv_node_free(lv2_AtomPort);
+    }
+    widget_show_all(designer->ui);
+}
+
+void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
+    for (LilvIter* it = lilv_plugins_begin(lv2_plugins);
+      !lilv_plugins_is_end(lv2_plugins, it);
+      it = lilv_plugins_next(lv2_plugins, it)) {
+        const LilvPlugin* plugin = lilv_plugins_get(lv2_plugins, it);
+        if (plugin) {
+            const LilvNode* uri = lilv_plugin_get_uri(plugin);
+            combobox_add_entry(lv2_uris,lilv_node_as_string(uri));
+        }
+    }
+}
+
+void set_path(LilvWorld* world, const char* workdir) {
+    char lwd[PATH_MAX];
+    memset(lwd,0,PATH_MAX*sizeof(lwd[0]));
+    strcat(lwd,"file://");
+    strcat(lwd,workdir);
+    LilvNode* path = lilv_new_string(world, lwd);
+    lilv_world_set_option(world, LILV_OPTION_LV2_PATH, path);
+    lilv_node_free(path);
+}
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
                 main
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
 int main (int argc, char ** argv) {
+
+    extern char *optarg;
+    char *path = NULL;
+    int a = 0;
+    static char usage[] = "usage: %s \n"
+    "[-p path] optional set a path to open a ttl file from\n";
+
+    while ((a = getopt(argc, argv, "p:h?")) != -1) {
+        switch (a) {
+            break;
+            case 'p': path = optarg;
+            break;
+            case 'h':
+            case '?': fprintf(stderr, usage, argv[0]);
+                exit(1);
+            break;
+        }
+    }
+
     XUiDesigner *designer = (XUiDesigner*)malloc(sizeof(XUiDesigner));
     designer->modify_mod = XUI_NONE;
     designer->select_widget_num = 0;
-    designer->active_wiget_num = 0;
+    designer->active_widget_num = 0;
     active_widget = NULL;
     designer->wid_counter = 0;
 
@@ -864,7 +1179,20 @@ int main (int argc, char ** argv) {
     designer->w = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 1200, 800);
     widget_set_title(designer->w, "XUiDesigner");
     designer->w->func.expose_callback = draw_window;
+
+    designer->world = lilv_world_new();
+    if (path !=NULL) set_path(designer->world, path);
+    lilv_world_load_all(designer->world);
+    designer->lv2_plugins = lilv_world_get_all_plugins(designer->world);
     
+    designer->lv2_uris = add_combobox(designer->w, "", 300, 25, 600, 30);
+    designer->lv2_uris->parent_struct = designer;
+    combobox_add_entry(designer->lv2_uris,_("--"));
+    load_uris(designer->lv2_uris, designer->lv2_plugins);
+    combobox_set_active_entry(designer->lv2_uris, 0);
+    designer->lv2_uris->func.value_changed_callback = load_plugin;
+    
+
     designer->ui = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 600, 400);
     Atom wmStateAbove = XInternAtom(app.dpy, "_NET_WM_STATE_ABOVE", 1 );
     Atom wmNetWmState = XInternAtom(app.dpy, "_NET_WM_STATE", 1 );
@@ -874,8 +1202,7 @@ int main (int argc, char ** argv) {
     designer->ui->parent_struct = designer;
     designer->ui->func.expose_callback = draw_window;
     designer->ui->func.button_release_callback = button_released_callback;
-    
-    
+
     designer->widgets = add_combobox(designer->w, "", 20, 25, 120, 30);
     designer->widgets->scale.gravity = SOUTHWEST;
     designer->widgets->flags |= NO_PROPAGATE;
@@ -893,7 +1220,7 @@ int main (int argc, char ** argv) {
     combobox_add_entry(designer->widgets,_("HMeter"));
     combobox_set_active_entry(designer->widgets, 0);
     designer->widgets->func.value_changed_callback = set_widget_callback;
-   
+
     add_label(designer->w, "Label", 1000, 10, 180, 30);
 
     designer->controller_label = create_widget(&app, designer->w, 1000, 50, 180, 30);
@@ -915,9 +1242,9 @@ int main (int argc, char ** argv) {
     designer->set_index = add_button(designer->w, "Set", 1090, 120, 60, 30);
     designer->set_index->parent_struct = designer;
     designer->set_index->func.value_changed_callback = set_port_index;
-    
+
     add_label(designer->w, "Position/Size", 1000, 150, 180, 30);
-   
+
     x_axis = add_hslider(designer->w, "X", 1000, 200, 180, 30);
     x_axis->parent_struct = designer;
     set_adjustment(x_axis->adj,0.0, 0.0, 0.0, 600.0, 1.0, CL_CONTINUOS);
@@ -942,9 +1269,10 @@ int main (int argc, char ** argv) {
 
     designer->combobox_settings = create_widget(&app, designer->w, 1000, 360, 180, 200);
     add_label(designer->combobox_settings, "Add Combobox Entry", 0, 0, 180, 30);
-    designer->combobox_entry = add_input_box(designer->combobox_settings, 0, 40, 140, 30);
+    designer->combobox_entry = add_input_box(designer->combobox_settings, 0, 0, 40, 140, 30);
     designer->combobox_entry->parent_struct = designer;
-    
+    designer->combobox_entry->func.user_callback = set_combobox_entry;
+
     designer->add_entry = add_button(designer->combobox_settings, "Add", 140, 40, 40, 30);
     designer->add_entry->parent_struct = designer;
     designer->add_entry->func.value_changed_callback = add_combobox_entry;
@@ -954,24 +1282,28 @@ int main (int argc, char ** argv) {
     const char* labels[4] = { "Min","Max","Default", "Step Size"};
     int k = 0;
     for (;k<4;k++) {
-        add_label(designer->controller_settings, labels[k], 0, (k+1)*40, 100, 30);
-        designer->controller_entry[k] = add_input_box(designer->controller_settings, 120, (k+1)*40, 40, 30);
+        add_label(designer->controller_settings, labels[k], 0, (k+1)*40, 90, 30);
+        designer->controller_entry[k] = add_input_box(designer->controller_settings, 1, 100, (k+1)*40, 60, 30);
         designer->controller_entry[k]->parent_struct = designer;
     }
 
-    designer->set_adjust = add_button(designer->controller_settings, "Set", 120, 200, 40, 30);
+    designer->set_adjust = add_button(designer->controller_settings, "Set", 100, 200, 60, 30);
     designer->set_adjust->parent_struct = designer;
     designer->set_adjust->func.value_changed_callback = set_controller_adjustment;
 
     widget_show_all(designer->ui);
     main_run(&app);
+
+    lilv_world_free(designer->world);
     print_list(designer);
     main_quit(&app);
     int i = 0;
-    for (;i<designer->wid_counter; i++)
+    for (;i<designer->wid_counter-1; i++) {
         free(designer->new_label[i]);
+    }
     free(designer->new_label);
     free(designer);
+
     return 0;
 }
     

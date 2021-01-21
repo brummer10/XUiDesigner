@@ -6,8 +6,8 @@
 	# include path for library headers
 	INCLUDES := -I. -I$(HEADER_DIR) 
 	# link flags to dynamic link cairo and X11 (default)
-	LDFLAGS += -fPIC -Wl,-z,noexecstack -Wl,--no-undefined `pkg-config --cflags --libs cairo x11` -lm
-	CXXFLAGS += -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector 
+	LDFLAGS += -fPIC -Wl,-z,noexecstack -Wl,--no-undefined `pkg-config --cflags --libs cairo x11 lilv-0` -lm
+	CXXFLAGS += -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector `pkg-config lilv-0 --cflags` 
 	DEBUG_CXXFLAGS += -g -D DEBUG
 
 	BLUE = "\033[1;34m"
