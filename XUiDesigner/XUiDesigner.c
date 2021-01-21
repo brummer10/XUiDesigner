@@ -45,7 +45,7 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-#define MAX_CONTROLS 114
+#define MAX_CONTROLS 225
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -1252,7 +1252,7 @@ int main (int argc, char ** argv) {
     add_label(designer->w, "Port Index", 1000, 80, 180, 30);
     designer->index = add_combobox(designer->w, "", 1000, 120, 70, 30);
     designer->index->parent_struct = designer;
-    combobox_add_numeric_entrys(designer->index, 0, 114);
+    combobox_add_numeric_entrys(designer->index, 0, MAX_CONTROLS);
     combobox_set_active_entry(designer->index, 0);
     designer->set_index = add_button(designer->w, "Set", 1090, 120, 60, 30);
     designer->set_index->parent_struct = designer;
