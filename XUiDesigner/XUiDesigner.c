@@ -924,6 +924,9 @@ void load_plugin(void* w_, void* user_data) {
     Widget_t * wid = NULL;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     widget_set_title(designer->ui, "");
+    designer->ui->width = 600;
+    designer->ui->height = 400;
+    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
     int ch = childlist_has_child(designer->ui->childlist);
     if (ch) {
         for(;ch>0;ch--) {
@@ -957,7 +960,8 @@ void load_plugin(void* w_, void* user_data) {
     designer->lv2c.have_adjustment = false;
     int x = 40;
     int y = 40;
-    int width = designer->ui->width;
+    int x1 = 40;
+    int y1 = 40;
     int v = (int)adj_get_value(w->adj);
     if (v) {
         LilvNode* lv2_AudioPort;
@@ -1065,11 +1069,15 @@ void load_plugin(void* w_, void* user_data) {
                     designer->lv2c.is_input_port = false;
                     designer->lv2c.is_output_port = false;
                 }
+
                 if (designer->lv2c.is_input_port) {
                     if (designer->lv2c.is_toggle_port) {
-                        if (x >= width-70) {
-                            y += 90;
+                        if (x+70 >= 1200) {
+                            y += 130;
+                            y1 += 130;
                             x = 40;
+                        } else {
+                            x1 += 80;
                         }
                         wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
                         set_controller_callbacks(designer, wid);
@@ -1077,9 +1085,12 @@ void load_plugin(void* w_, void* user_data) {
                         designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
                         x += 80;
                     } else if (designer->lv2c.is_enum_port) {
-                        if (x >= width-130) {
-                            y += 90;
+                        if (x+130 >= 1200) {
+                            y += 130;
+                            y1 += 130;
                             x = 40;
+                        } else {
+                            x1 += 140;
                         }
                         wid = add_combobox(designer->ui, designer->new_label[designer->active_widget_num], x, y, 120, 30);
                         set_controller_callbacks(designer, wid);
@@ -1101,9 +1112,12 @@ void load_plugin(void* w_, void* user_data) {
                         designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
                         x += 140;
                     } else {
-                        if (x >= width-70) {
-                            y += 90;
+                        if (x+70 >= 1200) {
+                            y += 130;
+                            y1 += 130;
                             x = 40;
+                        } else {
+                            x1 += 80;
                         }
                         wid = add_knob(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 80);
                         set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max, designer->lv2c.is_int? 1:0.01,2);
@@ -1113,9 +1127,12 @@ void load_plugin(void* w_, void* user_data) {
                         x += 80;
                     }
                 } else if (designer->lv2c.is_output_port) {
-                    if (x >= width-20) {
-                        y += 90;
+                    if (x+20 >= 1200) {
+                        y += 130;
+                        y1 += 130;
                         x = 40;
+                    } else {
+                        x1 += 30;
                     }
                     wid = add_vmeter(designer->ui, designer->new_label[designer->active_widget_num], false, x, y, 10, 120);
                     set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max, designer->lv2c.is_int? 1:0.01,2);
@@ -1133,6 +1150,9 @@ void load_plugin(void* w_, void* user_data) {
         lilv_node_free(lv2_AtomPort);
     }
     widget_show_all(designer->ui);
+    designer->ui->width = min(1200,x1);
+    designer->ui->height = min(600,y1+130);
+    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
 }
 
 void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
