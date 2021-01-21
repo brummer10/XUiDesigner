@@ -969,12 +969,14 @@ void load_plugin(void* w_, void* user_data) {
         LilvNode* lv2_InputPort;
         LilvNode* lv2_OutputPort;
         LilvNode* lv2_AtomPort;
+        LilvNode* lv2_CVPort;
 
         lv2_AudioPort = (lilv_new_uri(designer->world, LV2_CORE__AudioPort));
         lv2_ControlPort = (lilv_new_uri(designer->world, LV2_CORE__ControlPort));
         lv2_InputPort = (lilv_new_uri(designer->world, LV2_CORE__InputPort));
         lv2_OutputPort = (lilv_new_uri(designer->world, LV2_CORE__OutputPort));
         lv2_AtomPort = (lilv_new_uri(designer->world, LV2_ATOM__AtomPort));
+        lv2_CVPort = (lilv_new_uri(designer->world, LV2_CORE__CVPort));
 
         const LilvNode* uri = lilv_new_uri(designer->world, w->label);
         const LilvPlugin* plugin = lilv_plugins_get_by_uri(designer->lv2_plugins, uri);
@@ -1004,6 +1006,8 @@ void load_plugin(void* w_, void* user_data) {
                     } else {
                         n_out += 1;
                     }
+                    continue;
+                } else if (lilv_port_is_a(plugin, port, lv2_CVPort)) {
                     continue;
                 } else if (lilv_port_is_a(plugin, port, lv2_ControlPort)) {
                     LilvNode* nm = lilv_port_get_name(plugin, port);
@@ -1148,6 +1152,7 @@ void load_plugin(void* w_, void* user_data) {
         lilv_node_free(lv2_InputPort);
         lilv_node_free(lv2_OutputPort);
         lilv_node_free(lv2_AtomPort);
+        lilv_node_free(lv2_CVPort);
     }
     widget_show_all(designer->ui);
     designer->ui->width = min(1200,x1);
