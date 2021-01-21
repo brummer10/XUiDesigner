@@ -217,11 +217,26 @@ static void print_list(XUiDesigner *designer) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+void utf8ncpy(char* dst, const char* src, size_t sizeDest ) {
+    if( sizeDest ){
+        size_t sizeSrc = strlen(src);
+        while( sizeSrc >= sizeDest ){
+            const char* lastByte = src + sizeSrc;
+            while( lastByte-- > src )
+                if((*lastByte & 0xC0) != 0x80)
+                    break;
+            sizeSrc = lastByte - src;
+        }
+        memcpy(dst, src, sizeSrc);
+        dst[sizeSrc] = '\0';
+    }
+}
+
 static void entry_set_text(XUiDesigner *designer, const char* label) {
     memset(designer->controller_label->input_label, 0,
         32 * (sizeof designer->controller_label->input_label[0]));
     if (strlen(label))
-        strcat(designer->controller_label->input_label, label);
+        utf8ncpy(designer->controller_label->input_label, label, 30);
     strcat(designer->controller_label->input_label, "|");
     expose_widget(designer->controller_label);
 }
