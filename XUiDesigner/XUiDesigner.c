@@ -1086,6 +1086,7 @@ void load_plugin_ui(void* w_, void* user_data) {
                         int num_sp = lilv_scale_points_size(sp);
                         if (num_sp > 0) {
                             designer->lv2c.is_enum_port = true;
+                            lilv_scale_points_free(sp);
                         } else {
                             designer->lv2c.is_enum_port = false;
                         }
