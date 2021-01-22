@@ -153,6 +153,7 @@ Widget_t *active_widget = NULL;
 
 static void remove_from_list(XUiDesigner *designer, Widget_t *wid) {
     designer->controls[wid->data].wid = NULL;
+    designer->controls[wid->data].have_adjustment = false;
 }
 
 static void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
@@ -202,7 +203,7 @@ static void print_list(XUiDesigner *designer) {
             }
             if (designer->controls[i].have_adjustment) {
                 printf ("set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n", 
-                    j, wid->adj->std_value, wid->adj->value, wid->adj->min_value, wid->adj->max_value,
+                    j, wid->adj->std_value, wid->adj->std_value, wid->adj->min_value, wid->adj->max_value,
                     wid->adj->step, wid->adj->type);
             }
             j++;
@@ -913,16 +914,7 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
     }
 }
 
-/*---------------------------------------------------------------------
------------------------------------------------------------------------    
-                lv2 ttl handling
------------------------------------------------------------------------
-----------------------------------------------------------------------*/
-
-void load_plugin(void* w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t * wid = NULL;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+static void reset_plugin_ui(XUiDesigner *designer) {
     widget_set_title(designer->ui, "");
     designer->ui->width = 600;
     designer->ui->height = 400;
@@ -931,7 +923,7 @@ void load_plugin(void* w_, void* user_data) {
     if (ch) {
         for(;ch>0;ch--) {
             remove_from_list(designer, designer->ui->childlist->childs[ch-1]);
-            destroy_widget(designer->ui->childlist->childs[ch-1],w->app);
+            destroy_widget(designer->ui->childlist->childs[ch-1],designer->ui->app);
         }
     }
     int i = 0;
@@ -951,32 +943,52 @@ void load_plugin(void* w_, void* user_data) {
     adj_set_value(h_axis->adj, 10.0);
     widget_hide(designer->combobox_settings);
     widget_hide(designer->controller_settings);
+    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
 
     adj_set_value(designer->index->adj,0.0);
     designer->wid_counter = 0;
     designer->active_widget_num = 0;
     designer->lv2c.is_enum_port = false;
     designer->lv2c.is_toggle_port = false;
-    designer->lv2c.have_adjustment = false;
+    designer->lv2c.have_adjustment = false;    
+}
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                lv2 ttl handling
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+int sort_enums(int elem, int array[], int size) {
+    int i = 0;
+    for(;i<size;i++) {
+        if(array[i] == elem) {
+            return i; 
+        }
+    }
+    return -1; 
+}
+
+void load_plugin_ui(void* w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t * wid = NULL;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    reset_plugin_ui(designer);
     int x = 40;
     int y = 40;
     int x1 = 40;
     int y1 = 40;
     int v = (int)adj_get_value(w->adj);
     if (v) {
-        LilvNode* lv2_AudioPort;
-        LilvNode* lv2_ControlPort;
-        LilvNode* lv2_InputPort;
-        LilvNode* lv2_OutputPort;
-        LilvNode* lv2_AtomPort;
-        LilvNode* lv2_CVPort;
-
-        lv2_AudioPort = (lilv_new_uri(designer->world, LV2_CORE__AudioPort));
-        lv2_ControlPort = (lilv_new_uri(designer->world, LV2_CORE__ControlPort));
-        lv2_InputPort = (lilv_new_uri(designer->world, LV2_CORE__InputPort));
-        lv2_OutputPort = (lilv_new_uri(designer->world, LV2_CORE__OutputPort));
-        lv2_AtomPort = (lilv_new_uri(designer->world, LV2_ATOM__AtomPort));
-        lv2_CVPort = (lilv_new_uri(designer->world, LV2_CORE__CVPort));
+        LilvNode* lv2_AudioPort = (lilv_new_uri(designer->world, LV2_CORE__AudioPort));
+        LilvNode* lv2_ControlPort = (lilv_new_uri(designer->world, LV2_CORE__ControlPort));
+        LilvNode* lv2_InputPort = (lilv_new_uri(designer->world, LV2_CORE__InputPort));
+        LilvNode* lv2_OutputPort = (lilv_new_uri(designer->world, LV2_CORE__OutputPort));
+        LilvNode* lv2_AtomPort = (lilv_new_uri(designer->world, LV2_ATOM__AtomPort));
+        LilvNode* lv2_CVPort = (lilv_new_uri(designer->world, LV2_CORE__CVPort));
+        LilvNode* is_int = lilv_new_uri(designer->world, LV2_CORE__integer);
+        LilvNode* is_tog = lilv_new_uri(designer->world, LV2_CORE__toggled);
+        LilvNode* is_enum = lilv_new_uri(designer->world, LV2_CORE__enumeration);
 
         const LilvNode* uri = lilv_new_uri(designer->world, w->label);
         const LilvPlugin* plugin = lilv_plugins_get_by_uri(designer->lv2_plugins, uri);
@@ -990,11 +1002,13 @@ void load_plugin(void* w_, void* user_data) {
             int n_in = 0;
             int n_out = 0;
             int n_atoms = 0;
+            int n_cv = 0;
             lilv_node_free(nd);
             unsigned int num_ports = lilv_plugin_get_num_ports(plugin);
             for (unsigned int n = 0; n < num_ports; n++) {
                 if (designer->wid_counter >= MAX_CONTROLS) {
-                    Widget_t *dia = open_message_dialog(designer->ui, INFO_BOX, _("INFO"), _("MAX CONTROL COUNTER OVERFLOW"),NULL);
+                    Widget_t *dia = open_message_dialog(designer->ui, INFO_BOX, _("INFO"),
+                                                    _("MAX CONTROL COUNTER OVERFLOW"),NULL);
                     XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
                     break;
                 }
@@ -1002,12 +1016,16 @@ void load_plugin(void* w_, void* user_data) {
                 const LilvPort* port = lilv_plugin_get_port_by_index(plugin, n);
                 if (lilv_port_is_a(plugin, port, lv2_AudioPort)) {
                     if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
-                        n_in += 1;
+                        n_in++;
                     } else {
-                        n_out += 1;
+                        n_out++;
                     }
                     continue;
                 } else if (lilv_port_is_a(plugin, port, lv2_CVPort)) {
+                    n_cv++;
+                    continue;
+                } else if (lilv_port_is_a(plugin, port, lv2_AtomPort)) {
+                    n_atoms++;
                     continue;
                 } else if (lilv_port_is_a(plugin, port, lv2_ControlPort)) {
                     LilvNode* nm = lilv_port_get_name(plugin, port);
@@ -1037,41 +1055,24 @@ void load_plugin(void* w_, void* user_data) {
                         designer->lv2c.def = lilv_node_as_float(pdflt);
                         lilv_node_free(pdflt);
                     }
-                    LilvNode* is_int = lilv_new_uri(designer->world, LV2_CORE__integer);
+
                     if (lilv_port_has_property(plugin, port, is_int)) {
                         designer->lv2c.is_int = true;
                     } else {
                         designer->lv2c.is_int = false;
                     }
-                    lilv_node_free(is_int);
-                    LilvNode* is_tog = lilv_new_uri(designer->world, LV2_CORE__toggled);
+
                     if (lilv_port_has_property(plugin, port, is_tog)) {
                         designer->lv2c.is_toggle_port = true;
                     } else {
                         designer->lv2c.is_toggle_port = false;
                     }
-                    lilv_node_free(is_tog);
-                    LilvScalePoints* sp = lilv_port_get_scale_points(plugin, port);
-                    int num_sp = lilv_scale_points_size(sp);
-                    if (num_sp > 0) {
+
+                    if (lilv_port_has_property(plugin, port, is_enum)) {
                         designer->lv2c.is_enum_port = true;
                     } else {
                         designer->lv2c.is_enum_port = false;
                     }
-                    lilv_scale_points_free(sp);
-
-                } else if (lilv_port_is_a(plugin, port, lv2_AtomPort)) {
-                    if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
-                        //fprintf(stderr, "Is Input Port\n");
-                    } else if (lilv_port_is_a(plugin, port, lv2_OutputPort)) {
-                        //fprintf(stderr, "Is Output Port\n");
-                    }
-                    n_atoms++;
-                    LilvNode* nm = lilv_port_get_name(plugin, port);
-                    //fprintf(stderr, "Is Atom Port %s\n", lilv_node_as_string(nm));
-                    lilv_node_free(nm);
-                    designer->lv2c.is_input_port = false;
-                    designer->lv2c.is_output_port = false;
                 }
 
                 if (designer->lv2c.is_input_port) {
@@ -1101,15 +1102,31 @@ void load_plugin(void* w_, void* user_data) {
                         
                         LilvScalePoints* sp = lilv_port_get_scale_points(plugin, port);
                         int num_sp = lilv_scale_points_size(sp);
+                        int sp_count = 0;
+                        int sppos[num_sp];
+                        char splabes[num_sp][32];
                         if (num_sp > 0) {
                             for (LilvIter* it = lilv_scale_points_begin(sp);
                                     !lilv_scale_points_is_end(sp, it);
                                     it = lilv_scale_points_next(sp, it)) {
                                 const LilvScalePoint* p = lilv_scale_points_get(sp, it);
-                                combobox_add_entry(wid,lilv_node_as_string(lilv_scale_point_get_label(p)));
+                                utf8ncpy(&splabes[sp_count][0], lilv_node_as_string(lilv_scale_point_get_label(p)), 31);
+                                sppos[sp_count] = lilv_node_as_float(lilv_scale_point_get_value(p));
+                                sp_count++;
                             }
+                            int i = designer->lv2c.min;
+                            char s[32];
+                            for (;i<designer->lv2c.max+1;i++) {
+                                int j = sort_enums(i,sppos,num_sp);
+                                if (j>-1) {
+                                    combobox_add_entry(wid,&splabes[j][0]);
+                                } else {
+                                    snprintf(s, 31,"%d",  i);
+                                    combobox_add_entry(wid,s);
+                                }
+                            }
+                            lilv_scale_points_free(sp);
                         }
-                        lilv_scale_points_free(sp);
 
                         set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max, designer->lv2c.is_int? 1.0:0.01,3);
                         add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
@@ -1146,6 +1163,9 @@ void load_plugin(void* w_, void* user_data) {
                     x += 30;
                 }
             }
+            designer->ui->width = min(1200,x1);
+            designer->ui->height = min(600,y1+130);
+            XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
         }
         lilv_node_free(lv2_AudioPort);
         lilv_node_free(lv2_ControlPort);
@@ -1153,11 +1173,11 @@ void load_plugin(void* w_, void* user_data) {
         lilv_node_free(lv2_OutputPort);
         lilv_node_free(lv2_AtomPort);
         lilv_node_free(lv2_CVPort);
+        lilv_node_free(is_int);
+        lilv_node_free(is_tog);
+        lilv_node_free(is_enum);
     }
     widget_show_all(designer->ui);
-    designer->ui->width = min(1200,x1);
-    designer->ui->height = min(600,y1+130);
-    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
 }
 
 void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
@@ -1236,7 +1256,7 @@ int main (int argc, char ** argv) {
     combobox_add_entry(designer->lv2_uris,_("--"));
     load_uris(designer->lv2_uris, designer->lv2_plugins);
     combobox_set_active_entry(designer->lv2_uris, 0);
-    designer->lv2_uris->func.value_changed_callback = load_plugin;
+    designer->lv2_uris->func.value_changed_callback = load_plugin_ui;
     
 
     designer->ui = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 600, 400);
@@ -1293,7 +1313,7 @@ int main (int argc, char ** argv) {
 
     x_axis = add_hslider(designer->w, "X", 1000, 200, 180, 30);
     x_axis->parent_struct = designer;
-    set_adjustment(x_axis->adj,0.0, 0.0, 0.0, 600.0, 1.0, CL_CONTINUOS);
+    set_adjustment(x_axis->adj,0.0, 0.0, 0.0, 1200.0, 1.0, CL_CONTINUOS);
     x_axis->func.value_changed_callback = set_x_axis_callback;
 
     y_axis = add_hslider(designer->w, "Y", 1000, 240, 180, 30);
