@@ -99,7 +99,9 @@ typedef struct {
     bool is_output_port;
     bool is_toggle_port;
     bool is_enum_port;
-    bool is_int;
+    bool is_int_port;
+    bool is_trigger_port;
+    bool is_log_port;
     bool have_adjustment;
     int Port_Index;
     const char *name;
@@ -948,9 +950,6 @@ static void reset_plugin_ui(XUiDesigner *designer) {
     adj_set_value(designer->index->adj,0.0);
     designer->wid_counter = 0;
     designer->active_widget_num = 0;
-    designer->lv2c.is_enum_port = false;
-    designer->lv2c.is_toggle_port = false;
-    designer->lv2c.have_adjustment = false;    
 }
 
 /*---------------------------------------------------------------------
@@ -974,6 +973,11 @@ void load_plugin_ui(void* w_, void* user_data) {
     Widget_t * wid = NULL;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     reset_plugin_ui(designer);
+    designer->lv2c.is_enum_port = false;
+    designer->lv2c.is_toggle_port = false;
+    designer->lv2c.have_adjustment = false;    
+    designer->lv2c.is_trigger_port = false;
+    designer->lv2c.is_log_port = false;    
     int x = 40;
     int y = 40;
     int x1 = 40;
@@ -990,6 +994,11 @@ void load_plugin_ui(void* w_, void* user_data) {
         LilvNode* is_tog = lilv_new_uri(designer->world, LV2_CORE__toggled);
         LilvNode* is_enum = lilv_new_uri(designer->world, LV2_CORE__enumeration);
 
+        LilvNode* notOnGui = lilv_new_uri(designer->world, LV2_PORT_PROPS__notOnGUI);
+        LilvNode* is_log = lilv_new_uri(designer->world, LV2_PORT_PROPS__logarithmic);
+        LilvNode* has_step = lilv_new_uri(designer->world, LV2_PORT_PROPS__rangeSteps);
+        LilvNode* is_trigger = lilv_new_uri(designer->world, LV2_PORT_PROPS__trigger);
+
         const LilvNode* uri = lilv_new_uri(designer->world, w->label);
         const LilvPlugin* plugin = lilv_plugins_get_by_uri(designer->lv2_plugins, uri);
         if (plugin) {
@@ -1003,6 +1012,7 @@ void load_plugin_ui(void* w_, void* user_data) {
             int n_out = 0;
             int n_atoms = 0;
             int n_cv = 0;
+            int n_gui = 0;
             lilv_node_free(nd);
             unsigned int num_ports = lilv_plugin_get_num_ports(plugin);
             for (unsigned int n = 0; n < num_ports; n++) {
@@ -1026,6 +1036,9 @@ void load_plugin_ui(void* w_, void* user_data) {
                     continue;
                 } else if (lilv_port_is_a(plugin, port, lv2_AtomPort)) {
                     n_atoms++;
+                    continue;
+                } else if (lilv_port_has_property(plugin, port, notOnGui)) {
+                    n_gui++;
                     continue;
                 } else if (lilv_port_is_a(plugin, port, lv2_ControlPort)) {
                     LilvNode* nm = lilv_port_get_name(plugin, port);
@@ -1057,9 +1070,9 @@ void load_plugin_ui(void* w_, void* user_data) {
                     }
 
                     if (lilv_port_has_property(plugin, port, is_int)) {
-                        designer->lv2c.is_int = true;
+                        designer->lv2c.is_int_port = true;
                     } else {
-                        designer->lv2c.is_int = false;
+                        designer->lv2c.is_int_port = false;
                     }
 
                     if (lilv_port_has_property(plugin, port, is_tog)) {
@@ -1072,6 +1085,18 @@ void load_plugin_ui(void* w_, void* user_data) {
                         designer->lv2c.is_enum_port = true;
                     } else {
                         designer->lv2c.is_enum_port = false;
+                    }
+
+                    if (lilv_port_has_property(plugin, port, is_trigger)) {
+                        designer->lv2c.is_trigger_port = true;
+                    } else {
+                        designer->lv2c.is_trigger_port = false;
+                    }
+
+                    if (lilv_port_has_property(plugin, port, is_log)) {
+                        designer->lv2c.is_log_port = true;
+                    } else {
+                        designer->lv2c.is_log_port = false;
                     }
                 }
 
@@ -1087,6 +1112,19 @@ void load_plugin_ui(void* w_, void* user_data) {
                         wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
                         set_controller_callbacks(designer, wid);
                         add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+                        designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+                        x += 80;
+                    } else if (designer->lv2c.is_trigger_port) {
+                        if (x+70 >= 1200) {
+                            y += 130;
+                            y1 += 130;
+                            x = 40;
+                        } else {
+                            x1 += 80;
+                        }
+                        wid = add_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
+                        set_controller_callbacks(designer, wid);
+                        add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
                         designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
                         x += 80;
                     } else if (designer->lv2c.is_enum_port) {
@@ -1128,7 +1166,8 @@ void load_plugin_ui(void* w_, void* user_data) {
                             lilv_scale_points_free(sp);
                         }
 
-                        set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max, designer->lv2c.is_int? 1.0:0.01,3);
+                        set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min,
+                                                designer->lv2c.max, designer->lv2c.is_int_port? 1.0:0.01, CL_ENUM);
                         add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
                         designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
                         x += 140;
@@ -1141,7 +1180,8 @@ void load_plugin_ui(void* w_, void* user_data) {
                             x1 += 80;
                         }
                         wid = add_knob(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 80);
-                        set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max, designer->lv2c.is_int? 1:0.01,2);
+                        set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min,
+                            designer->lv2c.max, designer->lv2c.is_int_port? 1:0.01,designer->lv2c.is_log_port? CL_LOGARITHMIC:CL_CONTINUOS);
                         set_controller_callbacks(designer, wid);
                         add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
                         designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
@@ -1156,7 +1196,8 @@ void load_plugin_ui(void* w_, void* user_data) {
                         x1 += 30;
                     }
                     wid = add_vmeter(designer->ui, designer->new_label[designer->active_widget_num], false, x, y, 10, 120);
-                    set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max, designer->lv2c.is_int? 1:0.01,2);
+                    set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max,
+                        designer->lv2c.is_int_port? 1:0.01, designer->lv2c.is_log_port? CL_LOGARITHMIC:CL_METER);
                     set_controller_callbacks(designer, wid);
                     add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
                     designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
@@ -1176,6 +1217,11 @@ void load_plugin_ui(void* w_, void* user_data) {
         lilv_node_free(is_int);
         lilv_node_free(is_tog);
         lilv_node_free(is_enum);
+
+        lilv_node_free(notOnGui);
+        lilv_node_free(is_log);
+        lilv_node_free(has_step);
+        lilv_node_free(is_trigger);
     }
     widget_show_all(designer->ui);
 }
