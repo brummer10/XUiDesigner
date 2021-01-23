@@ -38,6 +38,7 @@
 
 #include "xwidgets.h"
 #include "xmessage-dialog.h"
+#include "xfile-dialog.h"
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -127,6 +128,9 @@ typedef struct {
     Widget_t *controller_entry[4];
     Widget_t *set_adjust;
     Widget_t *lv2_uris;
+    Widget_t *image_loader;
+    Widget_t *unload_image;
+    Widget_t *context_menu;
     int active_widget_num;
     int pos_x;
     int pos_y;
@@ -137,6 +141,7 @@ typedef struct {
     int wid_counter;
     int select_widget_num;
     char** new_label ;
+    char* image_path;
     LV2_CONTROLLER lv2c;
     Controller controls[MAX_CONTROLS];
 } XUiDesigner;
@@ -526,6 +531,12 @@ static void draw_window(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     use_bg_color_scheme(w, NORMAL_);
     cairo_paint (w->crb);
+    if (w->image) {
+        widget_set_scale(w);
+        cairo_set_source_surface (w->crb, w->image, 0, 0);
+        cairo_paint (w->crb);
+        widget_reset_scale(w);
+    }
 }
 
 static void set_port_index(void *w_, void* user_data) {
@@ -718,7 +729,8 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
         adj_set_value(designer->index->adj, 
             (float)designer->controls[designer->active_widget_num].port_index);
 
-        if (designer->controls[designer->active_widget_num].have_adjustment) {
+        if (designer->controls[designer->active_widget_num].have_adjustment &&
+                designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
             widget_show_all(designer->controller_settings);
             box_entry_set_text(designer->controller_entry[0], active_widget->adj->min_value);
             box_entry_set_text(designer->controller_entry[1], active_widget->adj->max_value);
@@ -773,16 +785,7 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
         adj_set_value(y_axis->adj, w->y);
     } else if(xbutton->button == Button3) {
         designer->modify_mod = XUI_NONE;
-        active_widget = NULL;
-        remove_from_list(designer, w);
-        destroy_widget(w, w->app);
-        entry_set_text(designer, "");
-        adj_set_value(x_axis->adj, 0.0);
-        adj_set_value(y_axis->adj, 0.0);
-        adj_set_value(w_axis->adj, 10.0);
-        adj_set_value(h_axis->adj, 10.0);
-        widget_hide(designer->combobox_settings);
-        widget_hide(designer->controller_settings);
+        pop_menu_show(w,designer->context_menu,3,true);
     }
 }
 
@@ -878,7 +881,7 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
             case 7:
                 wid = add_valuedisplay(w, "", xbutton->x, xbutton->y, 40, 30);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_lv2_valuedisplay", false, IS_VALUE_DISPLAY);
+                add_to_list(designer, wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
             break;
             case 8:
                 wid = add_label(w, "Label", xbutton->x, xbutton->y, 60, 30);
@@ -888,12 +891,12 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
             case 9:
                 wid = add_vmeter(w, "VMeter", true, xbutton->x, xbutton->y, 10, 120);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_lv2_vmeter", false, IS_VMETER);
+                add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
             break;
             case 10:
                 wid = add_hmeter(w, "hMeter", true, xbutton->x, xbutton->y, 120, 10);
                 set_controller_callbacks(designer, wid);
-                add_to_list(designer, wid, "add_lv2_hmeter", false, IS_HMETER);
+                add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
             break;
             default:
             break;
@@ -915,6 +918,129 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         }
     }
 }
+
+static void image_load_response(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
+    if(user_data !=NULL) {
+
+        if( access(*(const char**)user_data, F_OK ) == -1 ) {
+            Widget_t *dia = open_message_dialog(w, ERROR_BOX, *(const char**)user_data,
+                                                _("Couldn't access file, sorry"),NULL);
+            XSetTransientForHint(w->app->dpy, dia->widget, w->widget);
+            return;
+        }
+        cairo_surface_t *getpng = cairo_image_surface_create_from_png (*(const char**)user_data);
+        int width = cairo_image_surface_get_width(getpng);
+        int height = cairo_image_surface_get_height(getpng);
+        int width_t = designer->ui->scale.init_width;
+        int height_t = designer->ui->scale.init_height;
+        double x = (double)width_t/(double)width;
+        double y = (double)height_t/(double)height;
+        cairo_surface_destroy(designer->ui->image);
+        designer->ui->image = NULL;
+
+        designer->ui->image = cairo_surface_create_similar (designer->ui->surface, 
+                            CAIRO_CONTENT_COLOR_ALPHA, width_t, height_t);
+        cairo_t *cri = cairo_create (designer->ui->image);
+        cairo_scale(cri, x,y);    
+        cairo_set_source_surface (cri, getpng,0,0);
+        cairo_paint (cri);
+        cairo_surface_destroy(getpng);
+        cairo_destroy(cri);
+        expose_widget(designer->ui);
+    }
+}
+
+static void unload_background_image(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        cairo_surface_destroy(designer->ui->image);
+        designer->ui->image = NULL;
+        expose_widget(designer->ui);
+    }
+}
+
+static void controller_image_load_response(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (!active_widget) return;
+    if(user_data !=NULL) {
+
+        if( access(*(const char**)user_data, F_OK ) == -1 ) {
+            Widget_t *dia = open_message_dialog(w, ERROR_BOX, *(const char**)user_data,
+                                                _("Couldn't access file, sorry"),NULL);
+            XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+            return;
+        }
+        cairo_surface_t *getpng = cairo_image_surface_create_from_png (*(const char**)user_data);
+        int width = cairo_image_surface_get_width(getpng);
+        int height = cairo_image_surface_get_height(getpng);
+        cairo_surface_destroy(active_widget->image);
+        active_widget->image = NULL;
+
+        active_widget->image = cairo_surface_create_similar (active_widget->surface, 
+                            CAIRO_CONTENT_COLOR_ALPHA, width, height);
+        cairo_t *cri = cairo_create (active_widget->image);
+        cairo_set_source_surface (cri, getpng,0,0);
+        cairo_paint (cri);
+        cairo_surface_destroy(getpng);
+        cairo_destroy(cri);
+        expose_widget(active_widget);
+        char *tmp = strdup(*(const char**)user_data);
+        free(designer->image_path);
+        designer->image_path = NULL;
+        designer->image_path = strdup(dirname(tmp));
+        free(tmp);
+    }
+}
+
+static void unload_controller_image(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (!w) return;
+    cairo_surface_destroy(w->image);
+    w->image = NULL;
+    expose_widget(w);
+}
+
+static void pop_menu_response(void *w_, void* item_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    switch (*(int*)item_) {
+        case 0: 
+        {
+            Widget_t *dia = open_file_dialog(designer->ui, designer->image_path, ".png");
+            XSetTransientForHint(designer->ui->app->dpy, dia->widget, designer->ui->widget);
+            designer->ui->func.dialog_callback = controller_image_load_response;
+        }
+        break;
+        case 1:
+            unload_controller_image(active_widget,NULL);
+        break;
+        case 2: 
+            remove_from_list(designer, active_widget);
+            destroy_widget(active_widget, w->app);
+            active_widget = NULL;
+            entry_set_text(designer, "");
+            adj_set_value(x_axis->adj, 0.0);
+            adj_set_value(y_axis->adj, 0.0);
+            adj_set_value(w_axis->adj, 10.0);
+            adj_set_value(h_axis->adj, 10.0);
+            widget_hide(designer->combobox_settings);
+            widget_hide(designer->controller_settings);
+        break;
+        default:
+        break;
+    }
+}
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                lv2 ttl handling
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
 
 static void reset_plugin_ui(XUiDesigner *designer) {
     widget_set_title(designer->ui, "");
@@ -951,12 +1077,6 @@ static void reset_plugin_ui(XUiDesigner *designer) {
     designer->wid_counter = 0;
     designer->active_widget_num = 0;
 }
-
-/*---------------------------------------------------------------------
------------------------------------------------------------------------    
-                lv2 ttl handling
------------------------------------------------------------------------
-----------------------------------------------------------------------*/
 
 int sort_enums(int elem, int array[], int size) {
     int i = 0;
@@ -1231,6 +1351,7 @@ void load_plugin_ui(void* w_, void* user_data) {
         lilv_node_free(is_trigger);
     }
     widget_show_all(designer->ui);
+    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height+1);
 }
 
 void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
@@ -1287,6 +1408,7 @@ int main (int argc, char ** argv) {
     designer->active_widget_num = 0;
     active_widget = NULL;
     designer->wid_counter = 0;
+    designer->image_path = NULL;
 
     Xputty app;
     main_init(&app);
@@ -1296,6 +1418,7 @@ int main (int argc, char ** argv) {
     for (;m<MAX_CONTROLS;m++) designer->controls[m].wid = NULL;
     //set_light_theme(&app);
     designer->w = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 1200, 800);
+    designer->w->parent_struct = designer;
     widget_set_title(designer->w, "XUiDesigner");
     designer->w->func.expose_callback = draw_window;
 
@@ -1339,6 +1462,16 @@ int main (int argc, char ** argv) {
     combobox_add_entry(designer->widgets,_("HMeter"));
     combobox_set_active_entry(designer->widgets, 0);
     designer->widgets->func.value_changed_callback = set_widget_callback;
+
+    designer->image_loader = add_file_button(designer->w,20,75,40,40, "", ".png");
+    tooltip_set_text(designer->image_loader,"Load Background Image (*.png)");
+    designer->image_loader->func.user_callback = image_load_response;
+    
+    designer->unload_image = add_button(designer->w, "", 80, 75, 40, 40);
+    widget_get_png(designer->unload_image, LDVAR(cancel_png));
+    tooltip_set_text(designer->unload_image,"Unload Background Image");
+    designer->unload_image->parent_struct = designer;
+    designer->unload_image->func.value_changed_callback = unload_background_image;
 
     add_label(designer->w, "Label", 1000, 10, 180, 30);
 
@@ -1384,6 +1517,8 @@ int main (int argc, char ** argv) {
     set_adjustment(h_axis->adj,10.0, 10.0, 10.0, 300.0, 1.0, CL_CONTINUOS);
     h_axis->func.value_changed_callback = set_h_axis_callback;
 
+
+
     widget_show_all(designer->w);
 
     designer->combobox_settings = create_widget(&app, designer->w, 1000, 360, 180, 200);
@@ -1410,6 +1545,13 @@ int main (int argc, char ** argv) {
     designer->set_adjust->parent_struct = designer;
     designer->set_adjust->func.value_changed_callback = set_controller_adjustment;
 
+    designer->context_menu = create_menu(designer->ui,25);
+    designer->context_menu->parent_struct = designer;
+    menu_add_item(designer->context_menu,"Load Controller Image");
+    menu_add_item(designer->context_menu,"Unload Controller Image");
+    menu_add_item(designer->context_menu,"Delete Controller");
+    designer->context_menu->func.button_release_callback = pop_menu_response;
+
     widget_show_all(designer->ui);
     main_run(&app);
 
@@ -1421,6 +1563,7 @@ int main (int argc, char ** argv) {
         free(designer->new_label[i]);
     }
     free(designer->new_label);
+    free(designer->image_path);
     free(designer);
 
     return 0;
