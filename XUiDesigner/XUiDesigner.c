@@ -788,6 +788,9 @@ int main (int argc, char ** argv) {
     designer->wid_counter = 0;
     designer->image_path = NULL;
     designer->image = NULL;
+    designer->icon = NULL;
+    designer->run_test = false;
+    designer->lv2c.ui_uri = NULL;
 
     Xputty app;
     main_init(&app);
@@ -802,6 +805,7 @@ int main (int argc, char ** argv) {
     designer->w = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 1200, 800);
     designer->w->parent_struct = designer;
     widget_set_title(designer->w, _("XUiDesigner"));
+    widget_set_icon_from_png(designer->w, designer->icon, LDVAR(gear_png));
     designer->w->func.expose_callback = draw_window;
 
     designer->world = lilv_world_new();
@@ -857,9 +861,16 @@ int main (int argc, char ** argv) {
 
     designer->color_chooser = add_image_toggle_button(designer->w, "", 20, 135, 40, 40);
     widget_get_png(designer->color_chooser, LDVAR(colors_png));
+    tooltip_set_text(designer->color_chooser,_("Show/Hide Color Chooser"));
     designer->color_chooser->parent_struct = designer;
     create_color_chooser (designer);
     designer->color_chooser->func.value_changed_callback = show_color_chooser;
+
+    designer->test = add_button(designer->w, "", 80, 135, 40, 40);
+    widget_get_png(designer->test, LDVAR(gear_png));
+    tooltip_set_text(designer->test,_("Run test build"));
+    designer->test->parent_struct = designer;
+    designer->test->func.value_changed_callback = run_test;
 
     add_label(designer->w, _("Label"), 1000, 10, 180, 30);
 
@@ -952,11 +963,14 @@ int main (int argc, char ** argv) {
     free(designer->new_label);
     free(designer->image_path);
     free(designer->image);
+    free(designer->lv2c.ui_uri);
     m = 0;
     for (;m<MAX_CONTROLS;m++) {
         free(designer->controls[m].image);
     }
-    
+    if (designer->icon) {
+        XFreePixmap(designer->w->app->dpy, (*designer->icon));
+    }
     free(designer);
 
     return 0;

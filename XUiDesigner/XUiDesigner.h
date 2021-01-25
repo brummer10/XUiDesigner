@@ -110,6 +110,7 @@ typedef struct {
 ----------------------------------------------------------------------*/
 
 typedef struct {
+    char* ui_uri;
     bool is_input_port;
     bool is_output_port;
     bool is_toggle_port;
@@ -129,6 +130,7 @@ typedef struct {
     LilvWorld* world;
     const LilvPlugins* lv2_plugins;        
 
+    Pixmap *icon;
     Widget_t *x_axis;
     Widget_t *y_axis;
     Widget_t *w_axis;
@@ -156,7 +158,9 @@ typedef struct {
     Widget_t *color_widget;
     Widget_t *color_sel;
     Widget_t *color_scheme_select;
+    Widget_t *test;
     Colors *selected_scheme;
+    bool run_test;
     int active_widget_num;
     int pos_x;
     int pos_y;

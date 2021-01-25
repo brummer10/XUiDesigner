@@ -57,9 +57,9 @@
 all : check $(NAME)
 	@mkdir -p ./$(BUILD_DIR)
 	@mv ./$(EXEC_NAME) ./$(BUILD_DIR)
-	@if [ -f ./$(BUILD_DIR)/$(EXEC_NAME) ]; then echo $(BLUE)"build finish, now run make install"; \
-	else echo $(RED)"sorry, build failed"; fi
-	@echo $(NONE)
+	@#if [ -f ./$(BUILD_DIR)/$(EXEC_NAME) ]; then echo $(BLUE)"build finish, now run make install"; \
+	#else echo $(RED)"sorry, build failed"; fi
+	@#echo $(NONE)
 
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS) 
 debug: all

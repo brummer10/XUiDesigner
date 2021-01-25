@@ -40,6 +40,7 @@ void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
 
 void print_list(XUiDesigner *designer);
 
+void run_test(void *w_, void* user_data);
 
 #ifdef __cplusplus
 }

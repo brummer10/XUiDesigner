@@ -110,6 +110,21 @@ void load_plugin_ui(void* w_, void* user_data) {
         if (plugin) {
             LilvNode* nd = NULL;
             //const LilvNode* uri = lilv_plugin_get_uri(plugin);
+            LilvUIs* uis = lilv_plugin_get_uis(plugin);
+            for (LilvIter* it = lilv_uis_begin(uis);
+                                    !lilv_uis_is_end(uis, it);
+                                    it = lilv_uis_next(uis, it)) {
+                const LilvUI* ui = lilv_uis_get(uis, it);
+                const LilvNode* ui_uri = lilv_ui_get_uri(ui);
+                if (ui_uri) {
+                    free(designer->lv2c.ui_uri);
+                    designer->lv2c.ui_uri = NULL;
+                    asprintf(&designer->lv2c.ui_uri, "%s", lilv_node_as_string(ui_uri));
+                    break;
+                }
+                
+            }
+            lilv_uis_free(uis);
             nd = lilv_plugin_get_name(plugin);
             if (nd) {
                 widget_set_title(designer->ui, lilv_node_as_string(nd));

@@ -18,6 +18,8 @@
  *
  */
 
+#include <stdio.h>
+
 #include "XUiGenerator.h"
 
 
@@ -156,9 +158,11 @@ void print_list(XUiDesigner *designer) {
         char *name;
         XFetchName(designer->ui->app->dpy, w, &name);
 
-        printf ("\n#define CONTROLS %i\n\n\n", j);
+        printf ("\n#define CONTROLS %i\n\n", j);
+        printf ("\n#define PLUGIN_UI_URI \"%s\"\n\n",designer->lv2c.ui_uri);
+        printf ("\n#include \"lv2_plugin.h\"\n\n");
         print_colors(designer);
-        printf ("#include \"lv2_plugin.cc\"\n\n\n"
+        printf ("#include \"%s\"\n\n\n"
         "void plugin_value_changed(X11_UI *ui, Widget_t *w, PortIndex index) {\n"
         "    // do special stuff when needed\n"
         "}\n\n"
@@ -170,9 +174,9 @@ void print_list(XUiDesigner *designer) {
         "    return \"%s\"; //set plugin name to display on UI\n"
         "}\n\n"
         "void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri) {\n"
-        "    set_costum_theme(ui->main);\n"
-        , designer->ui->width, designer->ui->height, name? name:"Test");
-        if (designer->image) printf("//image = \"%s\";\n", designer->image);
+        "    set_costum_theme(&ui->main);\n"
+        , designer->run_test? "ui_test.cc": "lv2_plugin.cc", designer->ui->width, designer->ui->height, name? name:"Test");
+        if (designer->image && designer->run_test) printf ("    load_bg_image(ui,\"%s\");\n", designer->image);
 
     } else {
         return;
@@ -187,8 +191,8 @@ void print_list(XUiDesigner *designer) {
                 designer->controls[i].port_index, designer->controls[i].wid->label,
                 designer->controls[i].wid->x, designer->controls[i].wid->y,
                 designer->controls[i].wid-> width, designer->controls[i].wid->height);
-            if (designer->controls[i].image != NULL) {
-                printf ("//image = \"%s\";\n", designer->controls[i].image);
+            if (designer->controls[i].image != NULL && designer->run_test) {
+                printf ("    load_controller_image(ui->widget[%i], \"%s\");\n", j, designer->controls[i].image);
             }
             if (designer->controls[i].is_type == IS_COMBOBOX) {
                 Widget_t *menu = wid->childlist->childs[1];
@@ -200,9 +204,16 @@ void print_list(XUiDesigner *designer) {
                 }
             }
             if (designer->controls[i].have_adjustment) {
-                printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n\n", 
-                    j, wid->adj->std_value, wid->adj->std_value, wid->adj->min_value, wid->adj->max_value,
-                    wid->adj->step, wid->adj->type);
+                if (wid->adj->type == CL_LOGARITHMIC) {
+                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n\n", 
+                        j, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value), powf(10,wid->adj->min_value),
+                        powf(10,wid->adj->max_value), wid->adj->step, wid->adj->type);
+                    
+                } else {
+                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n\n", 
+                        j, wid->adj->std_value, wid->adj->std_value, wid->adj->min_value, wid->adj->max_value,
+                        wid->adj->step, wid->adj->type);
+                }
             }
             j++;
         }
@@ -219,4 +230,60 @@ void print_list(XUiDesigner *designer) {
     "    // do special stuff when needed\n"
     "}\n\n");
 
+}
+
+void run_test(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        int i = 0;
+        int j = 0;
+        for (;i<MAX_CONTROLS;i++) {
+            if (designer->controls[i].wid != NULL) {
+                j++;
+            }
+        }
+        if (!j) {
+            Widget_t *dia = open_message_dialog(designer->ui, INFO_BOX, _("INFO"),
+                                            _("Please create at least one Controller,|or load a LV2 URI to run a test build "),NULL);
+            XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+            return;
+        }
+        designer->run_test = true;
+        char* name = "./Bundle/test.lv2/test/test.c";
+        remove (name);
+        FILE *fp;
+        if((fp=freopen(name, "w" ,stdout))==NULL) {
+            printf("open failed\n");
+        }
+
+        print_list(designer);
+        fclose(fp);
+        if (system(NULL)) {
+            if ((int)adj_get_value(designer->color_chooser->adj)) {
+                adj_set_value(designer->color_chooser->adj, 0.0);
+            }
+            widget_hide(designer->w);
+            widget_hide(designer->ui);
+            XFlush(designer->w->app->dpy);
+            int ret = system("cd ./Bundle/test.lv2/test  && "
+                "cc -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector "
+                "`pkg-config lilv-0 --cflags` test.c -L. ../../../libxputty/libxputty/libxputty.a "
+                "-o uitest  -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../../../libxputty/libxputty/include/ "
+                "`pkg-config --cflags --libs cairo x11 lilv-0` -lm && ./uitest");
+            if (!ret) {
+                designer->run_test = false;
+                widget_show_all(designer->w);
+                widget_show_all(designer->ui);
+            } else {
+                designer->run_test = false;
+                widget_show_all(designer->w);
+                widget_show_all(designer->ui);
+                Widget_t *dia = open_message_dialog(designer->ui, INFO_BOX, _("INFO"),
+                                                _("Test fail, sorry"),NULL);
+                XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+            }
+        }
+    }
+    
 }
