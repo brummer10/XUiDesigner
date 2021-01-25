@@ -209,6 +209,12 @@ void print_list(XUiDesigner *designer) {
                         j, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value), powf(10,wid->adj->min_value),
                         powf(10,wid->adj->max_value), wid->adj->step, wid->adj->type);
                     
+                } else if (wid->adj->type == CL_LOGSCALE) {
+                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n\n", 
+                        j, log10(wid->adj->std_value)*wid->adj->log_scale, log10(wid->adj->std_value)*wid->adj->log_scale,
+                        log10(wid->adj->min_value)*wid->adj->log_scale, log10(wid->adj->max_value)*wid->adj->log_scale,
+                        wid->adj->step, wid->adj->type);
+                    
                 } else {
                     printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n\n", 
                         j, wid->adj->std_value, wid->adj->std_value, wid->adj->min_value, wid->adj->max_value,

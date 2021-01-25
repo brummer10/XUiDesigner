@@ -32,7 +32,8 @@ static void reset_plugin_ui(XUiDesigner *designer) {
     widget_set_title(designer->ui, "");
     designer->ui->width = 600;
     designer->ui->height = 400;
-    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
+    widget_hide(designer->ui);
+    XFlush(designer->w->app->dpy);
     int ch = childlist_has_child(designer->ui->childlist);
     if (ch) {
         for(;ch>0;ch--) {
@@ -310,7 +311,8 @@ void load_plugin_ui(void* w_, void* user_data) {
                         (fabs(designer->lv2c.min)+fabs(designer->lv2c.max))*0.01:fabs(designer->lv2c.max)* 0.01;
                         wid = add_knob(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 80);
                         set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min,
-                            designer->lv2c.max, designer->lv2c.is_int_port? 1:designer->lv2c.step, designer->lv2c.is_log_port? CL_LOGARITHMIC:CL_CONTINUOS);
+                            designer->lv2c.max, designer->lv2c.is_int_port? 1:designer->lv2c.step, designer->lv2c.is_log_port?
+                            designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE :CL_CONTINUOS);
                         set_controller_callbacks(designer, wid);
                         add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
                         designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
@@ -326,7 +328,8 @@ void load_plugin_ui(void* w_, void* user_data) {
                     }
                     wid = add_vmeter(designer->ui, designer->new_label[designer->active_widget_num], false, x, y, 10, 120);
                     set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max,
-                        designer->lv2c.is_int_port? 1:0.01, designer->lv2c.is_log_port? CL_LOGARITHMIC:CL_METER);
+                        designer->lv2c.is_int_port? 1:0.01, designer->lv2c.is_log_port?
+                        designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE : CL_METER);
                     set_controller_callbacks(designer, wid);
                     add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
                     designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
@@ -353,7 +356,6 @@ void load_plugin_ui(void* w_, void* user_data) {
         lilv_node_free(is_trigger);
     }
     widget_show_all(designer->ui);
-    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height+1);
 }
 
 void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
