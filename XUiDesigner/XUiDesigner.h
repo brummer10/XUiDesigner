@@ -166,6 +166,7 @@ typedef struct {
     Widget_t *grid_snap_left;
     Widget_t *grid_snap_center;
     Widget_t *grid_snap_right;
+    Widget_t *ctype_switch;
     Widget_t *test;
     Colors *selected_scheme;
     bool run_test;

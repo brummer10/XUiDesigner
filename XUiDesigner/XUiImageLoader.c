@@ -154,7 +154,9 @@ void pop_menu_response(void *w_, void* item_, void* user_data) {
         break;
         case 2:
         break;
-        case 3: 
+        case 3:
+        break;
+        case 4:
             remove_from_list(designer, designer->active_widget);
             destroy_widget(designer->active_widget, w->app);
             designer->active_widget = NULL;

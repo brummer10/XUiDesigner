@@ -672,6 +672,11 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
             designer->grid_snap_left : designer->controls[w->data].grid_snap_option == 1 ?
             designer->grid_snap_center : designer->grid_snap_right);
         designer->grid_snap_select->func.value_changed_callback = store;
+        int sel = designer->controls[designer->active_widget_num].is_type;
+        store = designer->ctype_switch->func.value_changed_callback;
+        designer->ctype_switch->func.value_changed_callback = null_callback;
+        set_active_radio_entry_num(designer->ctype_switch, sel);
+        designer->ctype_switch->func.value_changed_callback = store;
         pop_menu_show(w,designer->context_menu,5,true);
     }
 }
@@ -893,6 +898,169 @@ static void select_grid_mode(void *w_, void* user_data) {
         break;
     }
 }
+
+static void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wid) {
+    if (wid->adj->type == CL_LOGARITHMIC) {
+         set_adjustment(new_wid->adj, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value),
+            powf(10,wid->adj->min_value),powf(10,wid->adj->max_value), wid->adj->step, wid->adj->type);
+    } else if (wid->adj->type == CL_LOGSCALE) {
+        set_adjustment(new_wid->adj, log10(wid->adj->std_value)*wid->adj->log_scale,
+                                    log10(wid->adj->std_value)*wid->adj->log_scale,
+                                    log10(wid->adj->min_value)*wid->adj->log_scale,
+                                    log10(wid->adj->max_value)*wid->adj->log_scale,
+                                    wid->adj->step, wid->adj->type);
+    } else {
+        set_adjustment(new_wid->adj, wid->adj->std_value, wid->adj->std_value,
+            wid->adj->min_value,wid->adj->max_value, wid->adj->step, wid->adj->type);
+    }
+    set_controller_callbacks(designer, new_wid);
+    new_wid->data = wid->data;
+    designer->wid_counter--;
+}
+
+static void switch_controler_type(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    Widget_t *wid = designer->active_widget;
+    Widget_t *new_wid = NULL;
+    int v = (int) adj_get_value(w->adj);
+    switch (v) {
+        case 0:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_knob(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                        wid->x, wid->y, 60, 80);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_CONTINUOS;
+            add_to_list(designer, new_wid, "add_lv2_knob", true, IS_KNOB);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+        break;
+        case 1:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_hslider(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                        wid->x, wid->y, 120, 30);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_CONTINUOS;
+            add_to_list(designer, new_wid, "add_lv2_hslider", true, IS_HSLIDER);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+        break;
+        case 2:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_vslider(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                        wid->x, wid->y, 30, 120);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_CONTINUOS;
+            add_to_list(designer, new_wid, "add_lv2_vslider", true, IS_VSLIDER);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+        break;
+        case 3:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_button(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                        wid->x, wid->y, 60, 60);
+            set_controller_callbacks(designer, new_wid);
+            new_wid->data = wid->data;
+            designer->wid_counter--;
+            add_to_list(designer, new_wid, "add_lv2_button", false, IS_BUTTON);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+        break;
+        case 4:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                        wid->x, wid->y, 60, 60);
+            set_controller_callbacks(designer, new_wid);
+            new_wid->data = wid->data;
+            designer->wid_counter--;
+            add_to_list(designer, new_wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+        break;
+        case 5:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_combobox(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                        wid->x, wid->y, 120, 30);
+            set_controller_callbacks(designer, new_wid);
+            new_wid->data = wid->data;
+            designer->wid_counter--;
+            add_to_list(designer, new_wid, "add_lv2_combobox", true, IS_COMBOBOX);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+        break;
+        case 6:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_valuedisplay(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                        wid->x, wid->y, 30, 120);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_CONTINUOS;
+            add_to_list(designer, new_wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+        break;
+        case 7:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_label(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                        wid->x, wid->y, 120, 30);
+            set_controller_callbacks(designer, new_wid);
+            new_wid->data = wid->data;
+            designer->wid_counter--;
+            add_to_list(designer, new_wid, "add_lv2_label", false, IS_LABEL);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+        break;
+        case 8:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_vmeter(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                false, wid->x, wid->y, 30, 120);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_METER;
+            add_to_list(designer, new_wid, "add_lv2_vmeter", true, IS_VMETER);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+        break;
+        case 9:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_hmeter(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                false, wid->x, wid->y, 30, 120);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_METER;
+            add_to_list(designer, new_wid, "add_lv2_hmeter", true, IS_HMETER);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+        break;
+        default:
+        break;
+    }
+    
+}
+
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -1120,15 +1288,31 @@ int main (int argc, char ** argv) {
     designer->context_menu->parent_struct = designer;
     designer->menu_item_load = menu_add_item(designer->context_menu,_("Load Controller Image"));
     designer->menu_item_unload = menu_add_item(designer->context_menu,_("Unload Controller Image"));
+
     designer->grid_snap_select = cmenu_add_submenu(designer->context_menu, _("Grid snap"));
     designer->grid_snap_select->parent_struct = designer;
     designer->grid_snap_left = menu_add_radio_entry(designer->grid_snap_select, _("Grid snap left"));
     designer->grid_snap_center = menu_add_radio_entry(designer->grid_snap_select, _("Grid snap center"));
     designer->grid_snap_right = menu_add_radio_entry(designer->grid_snap_select, _("Grid snap right"));
     radio_item_set_active(designer->grid_snap_left);
+    designer->grid_snap_select->func.value_changed_callback = select_grid_mode;
+
+    designer->ctype_switch = cmenu_add_submenu(designer->context_menu, _("Switch Controler type"));
+    designer->ctype_switch->parent_struct = designer;
+    menu_add_radio_entry(designer->ctype_switch,_("Knob"));
+    menu_add_radio_entry(designer->ctype_switch,_("HSlider"));
+    menu_add_radio_entry(designer->ctype_switch,_("VSlider"));
+    menu_add_radio_entry(designer->ctype_switch,_("Button"));
+    menu_add_radio_entry(designer->ctype_switch,_("Toggle Button"));
+    menu_add_radio_entry(designer->ctype_switch,_("Combo Box"));
+    menu_add_radio_entry(designer->ctype_switch,_("Value Display"));
+    menu_add_radio_entry(designer->ctype_switch,_("Label"));
+    menu_add_radio_entry(designer->ctype_switch,_("VMeter"));
+    menu_add_radio_entry(designer->ctype_switch,_("HMeter"));
+    designer->ctype_switch->func.value_changed_callback = switch_controler_type;
+
     menu_add_item(designer->context_menu,_("Delete Controller"));
     designer->context_menu->func.button_release_callback = pop_menu_response;
-    designer->grid_snap_select->func.value_changed_callback = select_grid_mode;
 
     widget_show_all(designer->ui);
     main_run(&app);
