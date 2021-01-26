@@ -239,6 +239,7 @@ void load_plugin_ui(void* w_, void* user_data) {
                         }
                         wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
                         set_controller_callbacks(designer, wid);
+                        tooltip_set_text(wid, wid->label);
                         add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
                         designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
                         x += 80;
@@ -252,6 +253,7 @@ void load_plugin_ui(void* w_, void* user_data) {
                         }
                         wid = add_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
                         set_controller_callbacks(designer, wid);
+                        tooltip_set_text(wid, wid->label);
                         add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
                         designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
                         x += 80;
@@ -265,7 +267,8 @@ void load_plugin_ui(void* w_, void* user_data) {
                         }
                         wid = add_combobox(designer->ui, designer->new_label[designer->active_widget_num], x, y, 120, 30);
                         set_controller_callbacks(designer, wid);
-                        
+                        tooltip_set_text(wid, wid->label);
+
                         LilvScalePoints* sp = lilv_port_get_scale_points(plugin, port);
                         int num_sp = lilv_scale_points_size(sp);
                         int sp_count = 0;
@@ -314,6 +317,7 @@ void load_plugin_ui(void* w_, void* user_data) {
                             designer->lv2c.max, designer->lv2c.is_int_port? 1:designer->lv2c.step, designer->lv2c.is_log_port?
                             designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE :CL_CONTINUOS);
                         set_controller_callbacks(designer, wid);
+                        tooltip_set_text(wid, wid->label);
                         add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
                         designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
                         x += 80;
@@ -331,6 +335,7 @@ void load_plugin_ui(void* w_, void* user_data) {
                         designer->lv2c.is_int_port? 1:0.01, designer->lv2c.is_log_port?
                         designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE : CL_METER);
                     set_controller_callbacks(designer, wid);
+                    tooltip_set_text(wid, wid->label);
                     add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
                     designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
                     x += 30;

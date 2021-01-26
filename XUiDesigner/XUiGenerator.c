@@ -34,6 +34,7 @@ void remove_from_list(XUiDesigner *designer, Widget_t *wid) {
     designer->controls[wid->data].have_adjustment = false;
     free(designer->controls[wid->data].image);
     designer->controls[wid->data].image = NULL;
+    designer->controls[wid->data].grid_snap_option = 0;
 }
 
 void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
@@ -276,7 +277,10 @@ void run_test(void *w_, void* user_data) {
                 "cc -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector "
                 "`pkg-config lilv-0 --cflags` test.c -L. ../../../libxputty/libxputty/libxputty.a "
                 "-o uitest  -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../../../libxputty/libxputty/include/ "
-                "`pkg-config --cflags --libs cairo x11 lilv-0` -lm && ./uitest");
+                "`pkg-config --cflags --libs cairo x11 lilv-0` -lm ");
+            if (!ret) {
+                ret = system("cd ./Bundle/test.lv2/test  && ./uitest");
+            }
             if (!ret) {
                 designer->run_test = false;
                 widget_show_all(designer->w);

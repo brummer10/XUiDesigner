@@ -100,6 +100,7 @@ typedef struct {
     WidgetType is_type;
     uint32_t port_index;
     bool have_adjustment;
+    int grid_snap_option;
     const char* type;
 } Controller;
 
@@ -158,14 +159,24 @@ typedef struct {
     Widget_t *color_widget;
     Widget_t *color_sel;
     Widget_t *color_scheme_select;
+    Widget_t *grid;
+    Widget_t *grid_size_x;
+    Widget_t *grid_size_y;
+    Widget_t *grid_snap_select;
+    Widget_t *grid_snap_left;
+    Widget_t *grid_snap_center;
+    Widget_t *grid_snap_right;
     Widget_t *test;
     Colors *selected_scheme;
     bool run_test;
+    bool grid_view;
     int active_widget_num;
     int pos_x;
     int pos_y;
     int width;
     int height;
+    int grid_width;
+    int grid_height;
     int modify_mod;
     bool run;
     int wid_counter;
@@ -182,6 +193,8 @@ void utf8ncpy(char* dst, const char* src, size_t sizeDest );
 void entry_set_text(XUiDesigner *designer, const char* label);
 
 void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid);
+
+void snap_to_grid(XUiDesigner *designer);
 
 #ifdef __cplusplus
 }

@@ -337,11 +337,41 @@ static void draw_window(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     use_bg_color_scheme(w, NORMAL_);
     cairo_paint (w->crb);
+}
+
+static void draw_ui(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+    int width = attrs.width;
+    int height = attrs.height;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    use_bg_color_scheme(w, NORMAL_);
+    cairo_paint (w->crb);
     if (w->image) {
         widget_set_scale(w);
         cairo_set_source_surface (w->crb, w->image, 0, 0);
         cairo_paint (w->crb);
         widget_reset_scale(w);
+    }
+    if (designer->grid_view) {
+        cairo_set_line_width(w->crb, 1.0);
+        use_frame_color_scheme(w, INSENSITIVE_);
+        int i = 0;
+        cairo_move_to(w->crb, 0, 0);
+        for (;i<width;i +=designer->grid_width) {
+            cairo_move_to(w->crb, i, 0);
+            cairo_line_to(w->crb,i, height);
+            cairo_stroke_preserve(w->crb);
+        }
+        i = 0;
+        cairo_move_to(w->crb, 0, 0);
+        for (;i<height;i +=designer->grid_height) {
+            cairo_move_to(w->crb, 0, i);
+            cairo_line_to(w->crb,width, i);
+            cairo_stroke_preserve(w->crb);
+        }
+        cairo_stroke(w->crb);
     }
 }
 
@@ -466,9 +496,32 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
     static int is_curser = 2;
     switch(designer->modify_mod) {
         case XUI_POSITION:
-            XMoveWindow(w->app->dpy,w->widget,w->x + (xmotion->x_root-designer->pos_x), w->y+ (xmotion->y_root-designer->pos_y));
-            adj_set_value(designer->x_axis->adj, w->x + (xmotion->x_root-designer->pos_x));
-            adj_set_value(designer->y_axis->adj, w->y + (xmotion->y_root-designer->pos_y));
+        {
+            if ((xmotion->state & Button1Mask) == 0) break;
+            int pos_x = w->x + (xmotion->x_root-designer->pos_x);
+            int pos_y = w->y + (xmotion->y_root-designer->pos_y);
+            int pos_width = w->width;
+            int snap_grid_x = pos_x/designer->grid_width;
+            int snap_grid_y = pos_y/designer->grid_height;
+            if (designer->grid_view) {
+                pos_x = snap_grid_x * designer->grid_width;
+                pos_y = snap_grid_y * designer->grid_height;
+                if (designer->controls[w->data].grid_snap_option == 1) {
+                    for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
+                    if (w->width > designer->grid_width) {
+                        pos_x += designer->grid_width - pos_width/2;
+                    } else {
+                        pos_x += designer->grid_width - pos_width * 2;
+                    }
+                } else if (designer->controls[w->data].grid_snap_option == 2) {
+                    for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
+                    pos_x += designer->grid_width - pos_width;
+                }
+            }
+            XMoveWindow(w->app->dpy,w->widget,pos_x, pos_y);
+            adj_set_value(designer->x_axis->adj, pos_x);
+            adj_set_value(designer->y_axis->adj, pos_y);
+        }
         break;
         case XUI_SIZE:
             XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), max(10,w->height+ (xmotion->x_root-designer->pos_x)));
@@ -567,6 +620,10 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
     }
 }
 
+static void null_callback(void *w_, void* user_data) {
+    
+}
+
 static void fix_pos_wid(void *w_, void *button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
@@ -609,12 +666,14 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
             designer->menu_item_load->state = 0;
             designer->menu_item_unload->state = 0;
         }
-        pop_menu_show(w,designer->context_menu,3,true);
+        xevfunc store = designer->grid_snap_select->func.value_changed_callback;
+        designer->grid_snap_select->func.value_changed_callback = null_callback;
+        radio_item_set_active(designer->controls[w->data].grid_snap_option == 0 ?
+            designer->grid_snap_left : designer->controls[w->data].grid_snap_option == 1 ?
+            designer->grid_snap_center : designer->grid_snap_right);
+        designer->grid_snap_select->func.value_changed_callback = store;
+        pop_menu_show(w,designer->context_menu,5,true);
     }
-}
-
-static void null_callback(void *w_, void* user_data) {
-    
 }
 
 static void set_designer_callbacks(XUiDesigner *designer, float x, float y, float w, float h) {
@@ -746,6 +805,97 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
+                Grid control
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+void snap_to_grid(XUiDesigner *designer) {
+    int ch = childlist_has_child(designer->ui->childlist);
+    if (ch) {
+        for(;ch>0;ch--) {
+            Widget_t *w = designer->ui->childlist->childs[ch-1];
+            int pos_x = w->x ;
+            int pos_y = w->y ;
+            int snap_grid_x = pos_x/designer->grid_width;
+            int snap_grid_y = pos_y/designer->grid_height;
+            int pos_width = w->width;
+            if (designer->grid_view) {
+                pos_x = snap_grid_x * designer->grid_width;
+                pos_y = snap_grid_y * designer->grid_height;
+            }
+            if (designer->controls[w->data].grid_snap_option == 1) {
+                for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
+                if (w->width > designer->grid_width) {
+                    pos_x += designer->grid_width - pos_width/2;
+                } else {
+                    pos_x += designer->grid_width - pos_width * 2;
+                }
+            } else if (designer->controls[w->data].grid_snap_option == 2) {
+                for (;pos_width > designer->grid_width; pos_width -= designer->grid_width);
+                pos_x += designer->grid_width - pos_width;
+            }
+            XMoveWindow(w->app->dpy,w->widget,pos_x, pos_y);
+            w->x = pos_x;
+            w->y = pos_y;
+            w->scale.init_x   = pos_x;
+            w->scale.init_y   = pos_y;
+        }
+    }
+}
+
+static void set_grid_width(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    designer->grid_width = (int)adj_get_value(w->adj);
+    snap_to_grid(designer);
+}
+
+static void set_grid_height(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    designer->grid_height = (int)adj_get_value(w->adj);
+    snap_to_grid(designer);
+}
+
+static void use_grid(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    designer->grid_view = (bool)adj_get_value(w->adj);
+    if (designer->grid_view) {
+        snap_to_grid(designer);
+        widget_show(designer->grid_size_x);
+        widget_show(designer->grid_size_y);
+    } else {
+        widget_hide(designer->grid_size_x);
+        widget_hide(designer->grid_size_y);
+    }
+    expose_widget(designer->ui);
+}
+
+static void select_grid_mode(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    int v = (int) adj_get_value(w->adj);
+    switch (v) {
+        case 0:
+            designer->controls[designer->active_widget_num].grid_snap_option = 0;
+            snap_to_grid(designer);
+        break;
+        case 1:
+            designer->controls[designer->active_widget_num].grid_snap_option = 1;
+            snap_to_grid(designer);
+        break;
+        case 2:
+            designer->controls[designer->active_widget_num].grid_snap_option = 2;
+            snap_to_grid(designer);
+        break;
+        default:
+        break;
+    }
+}
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
                 main
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
@@ -791,6 +941,8 @@ int main (int argc, char ** argv) {
     designer->icon = NULL;
     designer->run_test = false;
     designer->lv2c.ui_uri = NULL;
+    designer->grid_width = 30;
+    designer->grid_height = 15;
 
     Xputty app;
     main_init(&app);
@@ -800,6 +952,7 @@ int main (int argc, char ** argv) {
     for (;m<MAX_CONTROLS;m++) {
         designer->controls[m].wid = NULL;
         designer->controls[m].image = NULL;
+        designer->controls[m].grid_snap_option = 0;
     }
     //set_light_theme(&app);
     designer->w = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 1200, 800);
@@ -828,7 +981,7 @@ int main (int argc, char ** argv) {
         PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
     XSetTransientForHint(app.dpy, designer->ui->widget, designer->w->widget);
     designer->ui->parent_struct = designer;
-    designer->ui->func.expose_callback = draw_window;
+    designer->ui->func.expose_callback = draw_ui;
     designer->ui->func.button_release_callback = button_released_callback;
 
     designer->widgets = add_combobox(designer->w, "", 20, 25, 120, 30);
@@ -866,7 +1019,13 @@ int main (int argc, char ** argv) {
     create_color_chooser (designer);
     designer->color_chooser->func.value_changed_callback = show_color_chooser;
 
-    designer->test = add_button(designer->w, "", 80, 135, 40, 40);
+    designer->grid = add_toggle_button(designer->w, "", 80, 135, 40, 40);
+    widget_get_png(designer->grid, LDVAR(grid_png));
+    tooltip_set_text(designer->grid,_("Snap to grid"));
+    designer->grid->parent_struct = designer;
+    designer->grid->func.value_changed_callback = use_grid;
+
+    designer->test = add_button(designer->w, "", 20, 195, 40, 40);
     widget_get_png(designer->test, LDVAR(gear_png));
     tooltip_set_text(designer->test,_("Run test build"));
     designer->test->parent_struct = designer;
@@ -919,6 +1078,20 @@ int main (int argc, char ** argv) {
 
     widget_show_all(designer->w);
 
+    designer->grid_size_x = add_valuedisplay(designer->w, _("Grid X"), 125, 135, 40, 20);
+    designer->grid_size_x->parent_struct = designer;
+    set_adjustment(designer->grid_size_x->adj,(float)designer->grid_width,
+        (float)designer->grid_width, 10.0, 300.0, 1.0, CL_CONTINUOS);
+    tooltip_set_text(designer->grid_size_x,_("Grid width"));
+    designer->grid_size_x->func.value_changed_callback = set_grid_width;
+
+    designer->grid_size_y = add_valuedisplay(designer->w, _("Grid Y"), 125, 155, 40, 20);
+    designer->grid_size_y->parent_struct = designer;
+    set_adjustment(designer->grid_size_y->adj,(float)designer->grid_height,
+        (float)designer->grid_height, 10.0, 300.0, 1.0, CL_CONTINUOS);
+    tooltip_set_text(designer->grid_size_y,_("Grid height"));
+    designer->grid_size_y->func.value_changed_callback = set_grid_height;
+
     designer->combobox_settings = create_widget(&app, designer->w, 1000, 360, 180, 200);
     add_label(designer->combobox_settings, _("Add Combobox Entry"), 0, 0, 180, 30);
     designer->combobox_entry = add_input_box(designer->combobox_settings, 0, 0, 40, 140, 30);
@@ -947,8 +1120,15 @@ int main (int argc, char ** argv) {
     designer->context_menu->parent_struct = designer;
     designer->menu_item_load = menu_add_item(designer->context_menu,_("Load Controller Image"));
     designer->menu_item_unload = menu_add_item(designer->context_menu,_("Unload Controller Image"));
+    designer->grid_snap_select = cmenu_add_submenu(designer->context_menu, _("Grid snap"));
+    designer->grid_snap_select->parent_struct = designer;
+    designer->grid_snap_left = menu_add_radio_entry(designer->grid_snap_select, _("Grid snap left"));
+    designer->grid_snap_center = menu_add_radio_entry(designer->grid_snap_select, _("Grid snap center"));
+    designer->grid_snap_right = menu_add_radio_entry(designer->grid_snap_select, _("Grid snap right"));
+    radio_item_set_active(designer->grid_snap_left);
     menu_add_item(designer->context_menu,_("Delete Controller"));
     designer->context_menu->func.button_release_callback = pop_menu_response;
+    designer->grid_snap_select->func.value_changed_callback = select_grid_mode;
 
     widget_show_all(designer->ui);
     main_run(&app);

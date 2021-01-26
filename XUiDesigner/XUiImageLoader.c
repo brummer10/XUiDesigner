@@ -152,7 +152,9 @@ void pop_menu_response(void *w_, void* item_, void* user_data) {
         case 1:
             unload_controller_image(designer->active_widget,NULL);
         break;
-        case 2: 
+        case 2:
+        break;
+        case 3: 
             remove_from_list(designer, designer->active_widget);
             destroy_widget(designer->active_widget, w->app);
             designer->active_widget = NULL;
