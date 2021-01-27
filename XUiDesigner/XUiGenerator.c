@@ -19,6 +19,8 @@
  */
 
 #include <stdio.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "XUiGenerator.h"
 
@@ -244,6 +246,49 @@ void print_list(XUiDesigner *designer) {
 
 }
 
+void run_save(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        int i = 0;
+        int j = 0;
+        for (;i<MAX_CONTROLS;i++) {
+            if (designer->controls[i].wid != NULL) {
+                j++;
+            }
+        }
+        if (!j) {
+            Widget_t *dia = open_message_dialog(designer->ui, INFO_BOX, _("INFO"),
+                                            _("Please create at least one Controller,|or load a LV2 URI to save a build "),NULL);
+            XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+            return;
+        }
+        Window w = (Window)designer->ui->widget;
+        char *name;
+        XFetchName(designer->ui->app->dpy, w, &name);
+        name = name ? name : "noname";
+        char* filename = NULL;
+        asprintf(&filename, "./Bundle/save.lv2/%s",name);
+        struct stat st = {0};
+
+        if (stat(filename, &st) == -1) {
+            mkdir(filename, 0700);
+        }
+        free(filename);
+        filename = NULL;
+        asprintf(&filename, "./Bundle/save.lv2/%s/%s.c",name, name );
+        remove (filename);
+        FILE *fp;
+        if((fp=freopen(filename, "w" ,stdout))==NULL) {
+            printf("open failed\n");
+        }
+        fprintf(stderr, "save to %s\n", filename);
+        print_list(designer);
+        fclose(fp);
+        free(filename);
+    }
+}
+
 void run_test(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -300,5 +345,4 @@ void run_test(void *w_, void* user_data) {
             }
         }
     }
-    
 }

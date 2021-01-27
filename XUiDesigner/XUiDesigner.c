@@ -1067,6 +1067,13 @@ static void switch_controller_type(void *w_, void* user_data) {
     
 }
 
+static void run_exit(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        quit(designer->w);
+    }
+}
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -1199,11 +1206,23 @@ int main (int argc, char ** argv) {
     designer->grid->parent_struct = designer;
     designer->grid->func.value_changed_callback = use_grid;
 
-    designer->test = add_button(designer->w, "", 20, 195, 40, 40);
+    designer->test = add_button(designer->w, "", 1020, 740, 40, 40);
     widget_get_png(designer->test, LDVAR(gear_png));
     tooltip_set_text(designer->test,_("Run test build"));
     designer->test->parent_struct = designer;
     designer->test->func.value_changed_callback = run_test;
+
+    designer->save = add_button(designer->w, "", 1080, 740, 40, 40);
+    widget_get_png(designer->save, LDVAR(save_png));
+    tooltip_set_text(designer->save,_("Save"));
+    designer->save->parent_struct = designer;
+    designer->save->func.value_changed_callback = run_save;
+
+    designer->exit = add_button(designer->w, "", 1140, 740, 40, 40);
+    widget_get_png(designer->exit, LDVAR(exit_png));
+    tooltip_set_text(designer->exit,_("Exit"));
+    designer->exit->parent_struct = designer;
+    designer->exit->func.value_changed_callback = run_exit;
 
     add_label(designer->w, _("Label"), 1000, 10, 180, 30);
 
@@ -1323,8 +1342,9 @@ int main (int argc, char ** argv) {
     widget_show_all(designer->ui);
     main_run(&app);
 
-    print_list(designer);
+    //print_list(designer);
     lilv_world_free(designer->world);
+    fprintf(stderr, "bye, bye\n");
     main_quit(&app);
     int i = 0;
     for (;i<designer->wid_counter-1; i++) {

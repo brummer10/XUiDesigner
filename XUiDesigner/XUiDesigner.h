@@ -173,6 +173,8 @@ typedef struct {
     Widget_t *grid_snap_right;
     Widget_t *ctype_switch;
     Widget_t *test;
+    Widget_t *save;
+    Widget_t *exit;
     Colors *selected_scheme;
     bool run_test;
     bool grid_view;

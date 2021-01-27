@@ -1,0 +1,55 @@
+#
+# Copyright (C) 2020 Hermann meyer
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# --------------------------------------------------------------------------
+#
+
+
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2: <http://lv2plug.in/ns/lv2core#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix guiext: <http://lv2plug.in/ns/extensions/ui#>.
+@prefix time: <http://lv2plug.in/ns/ext/time#>.
+@prefix units: <http://lv2plug.in/ns/extensions/units#> .
+@prefix atom:  <http://lv2plug.in/ns/ext/atom#> .
+@prefix urid:  <http://lv2plug.in/ns/ext/urid#> .
+@prefix midi:  <http://lv2plug.in/ns/ext/midi#> .
+@prefix pprop: <http://lv2plug.in/ns/ext/port-props#> .
+@prefix patch: <http://lv2plug.in/ns/ext/patch#> .
+@prefix work:  <http://lv2plug.in/ns/ext/worker#> .
+@prefix state:   <http://lv2plug.in/ns/ext/state#> .
+@prefix fluida:  <https://github.com/brummer10/Fluida.lv2#>  .
+@prefix mod: <http://moddevices.com/ns/mod#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:test>
+    a lv2:Plugin ,
+        lv2:Plugin ;
+    doap:name "Test";
+    guiext:ui <urn:test#gui>;
+
+    lv2:minorVersion 1;
+    lv2:microVersion 0;
+
+<urn:test#gui>
+  a guiext:X11UI;
+  guiext:binary <test_ui.so>;
+        lv2:extensionData guiext::idle ;
+        lv2:extensionData guiext:resize ;
+        lv2:extensionData guiext:idleInterface;
+        lv2:requiredFeature guiext:idleInterface .

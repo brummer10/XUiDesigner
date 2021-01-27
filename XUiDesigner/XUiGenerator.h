@@ -42,6 +42,8 @@ void print_list(XUiDesigner *designer);
 
 void run_test(void *w_, void* user_data);
 
+void run_save(void *w_, void* user_data);
+
 #ifdef __cplusplus
 }
 #endif
