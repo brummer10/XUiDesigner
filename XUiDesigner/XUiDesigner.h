@@ -32,6 +32,7 @@
 #include <lv2/lv2plug.in/ns/ext/options/options.h>
 #include <lv2/lv2plug.in/ns/ext/uri-map/uri-map.h>
 #include <lv2/lv2plug.in/ns/ext/port-props/port-props.h>
+#include "lv2/lv2plug.in/ns/ext/patch/patch.h"
 
 #include "xwidgets.h"
 #include "xmessage-dialog.h"
@@ -86,6 +87,7 @@ typedef enum {
     IS_LABEL          ,
     IS_VMETER         ,
     IS_HMETER         ,
+    IS_FILE_BUTTON    ,
 } WidgetType;
 
 /*---------------------------------------------------------------------
@@ -99,6 +101,7 @@ typedef struct {
     char* image;
     WidgetType is_type;
     uint32_t port_index;
+    bool is_atom_patch;
     bool have_adjustment;
     int grid_snap_option;
     const char* type;
@@ -114,6 +117,8 @@ typedef struct {
     char* ui_uri;
     bool is_input_port;
     bool is_output_port;
+    bool is_atom_patch;
+    bool is_patch_path;
     bool is_toggle_port;
     bool is_enum_port;
     bool is_int_port;

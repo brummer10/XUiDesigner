@@ -75,11 +75,159 @@ static int sort_enums(int elem, int array[], int size) {
     return -1; 
 }
 
+Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, const LilvPort* port,
+                                                                int *xa, int *ya, int *x1a, int *y1a) {
+    int x = (*xa);
+    int y = (*ya);
+    int x1 = (*x1a);
+    int y1 = (*y1a);
+    Widget_t * wid = NULL;
+    if (designer->lv2c.is_input_port) {
+        if (designer->lv2c.is_toggle_port) {
+            if (x+70 >= 1200) {
+                y += 130;
+                y1 += 130;
+                x = 40;
+            } else {
+                x1 += 80;
+            }
+            wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
+            set_controller_callbacks(designer, wid);
+            tooltip_set_text(wid, wid->label);
+            add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+            designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+            designer->controls[designer->active_widget_num].is_atom_patch = designer->lv2c.is_atom_patch? true : false;
+            x += 80;
+        } else if (designer->lv2c.is_trigger_port) {
+            if (x+70 >= 1200) {
+                y += 130;
+                y1 += 130;
+                x = 40;
+            } else {
+                x1 += 80;
+            }
+            wid = add_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
+            set_controller_callbacks(designer, wid);
+            tooltip_set_text(wid, wid->label);
+            add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
+            designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+            designer->controls[designer->active_widget_num].is_atom_patch = designer->lv2c.is_atom_patch? true : false;
+            x += 80;
+        } else if (designer->lv2c.is_enum_port) {
+            if (x+130 >= 1200) {
+                y += 130;
+                y1 += 130;
+                x = 40;
+            } else {
+                x1 += 140;
+            }
+            wid = add_combobox(designer->ui, designer->new_label[designer->active_widget_num], x, y, 120, 30);
+            set_controller_callbacks(designer, wid);
+            tooltip_set_text(wid, wid->label);
+
+            LilvScalePoints* sp = lilv_port_get_scale_points(plugin, port);
+            int num_sp = lilv_scale_points_size(sp);
+            int sp_count = 0;
+            int sppos[num_sp];
+            char splabes[num_sp][32];
+            if (num_sp > 0) {
+                for (LilvIter* it = lilv_scale_points_begin(sp);
+                        !lilv_scale_points_is_end(sp, it);
+                        it = lilv_scale_points_next(sp, it)) {
+                    const LilvScalePoint* p = lilv_scale_points_get(sp, it);
+                    utf8ncpy(&splabes[sp_count][0], lilv_node_as_string(lilv_scale_point_get_label(p)), 31);
+                    sppos[sp_count] = lilv_node_as_float(lilv_scale_point_get_value(p));
+                    sp_count++;
+                }
+                int i = designer->lv2c.min;
+                char s[32];
+                for (;i<designer->lv2c.max+1;i++) {
+                    int j = sort_enums(i,sppos,num_sp);
+                    if (j>-1) {
+                        combobox_add_entry(wid,&splabes[j][0]);
+                    } else {
+                        snprintf(s, 31,"%d",  i);
+                        combobox_add_entry(wid,s);
+                    }
+                }
+                lilv_scale_points_free(sp);
+            }
+
+            set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min,
+                                    designer->lv2c.max, designer->lv2c.is_int_port? 1.0:0.01, CL_ENUM);
+            add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
+            designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+            designer->controls[designer->active_widget_num].is_atom_patch = designer->lv2c.is_atom_patch? true : false;
+            x += 140;
+        } else if (designer->lv2c.is_patch_path) {
+            if (x+70 >= 1200) {
+                y += 130;
+                y1 += 130;
+                x = 40;
+            } else {
+                x1 += 80;
+            }
+            wid = add_file_button(designer->ui, x, y, 60, 60, "", "");
+            set_controller_callbacks(designer, wid);
+            tooltip_set_text(wid, wid->label);
+            add_to_list(designer, wid, "add_lv2_file_button", false, IS_FILE_BUTTON);
+            designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+            designer->controls[designer->active_widget_num].is_atom_patch = designer->lv2c.is_atom_patch? true : false;
+            x += 80;
+
+        } else {
+            if (x+70 >= 1200) {
+                y += 130;
+                y1 += 130;
+                x = 40;
+            } else {
+                x1 += 80;
+            }
+            designer->lv2c.step = designer->lv2c.is_log_port? 0.01 : designer->lv2c.min<0? 
+            (fabs(designer->lv2c.min)+fabs(designer->lv2c.max))*0.01:fabs(designer->lv2c.max)* 0.01;
+            wid = add_knob(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 80);
+            set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min,
+                designer->lv2c.max, designer->lv2c.is_int_port? 1:designer->lv2c.step, designer->lv2c.is_log_port?
+                designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE :CL_CONTINUOS);
+            set_controller_callbacks(designer, wid);
+            tooltip_set_text(wid, wid->label);
+            add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
+            designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+            designer->controls[designer->active_widget_num].is_atom_patch = designer->lv2c.is_atom_patch? true : false;
+            x += 80;
+        }
+    } else if (designer->lv2c.is_output_port) {
+        if (x+20 >= 1200) {
+            y += 130;
+            y1 += 130;
+            x = 40;
+        } else {
+            x1 += 30;
+        }
+        wid = add_vmeter(designer->ui, designer->new_label[designer->active_widget_num], false, x, y, 10, 120);
+        set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max,
+            designer->lv2c.is_int_port? 1:0.01, designer->lv2c.is_log_port?
+            designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE : CL_METER);
+        set_controller_callbacks(designer, wid);
+        tooltip_set_text(wid, wid->label);
+        add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
+        designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+        designer->controls[designer->active_widget_num].is_atom_patch = designer->lv2c.is_atom_patch? true : false;
+        x += 30;
+    }
+    (*xa) = x;
+    (*ya) = y;
+    (*x1a) = x1;
+    (*y1a) = y1;
+    return wid;
+}
+
 void load_plugin_ui(void* w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    Widget_t * wid = NULL;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     reset_plugin_ui(designer);
+    designer->lv2c.is_atom_patch = false;
+    designer->lv2c.is_patch_path = false;
     designer->lv2c.is_enum_port = false;
     designer->lv2c.is_toggle_port = false;
     designer->lv2c.have_adjustment = false;    
@@ -100,15 +248,31 @@ void load_plugin_ui(void* w_, void* user_data) {
         LilvNode* is_int = lilv_new_uri(designer->world, LV2_CORE__integer);
         LilvNode* is_tog = lilv_new_uri(designer->world, LV2_CORE__toggled);
         LilvNode* is_enum = lilv_new_uri(designer->world, LV2_CORE__enumeration);
+        LilvNode* is_min = lilv_new_uri(designer->world, LV2_CORE__minimum);
+        LilvNode* is_max = lilv_new_uri(designer->world, LV2_CORE__maximum);
+        LilvNode* is_def = lilv_new_uri(designer->world, LV2_CORE__default);
+        
+        LilvNode* is_label = lilv_new_uri(designer->world, LILV_NS_RDFS "label");
+        LilvNode* is_range = lilv_new_uri(designer->world, LILV_NS_RDFS "range");
+        LilvNode* is_float = lilv_new_uri(designer->world, LV2_ATOM__Float);
+        LilvNode* is_path = lilv_new_uri(designer->world, LV2_ATOM__Path);
+        LilvNode* is_bool = lilv_new_uri(designer->world, LV2_ATOM__Bool);
+        LilvNode* is_a_int = lilv_new_uri(designer->world, LV2_ATOM__Int);
+        
 
         LilvNode* notOnGui = lilv_new_uri(designer->world, LV2_PORT_PROPS__notOnGUI);
         LilvNode* is_log = lilv_new_uri(designer->world, LV2_PORT_PROPS__logarithmic);
         LilvNode* has_step = lilv_new_uri(designer->world, LV2_PORT_PROPS__rangeSteps);
         LilvNode* is_trigger = lilv_new_uri(designer->world, LV2_PORT_PROPS__trigger);
 
+        LilvNode* patch_writable = lilv_new_uri(designer->world, LV2_PATCH__writable);
+        LilvNode* patch_readable = lilv_new_uri(designer->world, LV2_PATCH__readable);
+
         const LilvNode* uri = lilv_new_uri(designer->world, w->label);
         const LilvPlugin* plugin = lilv_plugins_get_by_uri(designer->lv2_plugins, uri);
+ 
         if (plugin) {
+            //const LilvNode* uri = lilv_plugin_get_uri(plugin);
             LilvNode* nd = NULL;
             //const LilvNode* uri = lilv_plugin_get_uri(plugin);
             LilvUIs* uis = lilv_plugin_get_uis(plugin);
@@ -136,6 +300,93 @@ void load_plugin_ui(void* w_, void* user_data) {
             int n_cv = 0;
             int n_gui = 0;
             lilv_node_free(nd);
+
+            LilvNodes* writables = lilv_world_find_nodes(designer->world,
+                        lilv_plugin_get_uri(plugin), patch_writable, NULL);
+            LilvNodes* readables = lilv_world_find_nodes(designer->world,
+                        lilv_plugin_get_uri(plugin), patch_readable, NULL);
+            bool is_w = false;
+            LILV_FOREACH(nodes, p, readables) {
+                const LilvNode* rproperty = lilv_nodes_get(readables, p);
+                LILV_FOREACH(nodes, p, writables) {
+                    is_w = false;
+                    const LilvNode* wproperty = lilv_nodes_get(writables, p);
+                    if (lilv_node_equals(wproperty,rproperty)) {
+                        is_w = true;
+                        break;
+                    }
+                }
+                if (!is_w) {
+                    designer->lv2c.is_output_port = true;
+                    designer->lv2c.is_atom_patch = true;
+                    designer->lv2c.Port_Index = -5;
+                    designer->lv2c.min = lilv_node_as_float(lilv_world_get(designer->world, rproperty, is_min, NULL));
+                    designer->lv2c.max = lilv_node_as_float(lilv_world_get(designer->world, rproperty, is_max, NULL));
+                    designer->lv2c.def = lilv_node_as_float(lilv_world_get(designer->world, rproperty, is_def, NULL));
+                    asprintf (&designer->new_label[designer->active_widget_num], "%s",
+                        lilv_node_as_string(lilv_world_get(designer->world, rproperty, is_label, NULL)));
+                    Widget_t * wid = create_controller(designer, plugin, NULL, &x, &y, &x1, &y1);
+                    wid->parent_struct = (void*)lilv_node_as_uri(rproperty);
+                }
+            }
+            LILV_FOREACH(nodes, p, writables) {
+                designer->lv2c.is_int_port = false;
+                designer->lv2c.is_toggle_port = false;
+                designer->lv2c.is_patch_path = false;
+                designer->lv2c.is_output_port = false;
+                const LilvNode* property = lilv_nodes_get(writables, p);
+                //const char* uri = lilv_node_as_uri(property);
+                //fprintf(stderr, "%s\n", uri);
+                const char* label = lilv_node_as_string(lilv_world_get(designer->world, property, is_label, NULL));
+                const LilvNode* range = lilv_world_get(designer->world, property, is_range, NULL);
+                if (lilv_node_equals(range, is_float)) {
+                    designer->lv2c.is_input_port = true;
+                    designer->lv2c.is_atom_patch = true;
+                    designer->lv2c.Port_Index = -1;
+                    designer->lv2c.min = lilv_node_as_float(lilv_world_get(designer->world, property, is_min, NULL));
+                    designer->lv2c.max = lilv_node_as_float(lilv_world_get(designer->world, property, is_max, NULL));
+                    designer->lv2c.def = lilv_node_as_float(lilv_world_get(designer->world, property, is_def, NULL));
+                    asprintf (&designer->new_label[designer->active_widget_num], "%s",label);
+                    Widget_t * wid = create_controller(designer, plugin, NULL, &x, &y, &x1, &y1);
+                    wid->parent_struct = (void*)lilv_node_as_uri(property);
+                    //fprintf(stderr, "label  %s min %f max %f def %f \n", label, minimum, maximum, def);
+                } else if (lilv_node_equals(range, is_bool)) {
+                    designer->lv2c.is_input_port = true;
+                    designer->lv2c.is_atom_patch = true;
+                    designer->lv2c.is_toggle_port = true;
+                    designer->lv2c.Port_Index = -3;
+                    asprintf (&designer->new_label[designer->active_widget_num], "%s",label);
+                    Widget_t * wid = create_controller(designer, plugin, NULL, &x, &y, &x1, &y1);
+                    wid->parent_struct = (void*)lilv_node_as_uri(property);
+                    //fprintf(stderr, "%s is toggle\n", label);
+                } else if (lilv_node_equals(range, is_path)) {
+                    designer->lv2c.is_input_port = true;
+                    designer->lv2c.is_atom_patch = true;
+                    designer->lv2c.is_patch_path = true;
+                    designer->lv2c.Port_Index = -4;
+                    asprintf (&designer->new_label[designer->active_widget_num], "%s",lilv_node_as_uri(property));
+                    create_controller(designer, plugin, NULL, &x, &y, &x1, &y1);
+                   // wid->parent_struct = (void*)lilv_node_as_uri(property);
+                    //fprintf(stderr, "%s is path\n", label);
+                } else if (lilv_node_equals(range, is_a_int)) {
+                    designer->lv2c.is_input_port = true;
+                    designer->lv2c.is_atom_patch = true;
+                    designer->lv2c.is_int_port = true;
+                    designer->lv2c.Port_Index = -2;
+                    designer->lv2c.min = lilv_node_as_float(lilv_world_get(designer->world, property, is_min, NULL));
+                    designer->lv2c.max = lilv_node_as_float(lilv_world_get(designer->world, property, is_max, NULL));
+                    designer->lv2c.def = lilv_node_as_float(lilv_world_get(designer->world, property, is_def, NULL));
+                    asprintf (&designer->new_label[designer->active_widget_num], "%s",label);
+                    Widget_t * wid = create_controller(designer, plugin, NULL, &x, &y, &x1, &y1);
+                    wid->parent_struct = (void*)lilv_node_as_uri(property);
+                }
+            }
+            lilv_nodes_free(writables);
+            lilv_nodes_free(readables);
+
+            designer->lv2c.is_atom_patch = false;
+            designer->lv2c.is_patch_path = false;
+
             unsigned int num_ports = lilv_plugin_get_num_ports(plugin);
             for (unsigned int n = 0; n < num_ports; n++) {
                 if (designer->wid_counter >= MAX_CONTROLS) {
@@ -145,6 +396,7 @@ void load_plugin_ui(void* w_, void* user_data) {
                     break;
                 }
 
+                designer->lv2c.is_atom_patch = false;
                 const LilvPort* port = lilv_plugin_get_port_by_index(plugin, n);
                 if (lilv_port_is_a(plugin, port, lv2_AudioPort)) {
                     if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
@@ -227,119 +479,7 @@ void load_plugin_ui(void* w_, void* user_data) {
                         designer->lv2c.is_log_port = false;
                     }
                 }
-
-                if (designer->lv2c.is_input_port) {
-                    if (designer->lv2c.is_toggle_port) {
-                        if (x+70 >= 1200) {
-                            y += 130;
-                            y1 += 130;
-                            x = 40;
-                        } else {
-                            x1 += 80;
-                        }
-                        wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
-                        set_controller_callbacks(designer, wid);
-                        tooltip_set_text(wid, wid->label);
-                        add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
-                        designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
-                        x += 80;
-                    } else if (designer->lv2c.is_trigger_port) {
-                        if (x+70 >= 1200) {
-                            y += 130;
-                            y1 += 130;
-                            x = 40;
-                        } else {
-                            x1 += 80;
-                        }
-                        wid = add_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
-                        set_controller_callbacks(designer, wid);
-                        tooltip_set_text(wid, wid->label);
-                        add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
-                        designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
-                        x += 80;
-                    } else if (designer->lv2c.is_enum_port) {
-                        if (x+130 >= 1200) {
-                            y += 130;
-                            y1 += 130;
-                            x = 40;
-                        } else {
-                            x1 += 140;
-                        }
-                        wid = add_combobox(designer->ui, designer->new_label[designer->active_widget_num], x, y, 120, 30);
-                        set_controller_callbacks(designer, wid);
-                        tooltip_set_text(wid, wid->label);
-
-                        LilvScalePoints* sp = lilv_port_get_scale_points(plugin, port);
-                        int num_sp = lilv_scale_points_size(sp);
-                        int sp_count = 0;
-                        int sppos[num_sp];
-                        char splabes[num_sp][32];
-                        if (num_sp > 0) {
-                            for (LilvIter* it = lilv_scale_points_begin(sp);
-                                    !lilv_scale_points_is_end(sp, it);
-                                    it = lilv_scale_points_next(sp, it)) {
-                                const LilvScalePoint* p = lilv_scale_points_get(sp, it);
-                                utf8ncpy(&splabes[sp_count][0], lilv_node_as_string(lilv_scale_point_get_label(p)), 31);
-                                sppos[sp_count] = lilv_node_as_float(lilv_scale_point_get_value(p));
-                                sp_count++;
-                            }
-                            int i = designer->lv2c.min;
-                            char s[32];
-                            for (;i<designer->lv2c.max+1;i++) {
-                                int j = sort_enums(i,sppos,num_sp);
-                                if (j>-1) {
-                                    combobox_add_entry(wid,&splabes[j][0]);
-                                } else {
-                                    snprintf(s, 31,"%d",  i);
-                                    combobox_add_entry(wid,s);
-                                }
-                            }
-                            lilv_scale_points_free(sp);
-                        }
-
-                        set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min,
-                                                designer->lv2c.max, designer->lv2c.is_int_port? 1.0:0.01, CL_ENUM);
-                        add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
-                        designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
-                        x += 140;
-                    } else {
-                        if (x+70 >= 1200) {
-                            y += 130;
-                            y1 += 130;
-                            x = 40;
-                        } else {
-                            x1 += 80;
-                        }
-                        designer->lv2c.step = designer->lv2c.is_log_port? 0.01 : designer->lv2c.min<0? 
-                        (fabs(designer->lv2c.min)+fabs(designer->lv2c.max))*0.01:fabs(designer->lv2c.max)* 0.01;
-                        wid = add_knob(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 80);
-                        set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min,
-                            designer->lv2c.max, designer->lv2c.is_int_port? 1:designer->lv2c.step, designer->lv2c.is_log_port?
-                            designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE :CL_CONTINUOS);
-                        set_controller_callbacks(designer, wid);
-                        tooltip_set_text(wid, wid->label);
-                        add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
-                        designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
-                        x += 80;
-                    }
-                } else if (designer->lv2c.is_output_port) {
-                    if (x+20 >= 1200) {
-                        y += 130;
-                        y1 += 130;
-                        x = 40;
-                    } else {
-                        x1 += 30;
-                    }
-                    wid = add_vmeter(designer->ui, designer->new_label[designer->active_widget_num], false, x, y, 10, 120);
-                    set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max,
-                        designer->lv2c.is_int_port? 1:0.01, designer->lv2c.is_log_port?
-                        designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE : CL_METER);
-                    set_controller_callbacks(designer, wid);
-                    tooltip_set_text(wid, wid->label);
-                    add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
-                    designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
-                    x += 30;
-                }
+                create_controller(designer, plugin, port, &x, &y, &x1, &y1);
             }
             designer->ui->width = min(1200,x1);
             designer->ui->height = min(600,y1+130);
@@ -354,11 +494,23 @@ void load_plugin_ui(void* w_, void* user_data) {
         lilv_node_free(is_int);
         lilv_node_free(is_tog);
         lilv_node_free(is_enum);
+        lilv_node_free(is_min);
+        lilv_node_free(is_max);
+        lilv_node_free(is_def);
+
+        lilv_node_free(is_label);
+        lilv_node_free(is_range);
+        lilv_node_free(is_float);
+        lilv_node_free(is_path);
+        lilv_node_free(is_bool);
+        lilv_node_free(is_a_int);
 
         lilv_node_free(notOnGui);
         lilv_node_free(is_log);
         lilv_node_free(has_step);
         lilv_node_free(is_trigger);
+        lilv_node_free(patch_readable);
+        lilv_node_free(patch_writable);
     }
     widget_show_all(designer->ui);
 }

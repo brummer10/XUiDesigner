@@ -20,6 +20,8 @@
 
 
 #include "lv2_plugin.h"
+#include "xmessage-dialog.h"
+#include "xfile-dialog.h"
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -52,6 +54,14 @@ static void draw_window(void *w_, void* user_data) {
     cairo_show_text(w->crb, w->label);
     widget_reset_scale(w);
     cairo_new_path (w->crb);
+}
+
+static void dialog_response(void *w_, void* user_data) {
+    if(user_data !=NULL) {
+        fprintf(stderr, "selected file %s\n", *(const char**)user_data);
+    } else {
+        fprintf(stderr, "no file selected\n");
+    }
 }
 
 // if controller value changed send notify to host
@@ -136,6 +146,16 @@ Widget_t* add_lv2_button(Widget_t *w, PortIndex index, const char * label,
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
+    return w;
+}
+
+Widget_t* add_lv2_file_button(Widget_t *w, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_file_button(ui->win, x, y, width, height, "", "");
+    //w->parent_struct = ui;
+    //w->data = index;
+    w->func.user_callback = dialog_response;
+    //w->func.value_changed_callback = value_changed;
     return w;
 }
 

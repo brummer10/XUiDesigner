@@ -899,6 +899,12 @@ static void select_grid_mode(void *w_, void* user_data) {
     }
 }
 
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                change controller type
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
 static void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wid) {
     if (wid->adj->type == CL_LOGARITHMIC) {
          set_adjustment(new_wid->adj, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value),
@@ -918,7 +924,7 @@ static void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t 
     designer->wid_counter--;
 }
 
-static void switch_controler_type(void *w_, void* user_data) {
+static void switch_controller_type(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     Widget_t *wid = designer->active_widget;
@@ -1291,13 +1297,13 @@ int main (int argc, char ** argv) {
 
     designer->grid_snap_select = cmenu_add_submenu(designer->context_menu, _("Grid snap"));
     designer->grid_snap_select->parent_struct = designer;
-    designer->grid_snap_left = menu_add_radio_entry(designer->grid_snap_select, _("Grid snap left"));
-    designer->grid_snap_center = menu_add_radio_entry(designer->grid_snap_select, _("Grid snap center"));
-    designer->grid_snap_right = menu_add_radio_entry(designer->grid_snap_select, _("Grid snap right"));
+    designer->grid_snap_left = menu_add_radio_entry(designer->grid_snap_select, _("Left"));
+    designer->grid_snap_center = menu_add_radio_entry(designer->grid_snap_select, _("Center"));
+    designer->grid_snap_right = menu_add_radio_entry(designer->grid_snap_select, _("Right"));
     radio_item_set_active(designer->grid_snap_left);
     designer->grid_snap_select->func.value_changed_callback = select_grid_mode;
 
-    designer->ctype_switch = cmenu_add_submenu(designer->context_menu, _("Switch Controler type"));
+    designer->ctype_switch = cmenu_add_submenu(designer->context_menu, _("Switch Controller type"));
     designer->ctype_switch->parent_struct = designer;
     menu_add_radio_entry(designer->ctype_switch,_("Knob"));
     menu_add_radio_entry(designer->ctype_switch,_("HSlider"));
@@ -1309,7 +1315,7 @@ int main (int argc, char ** argv) {
     menu_add_radio_entry(designer->ctype_switch,_("Label"));
     menu_add_radio_entry(designer->ctype_switch,_("VMeter"));
     menu_add_radio_entry(designer->ctype_switch,_("HMeter"));
-    designer->ctype_switch->func.value_changed_callback = switch_controler_type;
+    designer->ctype_switch->func.value_changed_callback = switch_controller_type;
 
     menu_add_item(designer->context_menu,_("Delete Controller"));
     designer->context_menu->func.button_release_callback = pop_menu_response;
@@ -1317,8 +1323,8 @@ int main (int argc, char ** argv) {
     widget_show_all(designer->ui);
     main_run(&app);
 
-    lilv_world_free(designer->world);
     print_list(designer);
+    lilv_world_free(designer->world);
     main_quit(&app);
     int i = 0;
     for (;i<designer->wid_counter-1; i++) {

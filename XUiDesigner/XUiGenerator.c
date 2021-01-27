@@ -192,6 +192,10 @@ void print_list(XUiDesigner *designer) {
                 designer->controls[i].port_index, designer->controls[i].wid->label,
                 designer->controls[i].wid->x, designer->controls[i].wid->y,
                 designer->controls[i].wid-> width, designer->controls[i].wid->height);
+            if (designer->controls[i].is_atom_patch && designer->controls[i].is_type != IS_FILE_BUTTON) {
+                const char* uri = (const char*) wid->parent_struct;
+                printf("    ui->widget[%i]->parent_struct = (void*)\"%s\";\n", j, uri);
+            }
             if (designer->controls[i].image != NULL && designer->run_test) {
                 printf ("    load_controller_image(ui->widget[%i], \"%s\");\n", j, designer->controls[i].image);
             }
@@ -206,22 +210,23 @@ void print_list(XUiDesigner *designer) {
             }
             if (designer->controls[i].have_adjustment) {
                 if (wid->adj->type == CL_LOGARITHMIC) {
-                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n\n", 
+                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n", 
                         j, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value), powf(10,wid->adj->min_value),
                         powf(10,wid->adj->max_value), wid->adj->step, wid->adj->type);
                     
                 } else if (wid->adj->type == CL_LOGSCALE) {
-                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n\n", 
+                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n", 
                         j, log10(wid->adj->std_value)*wid->adj->log_scale, log10(wid->adj->std_value)*wid->adj->log_scale,
                         log10(wid->adj->min_value)*wid->adj->log_scale, log10(wid->adj->max_value)*wid->adj->log_scale,
                         wid->adj->step, wid->adj->type);
                     
                 } else {
-                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n\n", 
+                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n", 
                         j, wid->adj->std_value, wid->adj->std_value, wid->adj->min_value, wid->adj->max_value,
                         wid->adj->step, wid->adj->type);
                 }
             }
+            printf ("\n");
             j++;
         }
     }
