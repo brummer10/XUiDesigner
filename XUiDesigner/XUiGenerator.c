@@ -148,6 +148,32 @@ void print_colors(XUiDesigner *designer) {
 
 }
 
+const char* parse_adjusment_type(CL_type cl_type) {
+    switch(cl_type) {
+        case CL_NONE:            return "CL_NONE";
+        break;
+        case CL_CONTINUOS:       return "CL_CONTINUOS";
+        break;
+        case CL_TOGGLE:          return "CL_TOGGLE";
+        break;
+        case CL_BUTTON:          return "CL_BUTTON";
+        break;
+        case CL_ENUM:            return "CL_ENUM";
+        break;
+        case CL_VIEWPORT:        return "CL_VIEWPORT";
+        break;
+        case CL_METER:           return "CL_METER";
+        break;
+        case CL_LOGARITHMIC:     return "CL_LOGARITHMIC";
+        break;
+        case CL_LOGSCALE:        return "CL_LOGSCALE";
+        break;
+        case CL_VIEWPORTSLIDER:  return "CL_VIEWPORTSLIDER";
+        break;
+        default: return NULL;
+    }
+}
+
 void print_list(XUiDesigner *designer) {
     int i = 0;
     int j = 0;
@@ -212,20 +238,20 @@ void print_list(XUiDesigner *designer) {
             }
             if (designer->controls[i].have_adjustment) {
                 if (wid->adj->type == CL_LOGARITHMIC) {
-                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n", 
+                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %s);\n", 
                         j, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value), powf(10,wid->adj->min_value),
-                        powf(10,wid->adj->max_value), wid->adj->step, wid->adj->type);
+                        powf(10,wid->adj->max_value), wid->adj->step, parse_adjusment_type(wid->adj->type));
                     
                 } else if (wid->adj->type == CL_LOGSCALE) {
-                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n", 
+                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %s);\n", 
                         j, log10(wid->adj->std_value)*wid->adj->log_scale, log10(wid->adj->std_value)*wid->adj->log_scale,
                         log10(wid->adj->min_value)*wid->adj->log_scale, log10(wid->adj->max_value)*wid->adj->log_scale,
-                        wid->adj->step, wid->adj->type);
+                        wid->adj->step, parse_adjusment_type(wid->adj->type));
                     
                 } else {
-                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %i);\n", 
+                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %s);\n", 
                         j, wid->adj->std_value, wid->adj->std_value, wid->adj->min_value, wid->adj->max_value,
-                        wid->adj->step, wid->adj->type);
+                        wid->adj->step, parse_adjusment_type(wid->adj->type));
                 }
             }
             printf ("\n");
@@ -267,15 +293,14 @@ void run_save(void *w_, void* user_data) {
         char *name;
         XFetchName(designer->ui->app->dpy, w, &name);
         name = name ? name : "noname";
-        char* filename = NULL;
-        asprintf(&filename, "./Bundle/save.lv2/%s",name);
+        char* filepath = NULL;
+        asprintf(&filepath, "./Bundle/save.lv2/%s",name);
         struct stat st = {0};
 
-        if (stat(filename, &st) == -1) {
-            mkdir(filename, 0700);
+        if (stat(filepath, &st) == -1) {
+            mkdir(filepath, 0700);
         }
-        free(filename);
-        filename = NULL;
+        char* filename = NULL;
         asprintf(&filename, "./Bundle/save.lv2/%s/%s.c",name, name );
         remove (filename);
         FILE *fp;
@@ -286,6 +311,22 @@ void run_save(void *w_, void* user_data) {
         print_list(designer);
         fclose(fp);
         free(filename);
+       // if (system(NULL)) {
+       //     char* cmd = NULL;
+       //     asprintf(&cmd, "cp ./Bundle/wrapper/libxputty/* \'%s\'", filepath);
+       //     int ret = system(cmd);
+       //     if (!ret) {
+       //         free(cmd);
+       //         asprintf(&cmd, "cd \'%s\'  && "
+       //             "cc -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector "
+       //             "`pkg-config lilv-0 --cflags` \'%s.c\' -L. ../../../libxputty/libxputty/libxputty.a "
+       //             "-o \'%s_ui.so\'  -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../../../libxputty/libxputty/include/ "
+       //             "`pkg-config --cflags --libs cairo x11 lilv-0` -shared -lm ", filepath, name, name);
+       //         ret = system(cmd);
+       //     }
+       //     free(cmd);
+       // }
+        free(filepath);
     }
 }
 

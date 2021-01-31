@@ -348,6 +348,7 @@ static void draw_ui(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     use_bg_color_scheme(w, NORMAL_);
     cairo_paint (w->crb);
+    cairo_paint (w->cr);
     if (w->image) {
         widget_set_scale(w);
         cairo_set_source_surface (w->crb, w->image, 0, 0);
@@ -681,26 +682,27 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
     }
 }
 
-static void set_designer_callbacks(XUiDesigner *designer, float x, float y, float w, float h) {
+static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
+    entry_set_text(designer, wid->label);
     xevfunc store = designer->x_axis->func.value_changed_callback;
     designer->x_axis->func.value_changed_callback = null_callback;
-    adj_set_value(designer->x_axis->adj, x);
+    adj_set_value(designer->x_axis->adj, (float)wid->x);
     designer->x_axis->func.value_changed_callback = store;
     store = designer->y_axis->func.value_changed_callback;
     designer->y_axis->func.value_changed_callback = null_callback;
-    adj_set_value(designer->y_axis->adj, y);
+    adj_set_value(designer->y_axis->adj, (float)wid->y);
     designer->y_axis->func.value_changed_callback = store;
     store = designer->w_axis->func.value_changed_callback;
     designer->w_axis->func.value_changed_callback = null_callback;
-    adj_set_value(designer->w_axis->adj, w);
+    adj_set_value(designer->w_axis->adj, (float)wid->width);
     designer->w_axis->func.value_changed_callback = store;
     store = designer->h_axis->func.value_changed_callback;
     designer->h_axis->func.value_changed_callback = null_callback;
-    adj_set_value(designer->h_axis->adj, h);
+    adj_set_value(designer->h_axis->adj, (float)wid->height);
     designer->h_axis->func.value_changed_callback = store;
 }
 
-void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid) {
+void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer) {
     XSelectInput(wid->app->dpy, wid->widget,StructureNotifyMask|ExposureMask|KeyPressMask 
                     |EnterWindowMask|LeaveWindowMask|ButtonReleaseMask
                     |ButtonPressMask|Button1MotionMask|PointerMotionMask);
@@ -711,11 +713,11 @@ void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid) {
     wid->func.button_release_callback = fix_pos_wid;
     wid->func.motion_callback = move_wid;
     designer->active_widget_num = designer->wid_counter;
-    entry_set_text(designer, wid->label);
     designer->active_widget = wid;
     adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)+1.0);
     designer->controls[designer->wid_counter].port_index = adj_get_value(designer->index->adj);
-    set_designer_callbacks(designer, (float)wid->x, (float)wid->y, (float)wid->width, (float)wid->height);
+    if (set_designer)
+        set_designer_callbacks(designer, wid);
     designer->wid_counter++;
     Cursor c = XCreateFontCursor(wid->app->dpy, XC_hand2);
     XDefineCursor (wid->app->dpy, wid->widget, c);
@@ -738,52 +740,52 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         switch(designer->select_widget_num) {
             case 1:
                 wid = add_knob(w, "Knob", xbutton->x, xbutton->y, 60, 80);
-                set_controller_callbacks(designer, wid);
+                set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
             break;
             case 2:
                 wid = add_hslider(w, "HSlider", xbutton->x, xbutton->y, 120, 30);
-                set_controller_callbacks(designer, wid);
+                set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_hslider", true, IS_HSLIDER);
             break;
             case 3:
                 wid = add_vslider(w, "VSlider", xbutton->x, xbutton->y, 30, 120);
-                set_controller_callbacks(designer, wid);
+                set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_vslider", true, IS_VSLIDER);
             break;
             case 4:
                 wid = add_button(w, "Button", xbutton->x, xbutton->y, 60, 60);
-                set_controller_callbacks(designer, wid);
+                set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
             break;
             case 5:
                 wid = add_toggle_button(w, "Switch", xbutton->x, xbutton->y, 60, 60);
-                set_controller_callbacks(designer, wid);
+                set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
             break;
             case 6:
                 wid = add_combobox(w, "Combobox", xbutton->x, xbutton->y, 120, 30);
-                set_controller_callbacks(designer, wid);
+                set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
             break;
             case 7:
                 wid = add_valuedisplay(w, "", xbutton->x, xbutton->y, 40, 30);
-                set_controller_callbacks(designer, wid);
+                set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
             break;
             case 8:
                 wid = add_label(w, "Label", xbutton->x, xbutton->y, 60, 30);
-                set_controller_callbacks(designer, wid);
+                set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_label", false, IS_LABEL);
             break;
             case 9:
                 wid = add_vmeter(w, "VMeter", false, xbutton->x, xbutton->y, 10, 120);
-                set_controller_callbacks(designer, wid);
+                set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
             break;
             case 10:
                 wid = add_hmeter(w, "hMeter", false, xbutton->x, xbutton->y, 120, 10);
-                set_controller_callbacks(designer, wid);
+                set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
             break;
             default:
@@ -919,7 +921,7 @@ static void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t 
         set_adjustment(new_wid->adj, wid->adj->std_value, wid->adj->std_value,
             wid->adj->min_value,wid->adj->max_value, wid->adj->step, wid->adj->type);
     }
-    set_controller_callbacks(designer, new_wid);
+    set_controller_callbacks(designer, new_wid, true);
     new_wid->data = wid->data;
     designer->wid_counter--;
 }
@@ -974,7 +976,7 @@ static void switch_controller_type(void *w_, void* user_data) {
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_button(designer->ui, designer->new_label[designer->active_widget_num],
                                                                         wid->x, wid->y, 60, 60);
-            set_controller_callbacks(designer, new_wid);
+            set_controller_callbacks(designer, new_wid, true);
             new_wid->data = wid->data;
             designer->wid_counter--;
             add_to_list(designer, new_wid, "add_lv2_button", false, IS_BUTTON);
@@ -987,7 +989,7 @@ static void switch_controller_type(void *w_, void* user_data) {
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num],
                                                                         wid->x, wid->y, 60, 60);
-            set_controller_callbacks(designer, new_wid);
+            set_controller_callbacks(designer, new_wid, true);
             new_wid->data = wid->data;
             designer->wid_counter--;
             add_to_list(designer, new_wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
@@ -1000,7 +1002,7 @@ static void switch_controller_type(void *w_, void* user_data) {
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_combobox(designer->ui, designer->new_label[designer->active_widget_num],
                                                                         wid->x, wid->y, 120, 30);
-            set_controller_callbacks(designer, new_wid);
+            set_controller_callbacks(designer, new_wid, true);
             new_wid->data = wid->data;
             designer->wid_counter--;
             add_to_list(designer, new_wid, "add_lv2_combobox", true, IS_COMBOBOX);
@@ -1026,7 +1028,7 @@ static void switch_controller_type(void *w_, void* user_data) {
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_label(designer->ui, designer->new_label[designer->active_widget_num],
                                                                         wid->x, wid->y, 120, 30);
-            set_controller_callbacks(designer, new_wid);
+            set_controller_callbacks(designer, new_wid, true);
             new_wid->data = wid->data;
             designer->wid_counter--;
             add_to_list(designer, new_wid, "add_lv2_label", false, IS_LABEL);

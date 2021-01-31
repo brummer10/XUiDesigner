@@ -58,7 +58,7 @@ static void reset_plugin_ui(XUiDesigner *designer) {
     adj_set_value(designer->h_axis->adj, 10.0);
     widget_hide(designer->combobox_settings);
     widget_hide(designer->controller_settings);
-    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
+    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
 
     adj_set_value(designer->index->adj,0.0);
     designer->wid_counter = 0;
@@ -92,7 +92,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 x1 += 80;
             }
             wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
-            set_controller_callbacks(designer, wid);
+            set_controller_callbacks(designer, wid, false);
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
             designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
@@ -107,7 +107,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 x1 += 80;
             }
             wid = add_button(designer->ui, designer->new_label[designer->active_widget_num], x, y, 60, 60);
-            set_controller_callbacks(designer, wid);
+            set_controller_callbacks(designer, wid, false);
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
             designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
@@ -122,7 +122,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 x1 += 140;
             }
             wid = add_combobox(designer->ui, designer->new_label[designer->active_widget_num], x, y, 120, 30);
-            set_controller_callbacks(designer, wid);
+            set_controller_callbacks(designer, wid, false);
             tooltip_set_text(wid, wid->label);
 
             LilvScalePoints* sp = lilv_port_get_scale_points(plugin, port);
@@ -168,7 +168,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 x1 += 80;
             }
             wid = add_file_button(designer->ui, x, y, 60, 60, "", "");
-            set_controller_callbacks(designer, wid);
+            set_controller_callbacks(designer, wid, false);
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_file_button", false, IS_FILE_BUTTON);
             designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
@@ -189,7 +189,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
             set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min,
                 designer->lv2c.max, designer->lv2c.is_int_port? 1:designer->lv2c.step, designer->lv2c.is_log_port?
                 designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE :CL_CONTINUOS);
-            set_controller_callbacks(designer, wid);
+            set_controller_callbacks(designer, wid, false);
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
             designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
@@ -208,7 +208,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
         set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max,
             designer->lv2c.is_int_port? 1:0.01, designer->lv2c.is_log_port?
             designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE : CL_METER);
-        set_controller_callbacks(designer, wid);
+        set_controller_callbacks(designer, wid, false);
         tooltip_set_text(wid, wid->label);
         add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
         designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
@@ -513,6 +513,7 @@ void load_plugin_ui(void* w_, void* user_data) {
         lilv_node_free(patch_writable);
     }
     widget_show_all(designer->ui);
+    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
 }
 
 void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
