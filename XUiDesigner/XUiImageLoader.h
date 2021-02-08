@@ -32,6 +32,9 @@
 extern "C" {
 #endif
 
+Widget_t *add_image_button(Widget_t *parent, int x, int y, int width, int height,
+                           const char *path, const char *filter);
+
 void image_load_response(void *w_, void* user_data);
 
 void unload_background_image(void *w_, void* user_data);

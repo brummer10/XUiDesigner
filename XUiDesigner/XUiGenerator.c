@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include "XUiGenerator.h"
 
@@ -205,7 +206,13 @@ void print_list(XUiDesigner *designer) {
         "void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri) {\n"
         "    set_costum_theme(&ui->main);\n"
         , designer->run_test? "ui_test.cc": "lv2_plugin.cc", designer->ui->width, designer->ui->height, name? name:"Test");
-        if (designer->image && designer->run_test) printf ("    load_bg_image(ui,\"%s\");\n", designer->image);
+        if (designer->image != NULL) {
+            if (designer->run_test) {
+                printf ("    load_bg_image(ui,\"%s\");\n", designer->image);
+            } else {
+                printf ("    load_bg_image(ui,\"./resources/%s\");\n", basename(designer->image));
+            }
+        }
 
     } else {
         return;
@@ -224,8 +231,12 @@ void print_list(XUiDesigner *designer) {
                 const char* uri = (const char*) wid->parent_struct;
                 printf("    ui->widget[%i]->parent_struct = (void*)\"%s\";\n", j, uri);
             }
-            if (designer->controls[i].image != NULL && designer->run_test) {
-                printf ("    load_controller_image(ui->widget[%i], \"%s\");\n", j, designer->controls[i].image);
+            if (designer->controls[i].image != NULL ) {
+                if (designer->run_test) {
+                    printf ("    load_controller_image(ui->widget[%i], \"%s\");\n", j, designer->controls[i].image);
+                } else {
+                    printf ("    load_controller_image(ui->widget[%i], \"./resources/%s\");\n", j, basename(designer->controls[i].image));
+                }
             }
             if (designer->controls[i].is_type == IS_COMBOBOX) {
                 Widget_t *menu = wid->childlist->childs[1];
@@ -278,9 +289,13 @@ void run_save(void *w_, void* user_data) {
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         int i = 0;
         int j = 0;
+        bool have_image = false;
         for (;i<MAX_CONTROLS;i++) {
             if (designer->controls[i].wid != NULL) {
                 j++;
+            }
+            if (designer->controls[i].image) {
+                have_image = true;
             }
         }
         if (!j) {
@@ -300,6 +315,7 @@ void run_save(void *w_, void* user_data) {
         if (stat(filepath, &st) == -1) {
             mkdir(filepath, 0700);
         }
+
         char* filename = NULL;
         asprintf(&filename, "./Bundle/save.lv2/%s/%s.c",name, name );
         remove (filename);
@@ -327,6 +343,56 @@ void run_save(void *w_, void* user_data) {
        //     free(cmd);
        // }
         free(filepath);
+        
+        char* cmd = NULL;
+        if (have_image || designer->image != NULL) {
+            filepath = NULL;
+            asprintf(&filepath, "./Bundle/save.lv2/%s/resources",name);
+            if (stat(filepath, &st) == -1) {
+                mkdir(filepath, 0700);
+            } else {
+                asprintf(&cmd, "rm -rf \'%s\'", filepath);
+                int ret = system(cmd);
+                if (!ret) {
+                    free(cmd);
+                    cmd = NULL;
+                    mkdir(filepath, 0700);
+                } else {
+                    free(cmd);
+                    cmd = NULL;
+                }
+            }
+        }
+        if (designer->image != NULL) {
+            asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,filepath);
+            int ret = system(cmd);
+            if (!ret) {
+                free(cmd);
+                cmd = NULL;
+            } else {
+                free(cmd);
+                cmd = NULL;
+                fprintf(stderr, "Fail to copy image\n");
+            }
+        }
+        if (have_image) {
+            i = 0;
+            for (;i<MAX_CONTROLS;i++) {
+                if (designer->controls[i].image != NULL) {
+                    asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,filepath);
+                    int ret = system(cmd);
+                    if (!ret) {
+                        free(cmd);
+                        cmd = NULL;
+                    } else {
+                        free(cmd);
+                        cmd = NULL;
+                        fprintf(stderr, "Fail to copy image\n");
+                    }
+                }
+            }
+            free(filepath);
+        }
     }
 }
 

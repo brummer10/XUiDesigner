@@ -23,6 +23,81 @@
 
 
 /*---------------------------------------------------------------------
+-----------------------------------------------------------------------	
+                add_image_button
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+
+typedef struct {
+    Widget_t *w;
+    char *last_path;
+    const char *path;
+    const char *filter;
+    bool is_active;
+} ImageButton;
+
+static void idialog_response(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    ImageButton *imagebutton = (ImageButton *)w->parent_struct;
+    if(user_data !=NULL) {
+        char *tmp = strdup(*(const char**)user_data);
+        free(imagebutton->last_path);
+        imagebutton->last_path = NULL;
+        imagebutton->last_path = strdup(dirname(tmp));
+        imagebutton->path = imagebutton->last_path;
+        free(tmp);
+    }
+    w->func.user_callback(w,user_data);
+    imagebutton->is_active = false;
+    adj_set_value(w->adj,0.0);
+}
+
+static void ibutton_callback(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    ImageButton *imagebutton = (ImageButton *)w->parent_struct;
+    if (w->flags & HAS_POINTER && adj_get_value(w->adj)){
+        imagebutton->w = open_file_dialog(w,imagebutton->path,imagebutton->filter);
+        Atom wmStateAbove = XInternAtom(w->app->dpy, "_NET_WM_STATE_ABOVE", 1 );
+        Atom wmNetWmState = XInternAtom(w->app->dpy, "_NET_WM_STATE", 1 );
+        XChangeProperty(w->app->dpy, imagebutton->w->widget, wmNetWmState, XA_ATOM, 32, 
+            PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
+        imagebutton->is_active = true;
+    } else if (w->flags & HAS_POINTER && !adj_get_value(w->adj)){
+        if(imagebutton->is_active)
+            destroy_widget(imagebutton->w,w->app);
+    }
+}
+
+static void ibutton_mem_free(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    ImageButton *imagebutton = (ImageButton *)w->parent_struct;
+    free(imagebutton->last_path);
+    imagebutton->last_path = NULL;
+    free(imagebutton);
+    imagebutton = NULL;
+}
+
+Widget_t *add_image_button(Widget_t *parent, int x, int y, int width, int height,
+                           const char *path, const char *filter) {
+    ImageButton *imagebutton = (ImageButton*)malloc(sizeof(ImageButton));
+    imagebutton->path = path;
+    imagebutton->filter = filter;
+    imagebutton->last_path = NULL;
+    imagebutton->w = NULL;
+    imagebutton->is_active = false;
+    Widget_t *fbutton = add_image_toggle_button(parent, "", x, y, width, height);
+    fbutton->parent_struct = imagebutton;
+    fbutton->flags |= HAS_MEM;
+    widget_get_png(fbutton, LDVAR(image_directory_png));
+    fbutton->scale.gravity = CENTER;
+    fbutton->func.mem_free_callback = ibutton_mem_free;
+    fbutton->func.value_changed_callback = ibutton_callback;
+    fbutton->func.dialog_callback = idialog_response;
+    return fbutton;
+}
+
+/*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 image handling
 -----------------------------------------------------------------------

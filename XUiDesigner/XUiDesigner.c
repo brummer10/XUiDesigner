@@ -1185,7 +1185,7 @@ int main (int argc, char ** argv) {
     combobox_set_active_entry(designer->widgets, 0);
     designer->widgets->func.value_changed_callback = set_widget_callback;
 
-    designer->image_loader = add_file_button(designer->w,20,75,40,40, "", ".png");
+    designer->image_loader = add_image_button(designer->w,20,75,40,40, "", ".png");
     tooltip_set_text(designer->image_loader,_("Load Background Image (*.png)"));
     designer->image_loader->func.user_callback = image_load_response;
     
