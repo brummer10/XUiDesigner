@@ -313,6 +313,43 @@ Widget_t* add_lv2_label(Widget_t *w, PortIndex index, const char * label,
     return w;
 }
 
+void load_bg_image(X11_UI* ui, const char* image) {
+    cairo_surface_t *getpng = cairo_image_surface_create_from_png (image);
+    int width = cairo_image_surface_get_width(getpng);
+    int height = cairo_image_surface_get_height(getpng);
+    int width_t = ui->win->scale.init_width;
+    int height_t = ui->win->scale.init_height;
+    double x = (double)width_t/(double)width;
+    double y = (double)height_t/(double)height;
+    cairo_surface_destroy(ui->win->image);
+    ui->win->image = NULL;
+
+    ui->win->image = cairo_surface_create_similar (ui->win->surface, 
+                        CAIRO_CONTENT_COLOR_ALPHA, width_t, height_t);
+    cairo_t *cri = cairo_create (ui->win->image);
+    cairo_scale(cri, x,y);    
+    cairo_set_source_surface (cri, getpng,0,0);
+    cairo_paint (cri);
+    cairo_surface_destroy(getpng);
+    cairo_destroy(cri);
+}
+
+void load_controller_image(Widget_t* w,const char* image) {
+    cairo_surface_t *getpng = cairo_image_surface_create_from_png (image);
+    int width = cairo_image_surface_get_width(getpng);
+    int height = cairo_image_surface_get_height(getpng);
+    cairo_surface_destroy(w->image);
+    w->image = NULL;
+
+    w->image = cairo_surface_create_similar (w->surface, 
+                        CAIRO_CONTENT_COLOR_ALPHA, width, height);
+    cairo_t *cri = cairo_create (w->image);
+    cairo_set_source_surface (cri, getpng,0,0);
+    cairo_paint (cri);
+    cairo_surface_destroy(getpng);
+    cairo_destroy(cri);
+}
+
 // init the xwindow and return the LV2UI handle
 static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
             const char * plugin_uri, const char * bundle_path,

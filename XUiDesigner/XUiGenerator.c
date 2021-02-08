@@ -309,7 +309,7 @@ void run_save(void *w_, void* user_data) {
         XFetchName(designer->ui->app->dpy, w, &name);
         name = name ? name : "noname";
         char* filepath = NULL;
-        asprintf(&filepath, "./Bundle/save.lv2/%s",name);
+        asprintf(&filepath, "./Bundle/save.lv2/%s_ui",name);
         struct stat st = {0};
 
         if (stat(filepath, &st) == -1) {
@@ -317,7 +317,7 @@ void run_save(void *w_, void* user_data) {
         }
 
         char* filename = NULL;
-        asprintf(&filename, "./Bundle/save.lv2/%s/%s.c",name, name );
+        asprintf(&filename, "./Bundle/save.lv2/%s_ui/%s.c",name, name );
         remove (filename);
         FILE *fp;
         if((fp=freopen(filename, "w" ,stdout))==NULL) {
@@ -327,27 +327,38 @@ void run_save(void *w_, void* user_data) {
         print_list(designer);
         fclose(fp);
         free(filename);
-       // if (system(NULL)) {
-       //     char* cmd = NULL;
-       //     asprintf(&cmd, "cp ./Bundle/wrapper/libxputty/* \'%s\'", filepath);
-       //     int ret = system(cmd);
-       //     if (!ret) {
-       //         free(cmd);
-       //         asprintf(&cmd, "cd \'%s\'  && "
-       //             "cc -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector "
-       //             "`pkg-config lilv-0 --cflags` \'%s.c\' -L. ../../../libxputty/libxputty/libxputty.a "
-       //             "-o \'%s_ui.so\'  -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../../../libxputty/libxputty/include/ "
-       //             "`pkg-config --cflags --libs cairo x11 lilv-0` -shared -lm ", filepath, name, name);
-       //         ret = system(cmd);
-       //     }
-       //     free(cmd);
-       // }
+        if (system(NULL)) {
+            char* cmd = NULL;
+            asprintf(&cmd, "cp ./Bundle/wrapper/libxputty/* \'%s\'", filepath);
+            int ret = system(cmd);
+            if (!ret) {
+                free(cmd);
+                asprintf(&cmd, "\n\nall:\n"
+                    "	cc -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector \\\n"
+                    "	`pkg-config lilv-0 --cflags` \'%s.c\' -L. ../../../libxputty/libxputty/libxputty.a \\\n "
+                    "	-o \'%s_ui.so\'  -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../../../libxputty/libxputty/include/ \\\n"
+                    "	`pkg-config --cflags --libs cairo x11 lilv-0` -shared -lm ", name, name);
+                char* makefile = NULL;
+                asprintf(&makefile, "%s/makefile",filepath);
+                FILE *fpm;
+                if((fpm=freopen(makefile, "w" ,stdout))==NULL) {
+                    printf("open failed\n");
+                }
+                printf(cmd);
+                fclose(fpm);
+                free(makefile);
+                //ret = system(cmd);
+                free(cmd);
+            } else {
+                free(cmd);
+            }
+        }
         free(filepath);
         
         char* cmd = NULL;
         if (have_image || designer->image != NULL) {
             filepath = NULL;
-            asprintf(&filepath, "./Bundle/save.lv2/%s/resources",name);
+            asprintf(&filepath, "./Bundle/save.lv2/%s_ui/resources",name);
             if (stat(filepath, &st) == -1) {
                 mkdir(filepath, 0700);
             } else {
