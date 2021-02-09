@@ -154,6 +154,7 @@ void unload_background_image(void *w_, void* user_data) {
 
 static void set_image_button(XUiDesigner *designer) {
     Widget_t *wid = designer->active_widget;
+    remove_from_list(designer, wid);
     Widget_t *new_wid = NULL;
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
     new_wid = add_switch_image_button(designer->ui, designer->new_label[designer->active_widget_num],
@@ -169,6 +170,7 @@ static void set_image_button(XUiDesigner *designer) {
 
 static void unset_image_button(XUiDesigner *designer) {
     Widget_t *wid = designer->active_widget;
+    remove_from_list(designer, wid);
     Widget_t *new_wid = NULL;
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
     new_wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num],
