@@ -573,6 +573,27 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
     }
 }
 
+static void draw_frame(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
+    if (w->data == designer->active_widget_num) {
+        XWindowAttributes attrs;
+        XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+        int width = attrs.width;
+        int height = attrs.height;
+        use_frame_color_scheme(w, ACTIVE_);
+        cairo_rectangle(w->cr, 0, 0, width, height);
+        cairo_stroke(w->cr);
+    }
+}
+
+static void draw_trans(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    transparent_draw(w, NULL);
+    draw_frame(w, NULL);
+}
+
 static void set_pos_wid(void *w_, void *button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
@@ -583,11 +604,16 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     if(xbutton->button == Button1) {
+        designer->active_widget_num = -1;
+        if (designer->prev_active_widget != NULL)
+            draw_trans(designer->prev_active_widget,NULL);
         designer->active_widget = (Widget_t*)w_;
         designer->active_widget_num = w->data;
         designer->pos_x = xbutton->x_root;
         designer->pos_y = xbutton->y_root;
         entry_set_text(designer, w->label);
+        adj_set_value(designer->x_axis->adj, w->x);
+        adj_set_value(designer->y_axis->adj, w->y);
         adj_set_value(designer->w_axis->adj, w->width);
         adj_set_value(designer->h_axis->adj, w->height);
         adj_set_value(designer->index->adj, 
@@ -619,6 +645,8 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
     } else {
         designer->modify_mod = XUI_POSITION;
     }
+    draw_frame(designer->active_widget, NULL);
+    designer->prev_active_widget = w;
 }
 
 static void null_callback(void *w_, void* user_data) {
@@ -649,8 +677,6 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
         designer->modify_mod = XUI_NONE;
         designer->active_widget = (Widget_t*)w_;
         designer->active_widget_num = w->data;
-        adj_set_value(designer->x_axis->adj, w->x);
-        adj_set_value(designer->y_axis->adj, w->y);
     } else if(xbutton->button == Button3) {
         designer->modify_mod = XUI_NONE;
         designer->active_widget = (Widget_t*)w_;
@@ -680,6 +706,7 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
         designer->ctype_switch->func.value_changed_callback = store;
         pop_menu_show(w,designer->context_menu,5,true);
     }
+    draw_frame(designer->active_widget, NULL);
 }
 
 static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
@@ -709,6 +736,8 @@ void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_des
     wid->data = designer->wid_counter;
     wid->scale.gravity = NONE;
     //wid->parent_struct = designer;
+    wid->func.enter_callback = draw_trans;
+    wid->func.leave_callback = draw_trans;
     wid->func.button_press_callback = set_pos_wid;
     wid->func.button_release_callback = fix_pos_wid;
     wid->func.motion_callback = move_wid;
@@ -1118,6 +1147,7 @@ int main (int argc, char ** argv) {
     designer->select_widget_num = 0;
     designer->active_widget_num = 0;
     designer->active_widget = NULL;
+    designer->prev_active_widget = NULL;
     designer->wid_counter = 0;
     designer->image_path = NULL;
     designer->image = NULL;

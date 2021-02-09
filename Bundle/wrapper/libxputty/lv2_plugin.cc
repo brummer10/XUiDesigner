@@ -286,6 +286,15 @@ Widget_t* add_lv2_toggle_button(Widget_t *w, PortIndex index, const char * label
     return w;
 }
 
+Widget_t* add_lv2_image_toggle(Widget_t *w, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_switch_image_button(ui->win, label, x, y, width, height);
+    w->parent_struct = ui;
+    w->data = index;
+    w->func.value_changed_callback = value_changed;
+    return w;
+}
+
 Widget_t* add_lv2_button(Widget_t *w, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
     w = add_button(ui->win, label, x, y, width, height);

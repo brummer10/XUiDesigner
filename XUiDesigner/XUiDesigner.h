@@ -82,6 +82,7 @@ typedef enum {
     IS_VSLIDER        ,
     IS_BUTTON         ,
     IS_TOGGLE_BUTTON  ,
+    IS_IMAGE_TOGGLE   ,
     IS_COMBOBOX       ,
     IS_VALUE_DISPLAY  ,
     IS_LABEL          ,
@@ -142,6 +143,7 @@ typedef struct {
     Widget_t *w_axis;
     Widget_t *h_axis;
     Widget_t *active_widget;
+    Widget_t *prev_active_widget;
     Widget_t *w;
     Widget_t *ui;
     Widget_t *controller_label;

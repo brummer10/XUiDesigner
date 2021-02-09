@@ -100,116 +100,6 @@ static void draw_window(void *w_, void* user_data) {
     cairo_new_path (w->crb);
 }
 
-// draw the knobs
-static void draw_lv2_knob(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    X11_UI* ui = (X11_UI*)w->parent_struct;
-    int width = w->width-2;
-    int height = w->height-2;
-
-    const double scale_zero = 20 * (M_PI/180); // defines "dead zone" for knobs
-    int arc_offset = 2;
-    int knob_x = 0;
-    int knob_y = 0;
-
-    int grow = (width > height) ? height:width;
-    knob_x = grow-1;
-    knob_y = grow-1;
-    /** get values for the knob **/
-
-    int knobx = (width - knob_x) * 0.5;
-    int knobx1 = width* 0.5;
-
-    int knoby = (height - knob_y) * 0.5;
-    int knoby1 = height * 0.5;
-
-    double knobstate = adj_get_state(w->adj_y);
-    double angle = scale_zero + knobstate * 2 * (M_PI - scale_zero);
-
-    double pointer_off =knob_x/3.5;
-    double radius = min(knob_x-pointer_off, knob_y-pointer_off) / 2;
-    double lengh_x = (knobx+radius+pointer_off/2) - radius * sin(angle);
-    double lengh_y = (knoby+radius+pointer_off/2) + radius * cos(angle);
-    double radius_x = (knobx+radius+pointer_off/2) - radius/ 1.18 * sin(angle);
-    double radius_y = (knoby+radius+pointer_off/2) + radius/ 1.18 * cos(angle);
-    cairo_pattern_t* pat;
-    cairo_new_path (w->crb);
-
-    pat = cairo_pattern_create_linear (0, 0, 0, knob_y);
-    cairo_pattern_add_color_stop_rgba (pat, 1, ui->kp->p1f[0],ui->kp->p1f[1],ui->kp->p1f[2],ui->kp->p1f[3]);
-    cairo_pattern_add_color_stop_rgba (pat, 0.75, ui->kp->p2f[0],ui->kp->p2f[1],ui->kp->p2f[2],ui->kp->p2f[3]);
-    cairo_pattern_add_color_stop_rgba (pat, 0.5,  ui->kp->p3f[0],ui->kp->p3f[1],ui->kp->p3f[2],ui->kp->p3f[3]);
-    cairo_pattern_add_color_stop_rgba (pat, 0.25,  ui->kp->p4f[0],ui->kp->p4f[1],ui->kp->p4f[2],ui->kp->p4f[3]);
-    cairo_pattern_add_color_stop_rgba (pat, 0,  ui->kp->p5f[0],ui->kp->p5f[1],ui->kp->p5f[2],ui->kp->p5f[3]);
-
-    cairo_scale (w->crb, 0.95, 1.05);
-    cairo_arc(w->crb,knobx1+arc_offset/2, knoby1-arc_offset, knob_x/2.2, 0, 2 * M_PI );
-    cairo_set_source (w->crb, pat);
-    cairo_fill_preserve (w->crb);
-    cairo_set_source_rgb (w->crb, 0.1, 0.1, 0.1); 
-    cairo_set_line_width(w->crb,1);
-    cairo_stroke(w->crb);
-    cairo_scale (w->crb, 1.05, 0.95);
-    cairo_new_path (w->crb);
-    cairo_pattern_destroy (pat);
-    pat = NULL;
-
-    pat = cairo_pattern_create_linear (0, 0, 0, knob_y);
-    cairo_pattern_add_color_stop_rgba (pat, 0, ui->kp->p1k[0],ui->kp->p1k[1],ui->kp->p1k[2],ui->kp->p1k[3]);
-    cairo_pattern_add_color_stop_rgba (pat, 0.25, ui->kp->p2k[0],ui->kp->p2k[1],ui->kp->p2k[2],ui->kp->p2k[3]);
-    cairo_pattern_add_color_stop_rgba (pat, 0.5, ui->kp->p3k[0],ui->kp->p3k[1],ui->kp->p3k[2],ui->kp->p3k[3]);
-    cairo_pattern_add_color_stop_rgba (pat, 0.75, ui->kp->p4k[0],ui->kp->p4k[1],ui->kp->p4k[2],ui->kp->p4k[3]);
-    cairo_pattern_add_color_stop_rgba (pat, 1, ui->kp->p5k[0],ui->kp->p5k[1],ui->kp->p5k[2],ui->kp->p5k[3]);
-
-    cairo_arc(w->crb,knobx1, knoby1, knob_x/2.6, 0, 2 * M_PI );
-    cairo_set_source (w->crb, pat);
-    cairo_fill_preserve (w->crb);
-    cairo_set_source_rgb (w->crb, 0.1, 0.1, 0.1); 
-    cairo_set_line_width(w->crb,1);
-    cairo_stroke(w->crb);
-    cairo_new_path (w->crb);
-    cairo_pattern_destroy (pat);
-
-    use_text_color_scheme(w, get_color_state(w));
-
-    /** create a rotating pointer on the kob**/
-    cairo_set_line_cap(w->crb, CAIRO_LINE_CAP_ROUND); 
-    cairo_set_line_join(w->crb, CAIRO_LINE_JOIN_BEVEL);
-    cairo_move_to(w->crb, radius_x, radius_y);
-    cairo_line_to(w->crb,lengh_x,lengh_y);
-    cairo_set_line_width(w->crb,3);
-    cairo_stroke(w->crb);
-    cairo_new_path (w->crb);
-
-    cairo_text_extents_t extents;
-    /** show value on the kob**/
-    if (w->state>0.0 && w->state<4.0) {
-        float value = adj_get_value(w->adj);
-        char s[64];
-        const char* format[] = {"%.1f", "%.2f", "%.3f"};
-        if (fabs(w->adj->step)>0.99) {
-            snprintf(s, 63,"%d",  (int) value);
-        } else if (fabs(w->adj->step)>0.09) {
-            snprintf(s, 63, format[1-1], value);
-        } else {
-            snprintf(s, 63, format[2-1], value);
-        }
-        cairo_set_font_size (w->crb, w->app->small_font/w->scale.ascale);
-        cairo_text_extents(w->crb, s, &extents);
-        cairo_move_to (w->crb, knobx1-extents.width/2, knoby1+extents.height/2);
-        cairo_show_text(w->crb, s);
-        cairo_new_path (w->crb);
-    }
-
-    /** show label below the knob**/
-    cairo_set_font_size (w->crb, w->app->normal_font/w->scale.ascale);
-    cairo_text_extents(w->crb,w->label , &extents);
-
-    cairo_move_to (w->crb, knobx1-extents.width/2, height-2 );
-    cairo_show_text(w->crb, w->label);
-    cairo_new_path (w->crb);
-}
-
 // if controller value changed send notify to host
 static void value_changed(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
@@ -223,7 +113,6 @@ static void value_changed(void *w_, void* user_data) {
 Widget_t* add_lv2_knob(Widget_t *w, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
     w = add_knob(ui->win, label, x, y, width, height);
-    w->func.expose_callback = draw_lv2_knob;    
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
@@ -286,6 +175,15 @@ Widget_t* add_lv2_toggle_button(Widget_t *w, PortIndex index, const char * label
     return w;
 }
 
+Widget_t* add_lv2_image_toggle(Widget_t *w, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_switch_image_button(ui->win, label, x, y, width, height);
+    w->parent_struct = ui;
+    w->data = index;
+    w->func.value_changed_callback = value_changed;
+    return w;
+}
+
 Widget_t* add_lv2_button(Widget_t *w, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
     w = add_button(ui->win, label, x, y, width, height);
@@ -311,6 +209,43 @@ Widget_t* add_lv2_label(Widget_t *w, PortIndex index, const char * label,
     w->data = index;
     w->func.value_changed_callback = value_changed;
     return w;
+}
+
+void load_bg_image(X11_UI* ui, const char* image) {
+    cairo_surface_t *getpng = cairo_image_surface_create_from_png (image);
+    int width = cairo_image_surface_get_width(getpng);
+    int height = cairo_image_surface_get_height(getpng);
+    int width_t = ui->win->scale.init_width;
+    int height_t = ui->win->scale.init_height;
+    double x = (double)width_t/(double)width;
+    double y = (double)height_t/(double)height;
+    cairo_surface_destroy(ui->win->image);
+    ui->win->image = NULL;
+
+    ui->win->image = cairo_surface_create_similar (ui->win->surface, 
+                        CAIRO_CONTENT_COLOR_ALPHA, width_t, height_t);
+    cairo_t *cri = cairo_create (ui->win->image);
+    cairo_scale(cri, x,y);    
+    cairo_set_source_surface (cri, getpng,0,0);
+    cairo_paint (cri);
+    cairo_surface_destroy(getpng);
+    cairo_destroy(cri);
+}
+
+void load_controller_image(Widget_t* w,const char* image) {
+    cairo_surface_t *getpng = cairo_image_surface_create_from_png (image);
+    int width = cairo_image_surface_get_width(getpng);
+    int height = cairo_image_surface_get_height(getpng);
+    cairo_surface_destroy(w->image);
+    w->image = NULL;
+
+    w->image = cairo_surface_create_similar (w->surface, 
+                        CAIRO_CONTENT_COLOR_ALPHA, width, height);
+    cairo_t *cri = cairo_create (w->image);
+    cairo_set_source_surface (cri, getpng,0,0);
+    cairo_paint (cri);
+    cairo_surface_destroy(getpng);
+    cairo_destroy(cri);
 }
 
 // init the xwindow and return the LV2UI handle

@@ -33,7 +33,6 @@
 @prefix patch: <http://lv2plug.in/ns/ext/patch#> .
 @prefix work:  <http://lv2plug.in/ns/ext/worker#> .
 @prefix state:   <http://lv2plug.in/ns/ext/state#> .
-@prefix fluida:  <https://github.com/brummer10/Fluida.lv2#>  .
 @prefix mod: <http://moddevices.com/ns/mod#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 

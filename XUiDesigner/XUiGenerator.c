@@ -333,11 +333,14 @@ void run_save(void *w_, void* user_data) {
             int ret = system(cmd);
             if (!ret) {
                 free(cmd);
-                asprintf(&cmd, "\n\nall:\n"
-                    "	cc -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector \\\n"
-                    "	`pkg-config lilv-0 --cflags` \'%s.c\' -L. ../../../libxputty/libxputty/libxputty.a \\\n "
-                    "	-o \'%s_ui.so\'  -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../../../libxputty/libxputty/include/ \\\n"
-                    "	`pkg-config --cflags --libs cairo x11 lilv-0` -shared -lm ", name, name);
+                asprintf(&cmd, "\n\n	LIB_DIR := ../../../libxputty/libxputty/\n"
+                    "	HEADER_DIR := $(LIB_DIR)include/\n"
+                    "	UI_LIB:= $(LIB_DIR)libxputty.a\n\n"
+                    "	LDFLAGS += `pkg-config --cflags --libs cairo x11 lilv-0` -shared -lm \\\n"
+                    "	-fPIC -Wl,-z,noexecstack -Wl,--no-undefined\n"
+                    "	CFLAGS := -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector\n\n"
+                    "\n\nall:\n"
+                    "	$(CC) $(CFLAGS) \'%s.c\' -L. $(UI_LIB) -o \'%s_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR) ", name, name);
                 char* makefile = NULL;
                 asprintf(&makefile, "%s/makefile",filepath);
                 FILE *fpm;
@@ -347,8 +350,12 @@ void run_save(void *w_, void* user_data) {
                 printf(cmd);
                 fclose(fpm);
                 free(makefile);
-                //ret = system(cmd);
                 free(cmd);
+                cmd = NULL;
+                //asprintf(&cmd, "cd \'%s\'  && make", filepath);
+                //ret = system(cmd);
+                //free(cmd);
+                //cmd = NULL;
             } else {
                 free(cmd);
             }

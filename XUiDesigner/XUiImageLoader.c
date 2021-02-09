@@ -152,6 +152,37 @@ void unload_background_image(void *w_, void* user_data) {
     }
 }
 
+static void set_image_button(XUiDesigner *designer) {
+    Widget_t *wid = designer->active_widget;
+    Widget_t *new_wid = NULL;
+    asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+    new_wid = add_switch_image_button(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                wid->x, wid->y, 60, 60);
+    set_controller_callbacks(designer, new_wid, true);
+    new_wid->data = designer->active_widget_num;
+    designer->wid_counter--;
+    add_to_list(designer, new_wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
+    destroy_widget(wid, designer->w->app);
+    widget_show(new_wid);
+    designer->active_widget = new_wid;
+}
+
+static void unset_image_button(XUiDesigner *designer) {
+    Widget_t *wid = designer->active_widget;
+    Widget_t *new_wid = NULL;
+    asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+    new_wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                wid->x, wid->y, 60, 60);
+    set_controller_callbacks(designer, new_wid, true);
+    new_wid->data = designer->active_widget_num;
+    designer->wid_counter--;
+    add_to_list(designer, new_wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+    destroy_widget(wid, designer->w->app);
+    designer->controls[new_wid->data].image = NULL;
+    widget_show(new_wid);
+    designer->active_widget = new_wid;
+}
+
 static void controller_image_load_response(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -163,6 +194,9 @@ static void controller_image_load_response(void *w_, void* user_data) {
                                                 _("Couldn't access file, sorry"),NULL);
             XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
             return;
+        }
+        if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON) {
+            set_image_button(designer);
         }
         cairo_surface_t *getpng = cairo_image_surface_create_from_png (*(const char**)user_data);
         int width = cairo_image_surface_get_width(getpng);
@@ -205,6 +239,9 @@ static void unload_controller_image(void *w_, void* user_data) {
     expose_widget(w);
     free(designer->controls[designer->active_widget_num].image);
     designer->controls[designer->active_widget_num].image = NULL;
+    if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_TOGGLE) {
+        unset_image_button(designer);
+    }
 }
 
 void pop_menu_response(void *w_, void* item_, void* user_data) {

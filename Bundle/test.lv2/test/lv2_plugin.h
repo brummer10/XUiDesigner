@@ -99,6 +99,9 @@ Widget_t* add_lv2_hslider(Widget_t *w, PortIndex index, const char * label,
 Widget_t* add_lv2_toggle_button(Widget_t *w, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
+Widget_t* add_lv2_image_toggle(Widget_t *w, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height);
+
 Widget_t* add_lv2_button(Widget_t *w, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
@@ -107,6 +110,10 @@ Widget_t* add_lv2_valuedisplay(Widget_t *w, PortIndex index, const char * label,
 
 Widget_t* add_lv2_label(Widget_t *w, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
+
+void load_bg_image(X11_UI* ui, const char* image);
+
+void load_controller_image(Widget_t* w,const char* image);
 
 // free used mem on exit
 void plugin_cleanup(X11_UI *ui);
