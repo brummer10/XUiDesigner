@@ -63,6 +63,7 @@ static void reset_plugin_ui(XUiDesigner *designer) {
     adj_set_value(designer->index->adj,0.0);
     designer->wid_counter = 0;
     designer->active_widget_num = 0;
+    designer->prev_active_widget = NULL;
 }
 
 static int sort_enums(int elem, int array[], int size) {

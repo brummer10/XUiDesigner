@@ -836,6 +836,9 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         } else {
             widget_hide(designer->combobox_settings);
         }
+        if (designer->prev_active_widget != NULL)
+            draw_trans(designer->prev_active_widget,NULL);
+        designer->prev_active_widget = wid;
     }
 }
 
