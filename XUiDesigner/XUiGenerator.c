@@ -333,14 +333,17 @@ void run_save(void *w_, void* user_data) {
             int ret = system(cmd);
             if (!ret) {
                 free(cmd);
-                asprintf(&cmd, "\n\n	LIB_DIR := ../../../libxputty/libxputty/\n"
+                asprintf(&cmd, "\n\n	NAME = %s\n"
+                    "	space := $(subst ,, )\n"
+                    "	EXEC_NAME := $(subst $(space),_,$(NAME))\n"
+                    "	LIB_DIR := ../../../libxputty/libxputty/\n"
                     "	HEADER_DIR := $(LIB_DIR)include/\n"
                     "	UI_LIB:= $(LIB_DIR)libxputty.a\n\n"
                     "	LDFLAGS += `pkg-config --cflags --libs cairo x11 lilv-0` -shared -lm \\\n"
                     "	-fPIC -Wl,-z,noexecstack -Wl,--no-undefined\n"
                     "	CFLAGS := -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector\n\n"
                     "\n\nall:\n"
-                    "	$(CC) $(CFLAGS) \'%s.c\' -L. $(UI_LIB) -o \'%s_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR) ", name, name);
+                    "	$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR) ", name);
                 char* makefile = NULL;
                 asprintf(&makefile, "%s/makefile",filepath);
                 FILE *fpm;
