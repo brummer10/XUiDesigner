@@ -155,6 +155,7 @@ void unload_background_image(void *w_, void* user_data) {
 static void set_image_button(XUiDesigner *designer) {
     Widget_t *wid = designer->active_widget;
     remove_from_list(designer, wid);
+    designer->prev_active_widget = NULL;
     Widget_t *new_wid = NULL;
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
     new_wid = add_switch_image_button(designer->ui, designer->new_label[designer->active_widget_num],
@@ -171,6 +172,7 @@ static void set_image_button(XUiDesigner *designer) {
 static void unset_image_button(XUiDesigner *designer) {
     Widget_t *wid = designer->active_widget;
     remove_from_list(designer, wid);
+    designer->prev_active_widget = NULL;
     Widget_t *new_wid = NULL;
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
     new_wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num],
@@ -274,6 +276,7 @@ void pop_menu_response(void *w_, void* item_, void* user_data) {
             remove_from_list(designer, designer->active_widget);
             destroy_widget(designer->active_widget, w->app);
             designer->active_widget = NULL;
+            designer->prev_active_widget = NULL;
             entry_set_text(designer, "");
             adj_set_value(designer->x_axis->adj, 0.0);
             adj_set_value(designer->y_axis->adj, 0.0);
