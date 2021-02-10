@@ -20,6 +20,7 @@
 
 #include "XUiImageLoader.h"
 #include "XUiGenerator.h"
+#include "XUiTextInput.h"
 
 
 /*---------------------------------------------------------------------

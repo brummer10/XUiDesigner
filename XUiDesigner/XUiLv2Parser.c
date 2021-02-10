@@ -20,6 +20,7 @@
 
 #include "XUiLv2Parser.h"
 #include "XUiGenerator.h"
+#include "XUiTextInput.h"
 
 
 /*---------------------------------------------------------------------

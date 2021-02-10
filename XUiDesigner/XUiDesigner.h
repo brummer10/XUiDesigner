@@ -198,13 +198,8 @@ typedef struct {
     Controller controls[MAX_CONTROLS];
 } XUiDesigner;
 
-void utf8ncpy(char* dst, const char* src, size_t sizeDest );
-
-void entry_set_text(XUiDesigner *designer, const char* label);
 
 void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer);
-
-void snap_to_grid(XUiDesigner *designer);
 
 #ifdef __cplusplus
 }

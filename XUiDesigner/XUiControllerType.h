@@ -25,19 +25,17 @@
 
 #pragma once
 
-#ifndef XUICOLORCHOOSER_H_
-#define XUICOLORCHOOSER_H_
+#ifndef XUICONTROLLERTYPE_H_
+#define XUICONTROLLERTYPE_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void create_color_chooser (XUiDesigner *designer);
-
-void show_color_chooser(void *w_, void* user_data);
+void switch_controller_type(void *w_, void* user_data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //XUICOLORCHOOSER_H_
+#endif //XUICONTROLLERTYPE_H_

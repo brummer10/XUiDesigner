@@ -25,19 +25,27 @@
 
 #pragma once
 
-#ifndef XUICOLORCHOOSER_H_
-#define XUICOLORCHOOSER_H_
+#ifndef XUITEXTINPUT_H_
+#define XUITEXTINPUT_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void create_color_chooser (XUiDesigner *designer);
+void utf8ncpy(char* dst, const char* src, size_t sizeDest );
 
-void show_color_chooser(void *w_, void* user_data);
+void entry_set_text(XUiDesigner *designer, const char* label);
+
+void entry_add_text(void  *w_, void *label_);
+
+void entry_get_text(void *w_, void *key_, void *user_data);
+
+void box_entry_set_text(Widget_t *w, float value);
+
+Widget_t *add_input_box(Widget_t *parent, int data, int x, int y, int width, int height);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //XUICOLORCHOOSER_H_
+#endif //XUITEXTINPUT_H_
