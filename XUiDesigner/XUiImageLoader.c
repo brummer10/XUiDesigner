@@ -238,6 +238,8 @@ static void unload_controller_image(void *w_, void* user_data) {
         designer->controls[designer->active_widget_num].is_type == IS_VMETER ||
         designer->controls[designer->active_widget_num].is_type == IS_HMETER ||
         designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
+        designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
+        designer->controls[designer->active_widget_num].is_type == IS_FRAME ||
         designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) return;
     cairo_surface_destroy(w->image);
     w->image = NULL;
@@ -260,6 +262,8 @@ void pop_menu_response(void *w_, void* item_, void* user_data) {
             designer->controls[designer->active_widget_num].is_type == IS_VMETER ||
             designer->controls[designer->active_widget_num].is_type == IS_HMETER ||
             designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
+            designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
+            designer->controls[designer->active_widget_num].is_type == IS_FRAME ||
             designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) break;
             Widget_t *dia = open_file_dialog(designer->ui, designer->image_path, ".png");
             XSetTransientForHint(designer->ui->app->dpy, dia->widget, designer->ui->widget);

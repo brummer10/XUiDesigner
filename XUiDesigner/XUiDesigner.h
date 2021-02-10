@@ -82,13 +82,15 @@ typedef enum {
     IS_VSLIDER        ,
     IS_BUTTON         ,
     IS_TOGGLE_BUTTON  ,
-    IS_IMAGE_TOGGLE   ,
     IS_COMBOBOX       ,
     IS_VALUE_DISPLAY  ,
     IS_LABEL          ,
     IS_VMETER         ,
     IS_HMETER         ,
+    IS_FRAME          ,
+    // keep those below
     IS_FILE_BUTTON    ,
+    IS_IMAGE_TOGGLE   ,
 } WidgetType;
 
 /*---------------------------------------------------------------------

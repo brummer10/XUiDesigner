@@ -179,7 +179,16 @@ Widget_t* add_lv2_valuedisplay(Widget_t *w, PortIndex index, const char * label,
 
 Widget_t* add_lv2_label(Widget_t *w, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_valuedisplay(ui->win, label, x, y, width, height);
+    w = add_label(ui->win, label, x, y, width, height);
+    w->parent_struct = ui;
+    w->data = index;
+    w->func.value_changed_callback = value_changed;
+    return w;
+}
+
+Widget_t* add_lv2_frame(Widget_t *w, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_frame(ui->win, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;

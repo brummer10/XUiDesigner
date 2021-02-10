@@ -337,8 +337,10 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
         designer->pos_x = xbutton->x_root;
         designer->pos_y = xbutton->y_root;
         set_designer_callbacks(designer,w);
-        adj_set_value(designer->index->adj, 
-            (float)designer->controls[designer->active_widget_num].port_index);
+        if (designer->controls[designer->active_widget_num].port_index > -1) {
+            adj_set_value(designer->index->adj, 
+                (float)designer->controls[designer->active_widget_num].port_index);
+        }
 
         if (designer->controls[designer->active_widget_num].have_adjustment  &&
                 designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
@@ -404,6 +406,8 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
             designer->controls[designer->active_widget_num].is_type == IS_VMETER ||
             designer->controls[designer->active_widget_num].is_type == IS_HMETER ||
             designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
+            designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
+            designer->controls[designer->active_widget_num].is_type == IS_FRAME ||
             designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) {
             designer->menu_item_load->state = 4;
             designer->menu_item_unload->state = 4;
@@ -444,6 +448,7 @@ void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_des
     designer->active_widget = wid;
     adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)+1.0);
     designer->controls[designer->wid_counter].port_index = adj_get_value(designer->index->adj);
+    asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
     if (set_designer) {
         set_designer_callbacks(designer, wid);
     }
@@ -516,6 +521,14 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 wid = add_hmeter(w, "hMeter", false, xbutton->x, xbutton->y, 120, 10);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
+            break;
+            case 11:
+                wid = add_frame(w, "Frame", xbutton->x, xbutton->y, 120, 120);
+                set_controller_callbacks(designer, wid, true);
+                adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
+                designer->controls[designer->wid_counter-1].port_index = -1;
+                add_to_list(designer, wid, "add_lv2_frame", false, IS_FRAME);
+                XLowerWindow(w->app->dpy, wid->widget);
             break;
             default:
             break;
@@ -656,6 +669,7 @@ int main (int argc, char ** argv) {
     combobox_add_entry(designer->widgets,_("Label"));
     combobox_add_entry(designer->widgets,_("VMeter"));
     combobox_add_entry(designer->widgets,_("HMeter"));
+    combobox_add_entry(designer->widgets,_("Frame"));
     combobox_set_active_entry(designer->widgets, 0);
     designer->widgets->func.value_changed_callback = set_widget_callback;
 
@@ -810,6 +824,7 @@ int main (int argc, char ** argv) {
     menu_add_radio_entry(designer->ctype_switch,_("Label"));
     menu_add_radio_entry(designer->ctype_switch,_("VMeter"));
     menu_add_radio_entry(designer->ctype_switch,_("HMeter"));
+    menu_add_radio_entry(designer->ctype_switch,_("Frame"));
     designer->ctype_switch->func.value_changed_callback = switch_controller_type;
 
     menu_add_item(designer->context_menu,_("Delete Controller"));
