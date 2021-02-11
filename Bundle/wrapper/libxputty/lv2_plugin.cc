@@ -220,9 +220,9 @@ static void value_changed(void *w_, void* user_data) {
 }
 
 
-Widget_t* add_lv2_knob(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_knob(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_knob(ui->win, label, x, y, width, height);
+    w = add_knob(p, label, x, y, width, height);
     w->func.expose_callback = draw_lv2_knob;    
     w->parent_struct = ui;
     w->data = index;
@@ -231,9 +231,9 @@ Widget_t* add_lv2_knob(Widget_t *w, PortIndex index, const char * label,
 }
 
 
-Widget_t* add_lv2_combobox(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_combobox(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_combobox(ui->win, label, x, y, width, height);
+    w = add_combobox(p, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
@@ -241,90 +241,90 @@ Widget_t* add_lv2_combobox(Widget_t *w, PortIndex index, const char * label,
 }
 
 
-Widget_t* add_lv2_vmeter(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_vmeter(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_vmeter(ui->win, label, false, x, y, width, height);
+    w = add_vmeter(p, label, false, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
     return w;
 }
 
-Widget_t* add_lv2_hmeter(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_hmeter(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_hmeter(ui->win, label, false, x, y, width, height);
+    w = add_hmeter(p, label, false, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
     return w;
 }
 
-Widget_t* add_lv2_vslider(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_vslider(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_vslider(ui->win, label, x, y, width, height);
+    w = add_vslider(p, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
     return w;
 }
 
-Widget_t* add_lv2_hslider(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_hslider(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_hslider(ui->win, label, x, y, width, height);
+    w = add_hslider(p, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
     return w;
 }
 
-Widget_t* add_lv2_toggle_button(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_toggle_button(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_toggle_button(ui->win, label, x, y, width, height);
+    w = add_toggle_button(p, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
     return w;
 }
 
-Widget_t* add_lv2_image_toggle(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_image_toggle(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_switch_image_button(ui->win, label, x, y, width, height);
+    w = add_switch_image_button(p, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
     return w;
 }
 
-Widget_t* add_lv2_button(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_button(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_button(ui->win, label, x, y, width, height);
+    w = add_button(p, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
     return w;
 }
 
-Widget_t* add_lv2_valuedisplay(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_valuedisplay(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_valuedisplay(ui->win, label, x, y, width, height);
+    w = add_valuedisplay(p, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
     return w;
 }
 
-Widget_t* add_lv2_label(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_label(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_label(ui->win, label, x, y, width, height);
+    w = add_label(p, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
     return w;
 }
 
-Widget_t* add_lv2_frame(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_frame(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_frame(ui->win, label, x, y, width, height);
+    w = add_frame(p, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;

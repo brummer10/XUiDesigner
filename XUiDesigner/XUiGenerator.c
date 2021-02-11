@@ -221,20 +221,34 @@ void print_list(XUiDesigner *designer) {
     j = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
-            Widget_t * wid = designer->controls[i].wid;
             if (designer->controls[i].is_type == IS_FRAME) {
                 printf ("    Widget_t* tmp%i = NULL;\n"
-                    "    tmp%i = %s (tmp%i, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
-                    j, j, designer->controls[i].type, j,
+                    "    tmp%i = %s (tmp%i, ui->win, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
+                    j+1, j+1, designer->controls[i].type, j+1,
                     designer->controls[i].port_index, designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
                     designer->controls[i].wid-> width, designer->controls[i].wid->height);
+            } 
+            j++;
+        }
+    }
+    i = 0;
+    j = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL) {
+            Widget_t * wid = designer->controls[i].wid;
+            if (designer->controls[i].is_type == IS_FRAME) {
+                continue;
             } else {
-                printf ("    ui->widget[%i] = %s (ui->widget[%i], %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
-                    j, designer->controls[i].type, j,
+                char* parent = NULL;
+                designer->controls[i].in_frame ? asprintf(&parent,"tmp%i", designer->controls[i].in_frame) :
+                    asprintf(&parent,"%s", "ui->win");
+                printf ("    ui->widget[%i] = %s (ui->widget[%i], %s, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
+                    j, designer->controls[i].type, j, parent,
                     designer->controls[i].port_index, designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
                     designer->controls[i].wid-> width, designer->controls[i].wid->height);
+                free(parent);
             }
             if (designer->controls[i].is_atom_patch && designer->controls[i].is_type != IS_FILE_BUTTON) {
                 const char* uri = (const char*) wid->parent_struct;

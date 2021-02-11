@@ -245,22 +245,22 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
             designer->pos_y = xmotion->y_root;
         break;
         case XUI_NONE:
-            if (xmotion->x > w->width/1.3 && xmotion->y > w->height/1.3 && is_curser != 1) {
+            if (xmotion->x > w->width-5 && xmotion->y > w->height-5 && is_curser != 1) {
                 is_curser = 1;
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_bottom_right_corner);
                 XDefineCursor (w->app->dpy, w->widget, c);
                 XFreeCursor(w->app->dpy, c);
-            } else if ( xmotion->y > w->height/1.3 && is_curser != 4) {
+            } else if ( xmotion->y > w->height-5 && is_curser != 4) {
                 is_curser = 4;
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_bottom_side);
                 XDefineCursor (w->app->dpy, w->widget, c);
                 XFreeCursor(w->app->dpy, c);
-            } else if (xmotion->x > w->width/1.3 && is_curser != 3) {
+            } else if (xmotion->x > w->width-5 && is_curser != 3) {
                 is_curser = 3;
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_right_side);
                 XDefineCursor (w->app->dpy, w->widget, c);
                 XFreeCursor(w->app->dpy, c);
-            } else if ((xmotion->x <= w->width/1.3 && xmotion->y <= w->height/1.3) && is_curser != 2) {
+            } else if ((xmotion->x <= w->width-5 && xmotion->y <= w->height-5) && is_curser != 2) {
                 is_curser = 2;
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_hand2);
                 XDefineCursor (w->app->dpy, w->widget, c);
@@ -359,11 +359,11 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
             widget_hide(designer->combobox_settings);
         }
     }
-    if (xbutton->x > width/1.3 && xbutton->y > height/1.3) {
+    if (xbutton->x > width-5 && xbutton->y > height-5) {
         designer->modify_mod = XUI_SIZE;
-    } else if (xbutton->y > height/1.3) {
+    } else if (xbutton->y > height-5) {
         designer->modify_mod = XUI_HEIGHT;
-    } else if (xbutton->x > width/1.3) {
+    } else if (xbutton->x > width-5) {
         designer->modify_mod = XUI_WIDTH;
     } else {
         designer->modify_mod = XUI_POSITION;
@@ -373,7 +373,223 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
     designer->prev_active_widget = w;
 }
 
-static void fix_pos_wid(void *w_, void *button_, void* user_data) {
+static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *wid, int j,
+                                                int x, int y, int width, int height) {
+    designer->prev_active_widget = NULL;
+    Widget_t *new_wid = NULL;
+    WidgetType tp = designer->controls[designer->active_widget_num].is_type;
+        switch (tp) {
+        case 0:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_knob(parent, designer->new_label[designer->active_widget_num],
+                                                                        x, y, width, height);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_CONTINUOS;
+            add_to_list(designer, new_wid, "add_lv2_knob", true, IS_KNOB);
+            destroy_widget(wid, designer->w->app);
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            if (designer->controls[new_wid->data].image != NULL) {
+                controller_image_load_response(designer->ui, (void*) &designer->controls[new_wid->data].image);
+                free(designer->controls[designer->active_widget_num].image);
+                designer->controls[designer->active_widget_num].image = NULL;
+            }
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+        break;
+        case 1:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_hslider(parent, designer->new_label[designer->active_widget_num],
+                                                                        x, y, width, height);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_CONTINUOS;
+            add_to_list(designer, new_wid, "add_lv2_hslider", true, IS_HSLIDER);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+        break;
+        case 2:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_vslider(parent, designer->new_label[designer->active_widget_num],
+                                                                        x, y, width, height);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_CONTINUOS;
+            add_to_list(designer, new_wid, "add_lv2_vslider", true, IS_VSLIDER);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+        break;
+        case 3:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_button(parent, designer->new_label[designer->active_widget_num],
+                                                                        x, y, width, height);
+            set_controller_callbacks(designer, new_wid, true);
+            new_wid->data = wid->data;
+            designer->wid_counter--;
+            add_to_list(designer, new_wid, "add_lv2_button", false, IS_BUTTON);
+            destroy_widget(wid, designer->w->app);
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            if (designer->controls[new_wid->data].image != NULL) {
+                controller_image_load_response(designer->ui, (void*) &designer->controls[new_wid->data].image);
+                free(designer->controls[designer->active_widget_num].image);
+                designer->controls[designer->active_widget_num].image = NULL;
+                designer->active_widget_num = new_wid->data;
+            }
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+        break;
+        case 4:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_toggle_button(parent, designer->new_label[designer->active_widget_num],
+                                                                        x, y, width, height);
+            set_controller_callbacks(designer, new_wid, true);
+            new_wid->data = wid->data;
+            designer->wid_counter--;
+            add_to_list(designer, new_wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+            destroy_widget(wid, designer->w->app);
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            if (designer->controls[new_wid->data].image != NULL) {
+                controller_image_load_response(designer->ui, (void*) &designer->controls[new_wid->data].image);
+                free(designer->controls[designer->active_widget_num].image);
+                designer->controls[designer->active_widget_num].image = NULL;
+                designer->active_widget_num = new_wid->data;
+            }
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+        break;
+        case 5:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_combobox(parent, designer->new_label[designer->active_widget_num],
+                                                                        x, y, width, height);
+            set_controller_callbacks(designer, new_wid, true);
+            new_wid->data = wid->data;
+            designer->wid_counter--;
+            add_to_list(designer, new_wid, "add_lv2_combobox", true, IS_COMBOBOX);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+        break;
+        case 6:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_valuedisplay(parent, designer->new_label[designer->active_widget_num],
+                                                                        x, y, width, height);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_CONTINUOS;
+            add_to_list(designer, new_wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+        break;
+        case 7:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_label(parent, designer->new_label[designer->active_widget_num],
+                                                                        x, y, width, height);
+            set_controller_callbacks(designer, new_wid, true);
+            new_wid->data = wid->data;
+            designer->wid_counter--;
+            add_to_list(designer, new_wid, "add_lv2_label", false, IS_LABEL);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+        break;
+        case 8:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_vmeter(parent, designer->new_label[designer->active_widget_num],
+                                                                false, x, y, width, height);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_METER;
+            add_to_list(designer, new_wid, "add_lv2_vmeter", true, IS_VMETER);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+        break;
+        case 9:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_hmeter(parent, designer->new_label[designer->active_widget_num],
+                                                                false, x, y, width, height);
+            copy_widget_settings(designer, wid, new_wid);
+            new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
+                new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_METER;
+            add_to_list(designer, new_wid, "add_lv2_hmeter", true, IS_HMETER);
+            destroy_widget(wid, designer->w->app);
+            designer->controls[new_wid->data].image = NULL;
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+        break;
+        default:
+        break;
+    }
+
+}
+
+static void check_reparent(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t *w) {
+    Widget_t *p = (Widget_t*)w->parent;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+    int x = attrs.x;
+    int y = attrs.y;
+    int width = attrs.width;
+    int height = attrs.height;
+    int i = 0;
+    int j = 0;
+    Widget_t *frame = NULL;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL && designer->controls[i].is_type == IS_FRAME) {
+            j++;
+            frame = designer->controls[i].wid;
+            XGetWindowAttributes(w->app->dpy, (Window)frame->widget, &attrs);
+            int fx = attrs.x;
+            int fy = attrs.y;
+            int fwidth = attrs.width;
+            int fheight = attrs.height;
+            if (x>fx && y>fy && x+width<fx+fwidth && y+height<fy+fheight) {
+                if (p == frame || w == frame) break;
+                int x1, y1;
+                Window child;
+                XTranslateCoordinates( w->app->dpy, designer->ui->widget, frame->widget, x, y, &x1, &y1, &child );
+                reparent_widget(designer, frame, w, j, x1, y1, width, height);
+                break;
+            } else if (p == frame && (x<0 || y<0 || x>fwidth || y>fheight)) {
+                int x1, y1;
+                Window child;
+                XTranslateCoordinates( w->app->dpy, frame->widget, designer->ui->widget, x, y, &x1, &y1, &child );
+                reparent_widget(designer, designer->ui, w, 0, x1, y1, width, height);
+                break;
+            }
+        }
+    }
+    
+}
+
+
+void fix_pos_wid(void *w_, void *button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XWindowAttributes attrs;
@@ -397,6 +613,8 @@ static void fix_pos_wid(void *w_, void *button_, void* user_data) {
         designer->modify_mod = XUI_NONE;
         designer->active_widget = (Widget_t*)w_;
         designer->active_widget_num = w->data;
+        if (designer->controls[designer->active_widget_num].is_type != IS_FRAME)
+            check_reparent(designer, xbutton, w);
     } else if(xbutton->button == Button3) {
         designer->modify_mod = XUI_NONE;
         designer->active_widget = (Widget_t*)w_;
@@ -448,6 +666,7 @@ void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_des
     designer->active_widget = wid;
     adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)+1.0);
     designer->controls[designer->wid_counter].port_index = adj_get_value(designer->index->adj);
+    designer->controls[designer->wid_counter].in_frame = 0;
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
     if (set_designer) {
         set_designer_callbacks(designer, wid);
@@ -528,6 +747,9 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
                 designer->controls[designer->wid_counter-1].port_index = -1;
                 add_to_list(designer, wid, "add_lv2_frame", false, IS_FRAME);
+                wid->parent_struct = designer;
+                wid->func.enter_callback = null_callback;
+                wid->func.leave_callback = null_callback;
                 XLowerWindow(w->app->dpy, wid->widget);
             break;
             default:

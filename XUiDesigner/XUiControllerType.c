@@ -28,7 +28,7 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-static void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wid) {
+void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wid) {
     if (wid->adj->type == CL_LOGARITHMIC) {
          set_adjustment(new_wid->adj, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value),
             powf(10,wid->adj->min_value),powf(10,wid->adj->max_value), wid->adj->step, wid->adj->type);
@@ -45,6 +45,7 @@ static void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t 
     set_controller_callbacks(designer, new_wid, true);
     new_wid->data = wid->data;
     designer->wid_counter--;
+    adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
 }
 
 void switch_controller_type(void *w_, void* user_data) {

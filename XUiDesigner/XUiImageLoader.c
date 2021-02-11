@@ -188,7 +188,7 @@ static void unset_image_button(XUiDesigner *designer) {
     designer->active_widget = new_wid;
 }
 
-static void controller_image_load_response(void *w_, void* user_data) {
+void controller_image_load_response(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (!designer->active_widget) return;

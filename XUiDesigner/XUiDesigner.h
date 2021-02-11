@@ -108,6 +108,7 @@ typedef struct {
     bool have_adjustment;
     int grid_snap_option;
     const char* type;
+    int in_frame;
 } Controller;
 
 /*---------------------------------------------------------------------
@@ -202,6 +203,8 @@ typedef struct {
 
 
 void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer);
+
+void fix_pos_wid(void *w_, void *button_, void* user_data);
 
 #ifdef __cplusplus
 }

@@ -32,6 +32,8 @@
 extern "C" {
 #endif
 
+void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wid);
+
 void switch_controller_type(void *w_, void* user_data);
 
 #ifdef __cplusplus

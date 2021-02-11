@@ -78,40 +78,40 @@ const char* plugin_set_name();
 void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri);
 
 
-Widget_t* add_lv2_knob(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_knob(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_combobox(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_combobox(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_vmeter(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_vmeter(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_hmeter(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_hmeter(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_vslider(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_vslider(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_hslider(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_hslider(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_toggle_button(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_toggle_button(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_image_toggle(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_image_toggle(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_button(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_button(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_valuedisplay(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_valuedisplay(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_label(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_label(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
-Widget_t* add_lv2_frame(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_lv2_frame(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height);
 
 void load_bg_image(X11_UI* ui, const char* image);
