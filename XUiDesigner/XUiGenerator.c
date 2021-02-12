@@ -178,9 +178,12 @@ const char* parse_adjusment_type(CL_type cl_type) {
 void print_list(XUiDesigner *designer) {
     int i = 0;
     int j = 0;
+    int k = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && designer->controls[i].is_type != IS_FRAME) {
             j++;
+        } else if (designer->controls[i].wid != NULL && designer->controls[i].is_type == IS_FRAME) {
+            k++;
         }
     }
     if (j) {
@@ -188,7 +191,8 @@ void print_list(XUiDesigner *designer) {
         char *name;
         XFetchName(designer->ui->app->dpy, w, &name);
 
-        printf ("\n#define CONTROLS %i\n\n", j);
+        printf ("\n#define CONTROLS %i\n", j);
+        printf ("\n#define GUI_ELEMENTS %i\n\n", k);
         printf ("\n#define PLUGIN_UI_URI \"%s\"\n\n",designer->lv2c.ui_uri);
         printf ("\n#include \"lv2_plugin.h\"\n\n");
         print_colors(designer);
@@ -197,8 +201,8 @@ void print_list(XUiDesigner *designer) {
         "    // do special stuff when needed\n"
         "}\n\n"
         "void plugin_set_window_size(int *w,int *h,const char * plugin_uri) {\n"
-        "    (*w) = %i; //set initial widht of main window\n"
-        "    (*h) = %i; //set initial heigth of main window\n"
+        "    (*w) = %i; //set initial width of main window\n"
+        "    (*h) = %i; //set initial height of main window\n"
         "}\n\n"
         "const char* plugin_set_name() {\n"
         "    return \"%s\"; //set plugin name to display on UI\n"
@@ -222,23 +226,23 @@ void print_list(XUiDesigner *designer) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME) {
-                printf ("    Widget_t* tmp%i = NULL;\n"
-                    "    tmp%i = %s (tmp%i, ui->win, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
-                    j+1, j+1, designer->controls[i].type, j+1,
+                printf ("    ui->elem[%i] = %s (ui->elem[%i], ui->win, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
+                    j, designer->controls[i].type, j,
                     designer->controls[i].port_index, designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
                     designer->controls[i].wid-> width, designer->controls[i].wid->height);
                 if (designer->controls[i].image != NULL ) {
                     if (designer->run_test) {
-                        printf ("    load_controller_image(tmp%i, \"%s\");\n",
-                                            j+1, designer->controls[i].image);
+                        printf ("    load_controller_image(ui->elem[%i], \"%s\");\n",
+                                            j, designer->controls[i].image);
                     } else {
-                        printf ("    load_controller_image(tmp%i, \"./resources/%s\");\n",
-                                                j+1, basename(designer->controls[i].image));
+                        printf ("    load_controller_image(ui->elem[%i], \"./resources/%s\");\n",
+                                                j, basename(designer->controls[i].image));
                     }
                 }
+                j++;
             }
-            j++;
+            
         }
     }
     i = 0;
@@ -250,7 +254,7 @@ void print_list(XUiDesigner *designer) {
                 continue;
             } else {
                 char* parent = NULL;
-                designer->controls[i].in_frame ? asprintf(&parent,"tmp%i", designer->controls[i].in_frame) :
+                designer->controls[i].in_frame ? asprintf(&parent,"ui->elem[%i]", designer->controls[i].in_frame-1) :
                     asprintf(&parent,"%s", "ui->win");
                 printf ("    ui->widget[%i] = %s (ui->widget[%i], %s, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
                     j, designer->controls[i].type, j, parent,

@@ -56,6 +56,7 @@ typedef struct {
     Xputty main;
     Widget_t *win;
     Widget_t *widget[CONTROLS];
+    Widget_t *elem[GUI_ELEMENTS];
     KnobColors *kp;
     void *private_ptr;
     int need_resize;

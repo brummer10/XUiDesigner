@@ -388,6 +388,9 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     int i = 0;
     for(;i<CONTROLS;i++)
         ui->widget[i] = NULL;
+    i = 0;
+    for(;i<GUI_ELEMENTS;i++)
+        ui->elem[i] = NULL;
 
     i = 0;
     for (; features[i]; ++i) {

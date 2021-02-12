@@ -248,6 +248,9 @@ int main (int argc, char ** argv) {
     int i = 0;
     for(;i<CONTROLS;i++)
         ui->widget[i] = NULL;
+    i = 0;
+    for(;i<GUI_ELEMENTS;i++)
+        ui->elem[i] = NULL;
 
     // init Xputty
     main_init(&ui->main);
