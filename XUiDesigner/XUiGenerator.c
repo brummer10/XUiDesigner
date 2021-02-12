@@ -228,7 +228,16 @@ void print_list(XUiDesigner *designer) {
                     designer->controls[i].port_index, designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
                     designer->controls[i].wid-> width, designer->controls[i].wid->height);
-            } 
+                if (designer->controls[i].image != NULL ) {
+                    if (designer->run_test) {
+                        printf ("    load_controller_image(tmp%i, \"%s\");\n",
+                                            j+1, designer->controls[i].image);
+                    } else {
+                        printf ("    load_controller_image(tmp%i, \"./resources/%s\");\n",
+                                                j+1, basename(designer->controls[i].image));
+                    }
+                }
+            }
             j++;
         }
     }
@@ -256,21 +265,11 @@ void print_list(XUiDesigner *designer) {
             }
             if (designer->controls[i].image != NULL ) {
                 if (designer->run_test) {
-                    if (designer->controls[i].is_type == IS_FRAME) {
-                        printf ("    load_controller_image(tmp%i, \"%s\");\n",
-                            j+1, designer->controls[i].image);
-                    } else {
-                        printf ("    load_controller_image(ui->widget[%i], \"%s\");\n",
+                    printf ("    load_controller_image(ui->widget[%i], \"%s\");\n",
                             j, designer->controls[i].image);
-                    }
                 } else {
-                    if (designer->controls[i].is_type == IS_FRAME) {
-                        printf ("    load_controller_image(tmp%i, \"./resources/%s\");\n",
-                            j+1, basename(designer->controls[i].image));
-                    } else {
-                        printf ("    load_controller_image(ui->widget[%i], \"./resources/%s\");\n",
+                    printf ("    load_controller_image(ui->widget[%i], \"./resources/%s\");\n",
                             j, basename(designer->controls[i].image));
-                    }
                 }
             }
             if (designer->controls[i].is_type == IS_COMBOBOX) {

@@ -24,6 +24,12 @@
 #include "XUiGenerator.h"
 
 
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                reparent widgets
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
 static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *wid, int j,
                                                 int x, int y, int width, int height) {
     designer->prev_active_widget = NULL;
