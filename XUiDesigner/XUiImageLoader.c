@@ -227,6 +227,48 @@ void controller_image_load_response(void *w_, void* user_data) {
     }
 }
 
+void background_image_load_response(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (designer->active_widget == NULL) return;
+    if(user_data !=NULL) {
+
+        if( access(*(const char**)user_data, F_OK ) == -1 ) {
+            Widget_t *dia = open_message_dialog(w, ERROR_BOX, *(const char**)user_data,
+                                                _("Couldn't access file, sorry"),NULL);
+            XSetTransientForHint(w->app->dpy, dia->widget, w->widget);
+            return;
+        }
+        cairo_surface_t *getpng = cairo_image_surface_create_from_png (*(const char**)user_data);
+        int width = cairo_image_surface_get_width(getpng);
+        int height = cairo_image_surface_get_height(getpng);
+        int width_t = designer->active_widget->scale.init_width;
+        int height_t = designer->active_widget->scale.init_height;
+        double x = (double)width_t/(double)width;
+        double y = (double)height_t/(double)height;
+        cairo_surface_destroy(designer->active_widget->image);
+        designer->active_widget->image = NULL;
+
+        designer->active_widget->image = cairo_surface_create_similar (designer->active_widget->surface, 
+                            CAIRO_CONTENT_COLOR_ALPHA, width_t, height_t);
+        cairo_t *cri = cairo_create (designer->active_widget->image);
+        cairo_scale(cri, x,y);    
+        cairo_set_source_surface (cri, getpng,0,0);
+        cairo_paint (cri);
+        cairo_surface_destroy(getpng);
+        cairo_destroy(cri);
+        expose_widget(designer->active_widget);
+        free(designer->controls[designer->active_widget_num].image);
+        designer->controls[designer->active_widget_num].image = NULL;
+        designer->controls[designer->active_widget_num].image = strdup(*(const char**)user_data);
+        char *tmp = strdup(*(const char**)user_data);
+        free(designer->image_path);
+        designer->image_path = NULL;
+        designer->image_path = strdup(dirname(tmp));
+        free(tmp);
+    }
+}
+
 static void unload_controller_image(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
@@ -238,7 +280,6 @@ static void unload_controller_image(void *w_, void* user_data) {
         designer->controls[designer->active_widget_num].is_type == IS_HMETER ||
         designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
         designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
-        designer->controls[designer->active_widget_num].is_type == IS_FRAME ||
         designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) return;
     cairo_surface_destroy(w->image);
     w->image = NULL;
@@ -262,11 +303,14 @@ void pop_menu_response(void *w_, void* item_, void* user_data) {
             designer->controls[designer->active_widget_num].is_type == IS_HMETER ||
             designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
             designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
-            designer->controls[designer->active_widget_num].is_type == IS_FRAME ||
             designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) break;
             Widget_t *dia = open_file_dialog(designer->ui, designer->image_path, ".png");
             XSetTransientForHint(designer->ui->app->dpy, dia->widget, designer->ui->widget);
-            designer->ui->func.dialog_callback = controller_image_load_response;
+            if (designer->controls[designer->active_widget_num].is_type == IS_FRAME) {
+                designer->ui->func.dialog_callback = background_image_load_response;
+            } else {
+                designer->ui->func.dialog_callback = controller_image_load_response;
+            }
         }
         break;
         case 1:
