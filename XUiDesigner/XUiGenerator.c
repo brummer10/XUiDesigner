@@ -257,15 +257,19 @@ void print_list(XUiDesigner *designer) {
             if (designer->controls[i].image != NULL ) {
                 if (designer->run_test) {
                     if (designer->controls[i].is_type == IS_FRAME) {
-                        printf ("    load_controller_image(tmp%i, \"%s\");\n", j, designer->controls[i].image);
+                        printf ("    load_controller_image(tmp%i, \"%s\");\n",
+                            designer->controls[i].in_frame, designer->controls[i].image);
                     } else {
-                        printf ("    load_controller_image(ui->widget[%i], \"%s\");\n", j, designer->controls[i].image);
+                        printf ("    load_controller_image(ui->widget[%i], \"%s\");\n",
+                            j, designer->controls[i].image);
                     }
                 } else {
                     if (designer->controls[i].is_type == IS_FRAME) {
-                        printf ("    load_controller_image(tmp%i, \"./resources/%s\");\n", j, basename(designer->controls[i].image));
+                        printf ("    load_controller_image(tmp%i, \"./resources/%s\");\n",
+                            designer->controls[i].in_frame, basename(designer->controls[i].image));
                     } else {
-                        printf ("    load_controller_image(ui->widget[%i], \"./resources/%s\");\n", j, basename(designer->controls[i].image));
+                        printf ("    load_controller_image(ui->widget[%i], \"./resources/%s\");\n",
+                            j, basename(designer->controls[i].image));
                     }
                 }
             }
