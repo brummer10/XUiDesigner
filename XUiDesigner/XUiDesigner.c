@@ -379,7 +379,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
     Widget_t *new_wid = NULL;
     WidgetType tp = designer->controls[designer->active_widget_num].is_type;
         switch (tp) {
-        case 0:
+        case IS_KNOB:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_knob(parent, designer->new_label[designer->active_widget_num],
                                                                         x, y, width, height);
@@ -398,7 +398,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
         break;
-        case 1:
+        case IS_HSLIDER:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_hslider(parent, designer->new_label[designer->active_widget_num],
                                                                         x, y, width, height);
@@ -413,7 +413,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
         break;
-        case 2:
+        case IS_VSLIDER:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_vslider(parent, designer->new_label[designer->active_widget_num],
                                                                         x, y, width, height);
@@ -428,13 +428,11 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
         break;
-        case 3:
+        case IS_BUTTON:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_button(parent, designer->new_label[designer->active_widget_num],
                                                                         x, y, width, height);
-            set_controller_callbacks(designer, new_wid, true);
-            new_wid->data = wid->data;
-            designer->wid_counter--;
+            copy_widget_settings(designer, wid, new_wid);
             add_to_list(designer, new_wid, "add_lv2_button", false, IS_BUTTON);
             destroy_widget(wid, designer->w->app);
             widget_show(new_wid);
@@ -448,13 +446,11 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
         break;
-        case 4:
+        case IS_TOGGLE_BUTTON:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_toggle_button(parent, designer->new_label[designer->active_widget_num],
                                                                         x, y, width, height);
-            set_controller_callbacks(designer, new_wid, true);
-            new_wid->data = wid->data;
-            designer->wid_counter--;
+            copy_widget_settings(designer, wid, new_wid);
             add_to_list(designer, new_wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
             destroy_widget(wid, designer->w->app);
             widget_show(new_wid);
@@ -468,13 +464,11 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
         break;
-        case 5:
+        case IS_COMBOBOX:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_combobox(parent, designer->new_label[designer->active_widget_num],
                                                                         x, y, width, height);
-            set_controller_callbacks(designer, new_wid, true);
-            new_wid->data = wid->data;
-            designer->wid_counter--;
+            copy_widget_settings(designer, wid, new_wid);
             add_to_list(designer, new_wid, "add_lv2_combobox", true, IS_COMBOBOX);
             destroy_widget(wid, designer->w->app);
             designer->controls[new_wid->data].image = NULL;
@@ -483,7 +477,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
         break;
-        case 6:
+        case IS_VALUE_DISPLAY:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_valuedisplay(parent, designer->new_label[designer->active_widget_num],
                                                                         x, y, width, height);
@@ -498,7 +492,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
         break;
-        case 7:
+        case IS_LABEL:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_label(parent, designer->new_label[designer->active_widget_num],
                                                                         x, y, width, height);
@@ -513,7 +507,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
         break;
-        case 8:
+        case IS_VMETER:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_vmeter(parent, designer->new_label[designer->active_widget_num],
                                                                 false, x, y, width, height);
@@ -528,7 +522,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
         break;
-        case 9:
+        case IS_HMETER:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_hmeter(parent, designer->new_label[designer->active_widget_num],
                                                                 false, x, y, width, height);
@@ -543,6 +537,23 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
         break;
+        case IS_IMAGE_TOGGLE:
+            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+            new_wid = add_switch_image_button(parent, designer->new_label[designer->active_widget_num],
+                                                                        x, y, width, height);
+            copy_widget_settings(designer, wid, new_wid);
+            add_to_list(designer, new_wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
+            destroy_widget(wid, designer->w->app);
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            if (designer->controls[new_wid->data].image != NULL) {
+                controller_image_load_response(designer->ui, (void*) &designer->controls[new_wid->data].image);
+                free(designer->controls[designer->active_widget_num].image);
+                designer->controls[designer->active_widget_num].image = NULL;
+                designer->active_widget_num = new_wid->data;
+            }
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
         default:
         break;
     }
@@ -640,6 +651,8 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
             designer->grid_snap_center : designer->grid_snap_right);
         designer->grid_snap_select->func.value_changed_callback = store;
         int sel = designer->controls[designer->active_widget_num].is_type;
+        if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_TOGGLE)
+            sel = IS_TOGGLE_BUTTON;
         store = designer->ctype_switch->func.value_changed_callback;
         designer->ctype_switch->func.value_changed_callback = null_callback;
         set_active_radio_entry_num(designer->ctype_switch, sel);

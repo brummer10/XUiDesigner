@@ -21,6 +21,7 @@
 #include "XUiImageLoader.h"
 #include "XUiGenerator.h"
 #include "XUiTextInput.h"
+#include "XUiControllerType.h"
 
 
 /*---------------------------------------------------------------------
@@ -155,19 +156,19 @@ void unload_background_image(void *w_, void* user_data) {
 
 static void set_image_button(XUiDesigner *designer) {
     Widget_t *wid = designer->active_widget;
+    Widget_t *p = (Widget_t*)wid->parent;
     remove_from_list(designer, wid);
     designer->prev_active_widget = NULL;
     Widget_t *new_wid = NULL;
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-    new_wid = add_switch_image_button(designer->ui, designer->new_label[designer->active_widget_num],
+    new_wid = add_switch_image_button(p, designer->new_label[designer->active_widget_num],
                                                                 wid->x, wid->y, 60, 60);
-    set_controller_callbacks(designer, new_wid, true);
-    new_wid->data = designer->active_widget_num;
-    designer->wid_counter--;
+    copy_widget_settings(designer, wid, new_wid);
     add_to_list(designer, new_wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
     destroy_widget(wid, designer->w->app);
     widget_show(new_wid);
     designer->active_widget = new_wid;
+    designer->active_widget_num = new_wid->data;
 }
 
 static void unset_image_button(XUiDesigner *designer) {
@@ -178,14 +179,13 @@ static void unset_image_button(XUiDesigner *designer) {
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
     new_wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num],
                                                                 wid->x, wid->y, 60, 60);
-    set_controller_callbacks(designer, new_wid, true);
-    new_wid->data = designer->active_widget_num;
-    designer->wid_counter--;
+    copy_widget_settings(designer, wid, new_wid);
     add_to_list(designer, new_wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
     destroy_widget(wid, designer->w->app);
     designer->controls[new_wid->data].image = NULL;
     widget_show(new_wid);
     designer->active_widget = new_wid;
+    designer->active_widget_num = new_wid->data;
 }
 
 void controller_image_load_response(void *w_, void* user_data) {
@@ -193,7 +193,6 @@ void controller_image_load_response(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (!designer->active_widget) return;
     if(user_data !=NULL) {
-
         if( access(*(const char**)user_data, F_OK ) == -1 ) {
             Widget_t *dia = open_message_dialog(w, ERROR_BOX, *(const char**)user_data,
                                                 _("Couldn't access file, sorry"),NULL);
