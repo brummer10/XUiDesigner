@@ -115,6 +115,9 @@ Widget_t* add_lv2_label(Widget_t *w, Widget_t *p, PortIndex index, const char * 
 Widget_t* add_lv2_frame(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height);
 
+Widget_t* add_lv2_waveview(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height);
+
 void load_bg_image(X11_UI* ui, const char* image);
 
 void load_controller_image(Widget_t* w,const char* image);
