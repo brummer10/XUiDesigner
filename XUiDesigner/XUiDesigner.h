@@ -87,6 +87,7 @@ typedef enum {
     IS_LABEL          ,
     IS_VMETER         ,
     IS_HMETER         ,
+    IS_WAVEVIEW       ,
     IS_FRAME          ,
     // keep those below
     IS_FILE_BUTTON    ,

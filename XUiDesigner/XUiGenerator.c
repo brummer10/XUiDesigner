@@ -24,6 +24,7 @@
 #include <libgen.h>
 
 #include "XUiGenerator.h"
+#include "XUiGridControl.h"
 
 
 /*---------------------------------------------------------------------
@@ -343,9 +344,9 @@ void run_save(void *w_, void* user_data) {
             return;
         }
         Window w = (Window)designer->ui->widget;
-        char *name;
+        char *name = NULL;
         XFetchName(designer->ui->app->dpy, w, &name);
-        name = name ? name : "noname";
+        if (name == NULL) asprintf(&name, "%s", "noname");
         char* filepath = NULL;
         asprintf(&filepath, "./Bundle/save.lv2/%s_ui",name);
         struct stat st = {0};
@@ -451,6 +452,7 @@ void run_save(void *w_, void* user_data) {
                 }
             }
             free(filepath);
+            free(name);
         }
     }
 }
@@ -501,10 +503,16 @@ void run_test(void *w_, void* user_data) {
                 designer->run_test = false;
                 widget_show_all(designer->w);
                 widget_show_all(designer->ui);
+                use_grid(designer->grid, NULL);
+                widget_hide(designer->controller_settings);
+                widget_hide(designer->combobox_settings);
             } else {
                 designer->run_test = false;
                 widget_show_all(designer->w);
                 widget_show_all(designer->ui);
+                use_grid(designer->grid, NULL);
+                widget_hide(designer->controller_settings);
+                widget_hide(designer->combobox_settings);
                 Widget_t *dia = open_message_dialog(designer->ui, INFO_BOX, _("INFO"),
                                                 _("Test fail, sorry"),NULL);
                 XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);

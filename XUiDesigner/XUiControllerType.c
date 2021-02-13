@@ -29,18 +29,20 @@
 ----------------------------------------------------------------------*/
 
 void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wid) {
-    if (wid->adj->type == CL_LOGARITHMIC) {
-         set_adjustment(new_wid->adj, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value),
-            powf(10,wid->adj->min_value),powf(10,wid->adj->max_value), wid->adj->step, wid->adj->type);
-    } else if (wid->adj->type == CL_LOGSCALE) {
-        set_adjustment(new_wid->adj, log10(wid->adj->std_value)*wid->adj->log_scale,
-                                    log10(wid->adj->std_value)*wid->adj->log_scale,
-                                    log10(wid->adj->min_value)*wid->adj->log_scale,
-                                    log10(wid->adj->max_value)*wid->adj->log_scale,
-                                    wid->adj->step, wid->adj->type);
-    } else {
-        set_adjustment(new_wid->adj, wid->adj->std_value, wid->adj->std_value,
-            wid->adj->min_value,wid->adj->max_value, wid->adj->step, wid->adj->type);
+    if (wid->adj != NULL) {
+        if (wid->adj->type == CL_LOGARITHMIC) {
+             set_adjustment(new_wid->adj, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value),
+                powf(10,wid->adj->min_value),powf(10,wid->adj->max_value), wid->adj->step, wid->adj->type);
+        } else if (wid->adj->type == CL_LOGSCALE) {
+            set_adjustment(new_wid->adj, log10(wid->adj->std_value)*wid->adj->log_scale,
+                                        log10(wid->adj->std_value)*wid->adj->log_scale,
+                                        log10(wid->adj->min_value)*wid->adj->log_scale,
+                                        log10(wid->adj->max_value)*wid->adj->log_scale,
+                                        wid->adj->step, wid->adj->type);
+        } else {
+            set_adjustment(new_wid->adj, wid->adj->std_value, wid->adj->std_value,
+                wid->adj->min_value,wid->adj->max_value, wid->adj->step, wid->adj->type);
+        }
     }
     set_controller_callbacks(designer, new_wid, true);
     new_wid->data = wid->data;

@@ -527,6 +527,13 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
             break;
             case 11:
+                wid = add_waveview(w, "waveview", xbutton->x, xbutton->y, 120, 120);
+                set_controller_callbacks(designer, wid, true);
+                add_to_list(designer, wid, "add_lv2_waveview", false, IS_WAVEVIEW);
+                float v[9] = { 0.0,-0.5, 0.0, 0.5, 0.0, -0.5, 0.0, 0.5, 0.0};
+                update_waveview(wid, &v[0],9);
+            break;
+            case 12:
                 wid = add_frame(w, "Frame", xbutton->x, xbutton->y, 120, 120);
                 set_controller_callbacks(designer, wid, true);
                 adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
@@ -642,14 +649,13 @@ int main (int argc, char ** argv) {
     if (path !=NULL) set_path(designer->world, path);
     lilv_world_load_all(designer->world);
     designer->lv2_plugins = lilv_world_get_all_plugins(designer->world);
-    
+
     designer->lv2_uris = add_combobox(designer->w, "", 300, 25, 600, 30);
     designer->lv2_uris->parent_struct = designer;
     combobox_add_entry(designer->lv2_uris,_("--"));
     load_uris(designer->lv2_uris, designer->lv2_plugins);
     combobox_set_active_entry(designer->lv2_uris, 0);
     designer->lv2_uris->func.value_changed_callback = load_plugin_ui;
-    
 
     designer->ui = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 600, 400);
     Atom wmStateAbove = XInternAtom(app.dpy, "_NET_WM_STATE_ABOVE", 1 );
@@ -676,6 +682,7 @@ int main (int argc, char ** argv) {
     combobox_add_entry(designer->widgets,_("Label"));
     combobox_add_entry(designer->widgets,_("VMeter"));
     combobox_add_entry(designer->widgets,_("HMeter"));
+    combobox_add_entry(designer->widgets,_("WaveView"));
     combobox_add_entry(designer->widgets,_("Frame"));
     combobox_set_active_entry(designer->widgets, 0);
     designer->widgets->func.value_changed_callback = set_widget_callback;
@@ -831,6 +838,7 @@ int main (int argc, char ** argv) {
     menu_add_radio_entry(designer->ctype_switch,_("Label"));
     menu_add_radio_entry(designer->ctype_switch,_("VMeter"));
     menu_add_radio_entry(designer->ctype_switch,_("HMeter"));
+    menu_add_radio_entry(designer->ctype_switch,_("WaveView"));
     menu_add_radio_entry(designer->ctype_switch,_("Frame"));
     designer->ctype_switch->func.value_changed_callback = switch_controller_type;
 
