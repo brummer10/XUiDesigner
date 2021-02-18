@@ -180,11 +180,15 @@ void print_list(XUiDesigner *designer) {
     int i = 0;
     int j = 0;
     int k = 0;
+    bool have_image = false;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && designer->controls[i].is_type != IS_FRAME) {
             j++;
         } else if (designer->controls[i].wid != NULL && designer->controls[i].is_type == IS_FRAME) {
             k++;
+        }
+        if (designer->controls[i].image) {
+            have_image = true;
         }
     }
     if (j) {
@@ -196,6 +200,7 @@ void print_list(XUiDesigner *designer) {
         printf ("\n#define GUI_ELEMENTS %i\n\n", k);
         printf ("\n#define PLUGIN_UI_URI \"%s\"\n\n",designer->lv2c.ui_uri);
         printf ("\n#include \"lv2_plugin.h\"\n\n");
+        if (have_image) printf ("\n#include \"xresources.h\"\n\n");
         print_colors(designer);
         printf ("#include \"%s\"\n\n\n"
         "void plugin_value_changed(X11_UI *ui, Widget_t *w, PortIndex index) {\n"
@@ -237,8 +242,13 @@ void print_list(XUiDesigner *designer) {
                         printf ("    load_controller_image(ui->elem[%i], \"%s\");\n",
                                             j, designer->controls[i].image);
                     } else {
-                        printf ("    load_controller_image(ui->elem[%i], \"./resources/%s\");\n",
-                                                j, basename(designer->controls[i].image));
+                        char * xldl = strdup(basename(designer->controls[i].image));
+                        strdecode(xldl, ".", "_");
+                        printf ("    widget_get_png(ui->elem[%i], LDVAR(%s));\n",
+                                j, xldl);
+                        free(xldl);
+                       // printf ("    load_controller_image(ui->elem[%i], \"./resources/%s\");\n",
+                       //                         j, basename(designer->controls[i].image));
                     }
                 }
                 j++;
@@ -273,8 +283,12 @@ void print_list(XUiDesigner *designer) {
                     printf ("    load_controller_image(ui->widget[%i], \"%s\");\n",
                             j, designer->controls[i].image);
                 } else {
-                    printf ("    load_controller_image(ui->widget[%i], \"./resources/%s\");\n",
-                            j, basename(designer->controls[i].image));
+                    char * xldl = strdup(basename(designer->controls[i].image));
+                    strdecode(xldl, ".", "_");
+                    printf ("    widget_get_png(ui->widget[%i], LDVAR(%s));\n",
+                    //printf ("    load_controller_image(ui->widget[%i], \"./resources/%s\");\n",
+                            j, xldl);
+                    free(xldl);
                 }
             }
             if (designer->controls[i].is_type == IS_COMBOBOX) {
@@ -372,17 +386,56 @@ void run_save(void *w_, void* user_data) {
             int ret = system(cmd);
             if (!ret) {
                 free(cmd);
-                asprintf(&cmd, "\n\n	NAME = %s\n"
+                asprintf(&cmd,"\n\n	# check LD version\n"
+                    "	ifneq ($(shell $(LD) --version 2>&1 | head -n 1 | grep LLD),)\n"
+                    "		ifneq ($(shell uname -a | grep  x86_64), )\n"
+                    "			LDEMULATION := elf_x86_64\n"
+                    "		else ifneq ($(shell uname -a | grep i386), )\n"
+                    "			LDEMULATION := elf_i386\n"
+                    "		endif\n"
+                    "		USE_LDD = 1\n"
+                    "	endif\n"
+
+                    "\n\n	NAME = %s\n"
                     "	space := $(subst ,, )\n"
                     "	EXEC_NAME := $(subst $(space),_,$(NAME))\n"
+                    "	RESOURCES_DIR :=./resources/\n"
                     "	LIB_DIR := ../../../libxputty/libxputty/\n"
                     "	HEADER_DIR := $(LIB_DIR)include/\n"
-                    "	UI_LIB:= $(LIB_DIR)libxputty.a\n\n"
-                    "	LDFLAGS += `pkg-config --cflags --libs cairo x11 lilv-0` -shared -lm \\\n"
-                    "	-fPIC -Wl,-z,noexecstack -Wl,--no-undefined\n"
-                    "	CFLAGS := -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector\n\n"
-                    "\n\nall:\n"
-                    "	$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR) ", name);
+                    "	UI_LIB:= $(LIB_DIR)libxputty.a\n"
+                    "	STRIP ?= strip\n\n"
+                    "	RESOURCES := $(wildcard $(RESOURCES_DIR)*.png)\n"
+                    "	RESOURCES_OBJ := $(notdir $(patsubst %s.png,%s.o,$(RESOURCES)))\n"
+                    "	RESOURCES_LIB := $(notdir $(patsubst %s.png,%s.a,$(RESOURCES)))\n"
+                    "	RESOURCE_EXTLD := $(notdir $(patsubst %s.png,%s_png,$(RESOURCES)))\n"
+                    "	RESOURCEHEADER := xresources.h\n"
+                    "	LDFLAGS += -fvisibility=hidden `pkg-config --cflags --libs cairo x11 lilv-0` \\\n"
+                    "	-shared -lm -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -Wl,--gc-sections\n"
+                    "	CFLAGS := -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector -fvisibility=hidden \\\n"
+                    "	-fdata-sections -Wl,--gc-sections -Wl,-z,relro,-z,now -Wl,--exclude-libs,ALL\n\n"
+                    ".PHONY : all\n\n"
+                    ".NOTPARALLEL:\n\n"
+                    "all: $(RESOURCEHEADER) $(EXEC_NAME)\n\n"
+                    "$(RESOURCEHEADER): $(RESOURCES_OBJ)\n"
+                    "	rm -f $(RESOURCEHEADER)\n"
+                    "	for f in $(RESOURCE_EXTLD); do \\\n"
+                    "		echo 'EXTLD('$${f}')' >> $(RESOURCEHEADER) ; \\\n"
+                    "	done\n\n"
+                    "ifdef USE_LDD\n"
+                    "$(RESOURCES_OBJ): $(RESOURCES)\n"
+                    "	cd $(RESOURCES_DIR) && $(LD) -r -b binary -m $(LDEMULATION) -z noexecstack $(patsubst %s.o,%s.png,$@) -o ../$@\n"
+                    "	$(AR) rcs $(patsubst %s.o,%s.a,$@) $@\n"
+                    "else\n"
+                    "$(RESOURCES_OBJ): $(RESOURCES)\n"
+                    "	cd $(RESOURCES_DIR) && $(LD) -r -b binary -z noexecstack --strip-all $(patsubst %s.o,%s.png,$@) -o ../$@\n"
+                    "	$(AR) rcs $(patsubst %s.o,%s.a,$@) $@\n"
+                    "endif\n\n"
+                    "$(EXEC_NAME):$(RESOURCES_OBJ)\n"
+                    "	$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR)\n"
+                    "	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(EXEC_NAME)_ui.so\n\n"
+                    "clean:\n"
+                    "	rm -f *.a *.o *.so xresources.h\n\n",
+                    name, "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%");
                 char* makefile = NULL;
                 asprintf(&makefile, "%s/makefile",filepath);
                 FILE *fpm;

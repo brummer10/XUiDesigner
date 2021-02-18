@@ -409,6 +409,7 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
             designer->controls[designer->active_widget_num].is_type == IS_HMETER ||
             designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
             designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
+            designer->controls[designer->active_widget_num].is_type == IS_WAVEVIEW ||
             designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) {
             designer->menu_item_load->state = 4;
             designer->menu_item_unload->state = 4;
