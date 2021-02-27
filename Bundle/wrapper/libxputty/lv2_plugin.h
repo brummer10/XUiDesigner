@@ -57,6 +57,7 @@ typedef struct {
     Widget_t *win;
     Widget_t *widget[CONTROLS];
     Widget_t *elem[GUI_ELEMENTS];
+    Widget_t *tab_elem[TAB_ELEMENTS];
     KnobColors *kp;
     void *private_ptr;
     int need_resize;
@@ -117,6 +118,11 @@ Widget_t* add_lv2_frame(Widget_t *w, Widget_t *p, PortIndex index, const char * 
 
 Widget_t* add_lv2_waveview(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height);
+
+Widget_t* add_lv2_tabbox(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height);
+
+Widget_t* add_lv2_tab(Widget_t *w, Widget_t *p, PortIndex index, const char * label, X11_UI* ui);
 
 void load_bg_image(X11_UI* ui, const char* image);
 

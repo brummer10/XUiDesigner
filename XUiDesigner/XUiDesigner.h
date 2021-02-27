@@ -89,6 +89,7 @@ typedef enum {
     IS_HMETER         ,
     IS_WAVEVIEW       ,
     IS_FRAME          ,
+    IS_TABBOX         ,
     // keep those below
     IS_FILE_BUTTON    ,
     IS_IMAGE_TOGGLE   ,
@@ -110,6 +111,8 @@ typedef struct {
     int grid_snap_option;
     const char* type;
     int in_frame;
+    int in_tab;
+    int tab_box;
 } Controller;
 
 /*---------------------------------------------------------------------
@@ -159,6 +162,8 @@ typedef struct {
     Widget_t *combobox_entry;
     Widget_t *controller_settings;
     Widget_t *controller_entry[4];
+    Widget_t *tabbox_settings;
+    Widget_t *tabbox_entry[2];
     Widget_t *set_adjust;
     Widget_t *lv2_uris;
     Widget_t *image_loader;
@@ -206,6 +211,12 @@ typedef struct {
 void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer);
 
 void fix_pos_wid(void *w_, void *button_, void* user_data);
+
+void fix_pos_tab(void *w_, void *button_, void* user_data);
+
+void set_pos_tab(void *w_, void *button_, void* user_data);
+
+void move_tab(void *w_, void *xmotion_, void* user_data);
 
 #ifdef __cplusplus
 }

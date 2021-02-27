@@ -30,7 +30,7 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *wid, int j,
+static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *wid, int j, int v,
                                                 int x, int y, int width, int height) {
     designer->prev_active_widget = NULL;
     Widget_t *new_wid = NULL;
@@ -54,6 +54,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             }
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_HSLIDER:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -69,6 +70,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_VSLIDER:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -84,6 +86,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_BUTTON:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -102,6 +105,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             }
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_TOGGLE_BUTTON:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -120,6 +124,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             }
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_COMBOBOX:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -133,6 +138,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_VALUE_DISPLAY:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -148,6 +154,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_LABEL:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -163,6 +170,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_VMETER:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -178,6 +186,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_HMETER:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -193,6 +202,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_IMAGE_TOGGLE:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -211,6 +221,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             }
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
         default:
         break;
     }
@@ -219,6 +230,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
 
 void check_reparent(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t *w) {
     Widget_t *p = (Widget_t*)w->parent;
+    Widget_t *pp = (Widget_t*)p->parent;
     XWindowAttributes attrs;
     XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
     int x = attrs.x;
@@ -229,7 +241,8 @@ void check_reparent(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t *w) {
     int j = 0;
     Widget_t *frame = NULL;
     for (;i<MAX_CONTROLS;i++) {
-        if (designer->controls[i].wid != NULL && designer->controls[i].is_type == IS_FRAME) {
+        if (designer->controls[i].wid != NULL && (designer->controls[i].is_type == IS_FRAME ||
+            designer->controls[i].is_type == IS_TABBOX)) {
             j++;
             frame = designer->controls[i].wid;
             XGetWindowAttributes(w->app->dpy, (Window)frame->widget, &attrs);
@@ -237,18 +250,25 @@ void check_reparent(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t *w) {
             int fy = attrs.y;
             int fwidth = attrs.width;
             int fheight = attrs.height;
+            int v = 0;
             if (x>fx && y>fy && x+width<fx+fwidth && y+height<fy+fheight) {
+                if (designer->controls[i].is_type == IS_TABBOX) {
+                    v = (int)adj_get_value(designer->controls[i].wid->adj);
+                    frame = designer->controls[i].wid->childlist->childs[v];
+                    if (frame == NULL) break;
+                    v +=1;
+                }
                 if (p == frame || w == frame) break;
                 int x1, y1;
                 Window child;
                 XTranslateCoordinates( w->app->dpy, designer->ui->widget, frame->widget, x, y, &x1, &y1, &child );
-                reparent_widget(designer, frame, w, j, x1, y1, width, height);
+                reparent_widget(designer, frame, w, j, v, x1, y1, width, height);
                 break;
-            } else if (p == frame && (x<0 || y<0 || x>fwidth || y>fheight)) {
+            } else if ((p == frame || pp == frame) && (x<0 || y<0 || x>fwidth || y>fheight)) {
                 int x1, y1;
                 Window child;
                 XTranslateCoordinates( w->app->dpy, frame->widget, designer->ui->widget, x, y, &x1, &y1, &child );
-                reparent_widget(designer, designer->ui, w, 0, x1, y1, width, height);
+                reparent_widget(designer, designer->ui, w, 0, 0, x1, y1, width, height);
                 break;
             }
         }

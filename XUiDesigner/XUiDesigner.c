@@ -27,6 +27,7 @@
 #include "XUiControllerType.h"
 #include "XUiGridControl.h"
 #include "XUiReparent.h"
+#include "xtabbox_private.h"
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -152,6 +153,34 @@ static void set_controller_adjustment(void *w_, void* user_data) {
     }
 }
 
+static void add_tabbox_entry(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        if (designer->active_widget != NULL) {
+            Widget_t *tab = tabbox_add_tab(designer->active_widget,
+                (const char*)designer->new_label[designer->active_widget_num]);
+            tab->parent_struct = designer;
+            tab->func.button_press_callback = set_pos_tab;
+            tab->func.button_release_callback = fix_pos_tab;
+            tab->func.motion_callback = move_tab;
+            expose_widget(designer->active_widget);
+        }
+    }
+}
+
+static void remove_tabbox_entry(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        if (designer->active_widget != NULL) {
+            int v = (int)adj_get_value(designer->active_widget->adj);
+            tabbox_remove_tab(designer->active_widget,v);
+            expose_widget(designer->active_widget);
+        }
+    }
+}
+
 static void set_widget_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -229,18 +258,42 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
             XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), max(10,w->height+ (xmotion->x_root-designer->pos_x)));
             adj_set_value(designer->w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
             adj_set_value(designer->h_axis->adj, w->height+ ((xmotion->x_root-designer->pos_x)));
+            if (designer->controls[w->data].is_type == IS_TABBOX) {
+                int elem = w->childlist->elem;
+                int i = 0;
+                for(;i<elem;i++) {
+                    Widget_t *wi = w->childlist->childs[i];
+                    XResizeWindow(w->app->dpy, wi->widget, max(10,wi->width + (xmotion->x_root-designer->pos_x)), max(10,wi->height+ (xmotion->x_root-designer->pos_x)));
+                }
+            }
             w->scale.ascale = 1.0;
             designer->pos_x = xmotion->x_root;
         break;
         case XUI_WIDTH:
             XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), w->height);
             adj_set_value(designer->w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
+            if (designer->controls[w->data].is_type == IS_TABBOX) {
+                int elem = w->childlist->elem;
+                int i = 0;
+                for(;i<elem;i++) {
+                    Widget_t *wi = w->childlist->childs[i];
+                    XResizeWindow(w->app->dpy, wi->widget, max(10,wi->width + (xmotion->x_root-designer->pos_x)), wi->height);
+                }
+            }
             w->scale.ascale = 1.0;
             designer->pos_x = xmotion->x_root;
         break;
         case XUI_HEIGHT:
             XResizeWindow(w->app->dpy, w->widget, w->width, max(10,w->height + (xmotion->y_root-designer->pos_y)));
             adj_set_value(designer->h_axis->adj, w->height + ((xmotion->y_root-designer->pos_y)));
+            if (designer->controls[w->data].is_type == IS_TABBOX) {
+                int elem = w->childlist->elem;
+                int i = 0;
+                for(;i<elem;i++) {
+                    Widget_t *wi = w->childlist->childs[i];
+                    XResizeWindow(w->app->dpy, wi->widget, wi->width, max(10,wi->height+ (xmotion->x_root-designer->pos_x)));
+                }
+            }
             w->scale.ascale = 1.0;
             designer->pos_y = xmotion->y_root;
         break;
@@ -279,7 +332,13 @@ static void null_callback(void *w_, void* user_data) {
 }
 
 static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
-    entry_set_text(designer, wid->label);
+    if (designer->controls[wid->data].is_type == IS_TABBOX) {
+        int v = (int)adj_get_value(wid->adj);
+        Widget_t *wi = designer->active_widget->childlist->childs[v];
+        entry_set_text(designer, wi->label);
+    } else {
+        entry_set_text(designer, wid->label);
+    }
     xevfunc store = designer->x_axis->func.value_changed_callback;
     designer->x_axis->func.value_changed_callback = null_callback;
     adj_set_value(designer->x_axis->adj, (float)wid->x);
@@ -344,17 +403,22 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
 
         if (designer->controls[designer->active_widget_num].have_adjustment  &&
                 designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
+            widget_hide(designer->tabbox_settings);
             widget_show_all(designer->controller_settings);
             box_entry_set_text(designer->controller_entry[0], designer->active_widget->adj->min_value);
             box_entry_set_text(designer->controller_entry[1], designer->active_widget->adj->max_value);
             box_entry_set_text(designer->controller_entry[2], designer->active_widget->adj->std_value);
             box_entry_set_text(designer->controller_entry[3], designer->active_widget->adj->step);
-
+        } else if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
+            widget_hide(designer->controller_settings);
+            widget_show_all(designer->tabbox_settings);
         } else {
             widget_hide(designer->controller_settings);
+            widget_hide(designer->tabbox_settings);
         }
         if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX) {
             widget_show_all(designer->combobox_settings);
+            widget_hide(designer->tabbox_settings);
         } else {
             widget_hide(designer->combobox_settings);
         }
@@ -397,7 +461,22 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
         designer->modify_mod = XUI_NONE;
         designer->active_widget = (Widget_t*)w_;
         designer->active_widget_num = w->data;
-        if (designer->controls[designer->active_widget_num].is_type != IS_FRAME)
+        if (designer->controls[w->data].is_type == IS_TABBOX) {
+            int elem = w->childlist->elem;
+            int i = 0;
+            for(;i<elem;i++) {
+                Widget_t *wi = w->childlist->childs[i];
+                wi->scale.init_width = wi->width;
+                wi->scale.init_height = wi->height;
+                wi->scale.ascale = 1.0;
+            }
+            _tab_button_released(w, button_, NULL);
+            int v = (int)adj_get_value(w->adj);
+            Widget_t *wi = designer->active_widget->childlist->childs[v];
+            entry_set_text(designer, wi->label);
+        }
+        if (designer->controls[designer->active_widget_num].is_type != IS_FRAME &&
+            designer->controls[designer->active_widget_num].is_type != IS_TABBOX)
             check_reparent(designer, xbutton, w);
     } else if(xbutton->button == Button3) {
         designer->modify_mod = XUI_NONE;
@@ -410,6 +489,7 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
             designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
             designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
             designer->controls[designer->active_widget_num].is_type == IS_WAVEVIEW ||
+            designer->controls[designer->active_widget_num].is_type == IS_TABBOX ||
             designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) {
             designer->menu_item_load->state = 4;
             designer->menu_item_unload->state = 4;
@@ -434,6 +514,24 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
     }
     if(designer->active_widget != NULL)
         draw_frame(designer->active_widget, NULL);
+}
+
+void fix_pos_tab(void *w_, void *button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    fix_pos_wid(p, button_, user_data);
+}
+
+void set_pos_tab(void *w_, void *button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    set_pos_wid(p, button_, user_data);
+}
+
+void move_tab(void *w_, void *xmotion_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    move_wid(p, xmotion_, user_data);
 }
 
 void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer) {
@@ -544,6 +642,22 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 wid->func.enter_callback = null_callback;
                 wid->func.leave_callback = null_callback;
                 XLowerWindow(w->app->dpy, wid->widget);
+            break;
+            case 13:
+                wid = add_tabbox(w, "Tab", xbutton->x, xbutton->y, 120, 120);
+                set_controller_callbacks(designer, wid, true);
+                adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
+                designer->controls[designer->wid_counter-1].port_index = -1;
+                add_to_list(designer, wid, "add_lv2_tabbox", false, IS_TABBOX);
+                wid->parent_struct = designer;
+                wid->func.enter_callback = null_callback;
+                wid->func.leave_callback = null_callback;
+                XLowerWindow(w->app->dpy, wid->widget);
+                Widget_t *tab = tabbox_add_tab(wid, "Tab 1");
+                tab->parent_struct = designer;
+                tab->func.button_press_callback = set_pos_tab;
+                tab->func.button_release_callback = fix_pos_tab;
+                tab->func.motion_callback = move_tab;
             break;
             default:
             break;
@@ -685,6 +799,7 @@ int main (int argc, char ** argv) {
     combobox_add_entry(designer->widgets,_("HMeter"));
     combobox_add_entry(designer->widgets,_("WaveView"));
     combobox_add_entry(designer->widgets,_("Frame"));
+    combobox_add_entry(designer->widgets,_("Tab Box"));
     combobox_set_active_entry(designer->widgets, 0);
     designer->widgets->func.value_changed_callback = set_widget_callback;
 
@@ -814,6 +929,15 @@ int main (int argc, char ** argv) {
     designer->set_adjust->parent_struct = designer;
     designer->set_adjust->func.value_changed_callback = set_controller_adjustment;
 
+    designer->tabbox_settings = create_widget(&app, designer->w, 1000, 360, 180, 250);
+    add_label(designer->tabbox_settings, _("Tab Box Settings"), 0, 0, 180, 30);
+    designer->tabbox_entry[0] = add_button(designer->tabbox_settings, _("Add Tab"), 40, 40, 100, 30);
+    designer->tabbox_entry[0]->parent_struct = designer;
+    designer->tabbox_entry[0]->func.value_changed_callback = add_tabbox_entry;
+    designer->tabbox_entry[1] = add_button(designer->tabbox_settings, _("Remove Tab"), 40, 80, 100, 30);
+    designer->tabbox_entry[1]->parent_struct = designer;
+    designer->tabbox_entry[1]->func.value_changed_callback = remove_tabbox_entry;
+
     designer->context_menu = create_menu(designer->w,25);
     designer->context_menu->parent_struct = designer;
     designer->menu_item_load = menu_add_item(designer->context_menu,_("Load Controller Image"));
@@ -841,6 +965,7 @@ int main (int argc, char ** argv) {
     menu_add_radio_entry(designer->ctype_switch,_("HMeter"));
     menu_add_radio_entry(designer->ctype_switch,_("WaveView"));
     menu_add_radio_entry(designer->ctype_switch,_("Frame"));
+    menu_add_radio_entry(designer->ctype_switch,_("Tab Box"));
     designer->ctype_switch->func.value_changed_callback = switch_controller_type;
 
     menu_add_item(designer->context_menu,_("Delete Controller"));

@@ -151,7 +151,13 @@ void entry_get_text(void *w_, void *key_, void *user_data) {
                 if (strlen(w->input_label)) {
                     asprintf (&designer->new_label[designer->active_widget_num], "%s", w->input_label);
                     designer->new_label[designer->active_widget_num][strlen( w->input_label)-1] = 0;
-                    designer->active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
+                    if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
+                        int v = (int)adj_get_value(designer->active_widget->adj);
+                        Widget_t *wi = designer->active_widget->childlist->childs[v];
+                        wi->label = designer->active_widget->label;
+                    } else {
+                        designer->active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
+                    }
                     expose_widget(designer->active_widget);
                 }
             }
@@ -164,6 +170,11 @@ void entry_get_text(void *w_, void *key_, void *user_data) {
                     asprintf (&designer->new_label[designer->active_widget_num], "%s", w->input_label);
                     designer->new_label[designer->active_widget_num][strlen( w->input_label)-1] = 0;
                     designer->active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
+                    if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
+                        int v = (int)adj_get_value(designer->active_widget->adj);
+                        Widget_t *wi = designer->active_widget->childlist->childs[v];
+                        wi->label = designer->active_widget->label;
+                    }
                     expose_widget(designer->active_widget);
                 }
             }

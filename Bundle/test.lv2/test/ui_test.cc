@@ -191,7 +191,6 @@ Widget_t* add_lv2_frame(Widget_t *w, Widget_t *p, PortIndex index, const char * 
     w = add_frame(p, label, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
-    w->func.value_changed_callback = value_changed;
     return w;
 }
 
@@ -201,6 +200,21 @@ Widget_t* add_lv2_waveview(Widget_t *w, Widget_t *p, PortIndex index, const char
     w->parent_struct = ui;
     w->data = index;
     w->func.value_changed_callback = value_changed;
+    return w;
+}
+
+Widget_t* add_lv2_tabbox(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_tabbox(p, label, x, y, width, height);
+    w->parent_struct = ui;
+    w->data = index;
+    return w;
+}
+
+Widget_t* add_lv2_tab(Widget_t *w, Widget_t *p, PortIndex index, const char * label, X11_UI* ui) {
+    w = tabbox_add_tab(p, label);
+    w->parent_struct = ui;
+    w->data = index;
     return w;
 }
 

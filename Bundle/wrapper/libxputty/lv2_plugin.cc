@@ -340,6 +340,21 @@ Widget_t* add_lv2_waveview(Widget_t *w, Widget_t *p, PortIndex index, const char
     return w;
 }
 
+Widget_t* add_lv2_tabbox(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_tabbox(p, label, x, y, width, height);
+    w->parent_struct = ui;
+    w->data = index;
+    return w;
+}
+
+Widget_t* add_lv2_tab(Widget_t *w, Widget_t *p, PortIndex index, const char * label, X11_UI* ui) {
+    w = tabbox_add_tab(p, label);
+    w->parent_struct = ui;
+    w->data = index;
+    return w;
+}
+
 void load_bg_image(X11_UI* ui, const char* image) {
     cairo_surface_t *getpng = cairo_image_surface_create_from_png (image);
     int width = cairo_image_surface_get_width(getpng);

@@ -180,12 +180,18 @@ void print_list(XUiDesigner *designer) {
     int i = 0;
     int j = 0;
     int k = 0;
+    int l = 0;
     bool have_image = false;
     for (;i<MAX_CONTROLS;i++) {
-        if (designer->controls[i].wid != NULL && designer->controls[i].is_type != IS_FRAME) {
+        if (designer->controls[i].wid != NULL && (designer->controls[i].is_type != IS_FRAME &&
+                                                designer->controls[i].is_type != IS_TABBOX)) {
             j++;
-        } else if (designer->controls[i].wid != NULL && designer->controls[i].is_type == IS_FRAME) {
+        } else if (designer->controls[i].wid != NULL && (designer->controls[i].is_type == IS_FRAME ||
+                                                        designer->controls[i].is_type == IS_TABBOX)) {
             k++;
+            if (designer->controls[i].is_type == IS_TABBOX) {
+                l += designer->controls[i].wid->childlist->elem;
+            }
         }
         if (designer->controls[i].image) {
             have_image = true;
@@ -198,6 +204,7 @@ void print_list(XUiDesigner *designer) {
 
         printf ("\n#define CONTROLS %i\n", j);
         printf ("\n#define GUI_ELEMENTS %i\n\n", k);
+        printf ("\n#define TAB_ELEMENTS %i\n\n", l);
         printf ("\n#define PLUGIN_UI_URI \"%s\"\n\n",designer->lv2c.ui_uri);
         printf ("\n#include \"lv2_plugin.h\"\n\n");
         if (have_image) printf ("\n#include \"xresources.h\"\n\n");
@@ -229,6 +236,9 @@ void print_list(XUiDesigner *designer) {
     }
     i = 0;
     j = 0;
+    l = 0;
+    int ttb[k] ;
+    memset(ttb, 0, k*sizeof(int));
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME) {
@@ -252,6 +262,23 @@ void print_list(XUiDesigner *designer) {
                     }
                 }
                 j++;
+            } else if (designer->controls[i].is_type == IS_TABBOX) {
+                printf ("    ui->elem[%i] = %s (ui->elem[%i], ui->win, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
+                    j, designer->controls[i].type, j,
+                    designer->controls[i].port_index, designer->controls[i].wid->label,
+                    designer->controls[i].wid->x, designer->controls[i].wid->y,
+                    designer->controls[i].wid-> width, designer->controls[i].wid->height);
+                ttb[j] = l;
+                int elem = designer->controls[i].wid->childlist->elem;
+                int t = 0;
+                for(;t<elem;t++) {
+                    Widget_t *wi = designer->controls[i].wid->childlist->childs[t];
+                    printf ("    ui->tab_elem[%i] = add_lv2_tab (ui->tab_elem[%i], ui->elem[%i], -1, \"%s\", ui);\n", 
+                        l, l, j, wi->label);
+                    l++;
+                }
+                printf ("\n");
+                j++;
             }
             
         }
@@ -261,12 +288,18 @@ void print_list(XUiDesigner *designer) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             Widget_t * wid = designer->controls[i].wid;
-            if (designer->controls[i].is_type == IS_FRAME) {
+            if (designer->controls[i].is_type == IS_FRAME ||
+                designer->controls[i].is_type == IS_TABBOX) {
                 continue;
             } else {
                 char* parent = NULL;
-                designer->controls[i].in_frame ? asprintf(&parent,"ui->elem[%i]", designer->controls[i].in_frame-1) :
-                    asprintf(&parent,"%s", "ui->win");
+                if (designer->controls[i].in_tab) {
+                    int atb = ttb[designer->controls[i].in_frame-1];
+                    asprintf(&parent,"ui->tab_elem[%i]", atb + designer->controls[i].in_tab-1);
+                } else {
+                    designer->controls[i].in_frame ? asprintf(&parent,"ui->elem[%i]", designer->controls[i].in_frame-1) :
+                        asprintf(&parent,"%s", "ui->win");
+                }
                 printf ("    ui->widget[%i] = %s (ui->widget[%i], %s, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
                     j, designer->controls[i].type, j, parent,
                     designer->controls[i].port_index, designer->controls[i].wid->label,
