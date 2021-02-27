@@ -1,6 +1,8 @@
 # XUiDesigner
 Very early draft of a X11 LV2 GUI design tool
 
+![XUiDesigner](https://i.imgur.com/wKA2eqO.gif)
+
 ## Goal
 Provide a easy to use GUI generator tool to create X11 based UI's for LV2 plugins.
 Currently only libxputty is supported, but the generated GUI C file could be used probably with other 
