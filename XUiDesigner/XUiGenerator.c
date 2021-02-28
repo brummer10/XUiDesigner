@@ -51,6 +51,59 @@ void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
     designer->controls[wid->data].is_type = is_type;
 }
 
+void image_to_c(char* image_name, char* filepath) {
+    cairo_surface_t *image = cairo_image_surface_create_from_png(image_name);
+    int w = cairo_image_surface_get_width(image);
+    int h = cairo_image_surface_get_height(image);
+    int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w);
+
+    char * xldl = NULL;
+    asprintf(&xldl, "%s/%s",filepath, basename(image_name));
+    strdecode(xldl, ".png", ".c");
+    strdecode(xldl, "-", "_");
+    strdecode(xldl, " ", "_");
+    FILE *fp;
+    fp = fopen(xldl, "w");
+    if (fp == NULL) {
+        fprintf(stderr, "can't open file %s\n", xldl);
+        return ;
+    }
+
+    const unsigned char *buff = cairo_image_surface_get_data(image);
+    strdecode(xldl, ".c", "");
+    fprintf(fp, "\n\n"
+        "CairoImageData %s;\n\n"
+        "%s.stride = %i;\n"
+        "%s.w      = %i;\n"
+        "%s.h      = %i;\n\n"
+        "%s.data[] = {\n", basename(xldl), basename(xldl), stride,
+            basename(xldl), w, basename(xldl), h, basename(xldl));
+    int i = 0;
+    int j = 0;
+    int k = 1;
+    int c = 4;
+    for (; i < w * h * c; i++) {
+        if (j == 15 ) {
+            fprintf(fp, "0x%02x,\n", buff[i]);
+            j = 0;
+            k = 0;
+        } else if (k == c ){
+            fprintf(fp, "0x%02x,  ", buff[i]);
+            j++;
+            k = 0;
+        } else {
+            fprintf(fp, "0x%02x, ", buff[i]);
+            j++;
+        }
+        k++;
+    }
+    fprintf(fp, "};\n");
+
+    fclose(fp);
+    free(xldl);
+    cairo_surface_destroy(image);
+}
+
 void print_colors(XUiDesigner *designer) {
     Xputty * main = designer->w->app;
     Colors *c = &main->color_scheme->normal;
@@ -199,6 +252,9 @@ void print_list(XUiDesigner *designer) {
             have_image = true;
         }
     }
+    if (designer->image != NULL) {
+        have_image = true;
+    }
     if (j) {
         Window w = (Window)designer->ui->widget;
         char *name;
@@ -229,7 +285,13 @@ void print_list(XUiDesigner *designer) {
             if (designer->run_test) {
                 printf ("    load_bg_image(ui,\"%s\");\n", designer->image);
             } else {
-                printf ("    load_bg_image(ui,\"./resources/%s\");\n", basename(designer->image));
+                char * xldl = strdup(basename(designer->image));
+                strdecode(xldl, ".", "_");
+                strdecode(xldl, "-", "_");
+                strdecode(xldl, " ", "_");
+                printf ("    widget_get_png(ui->win, LDVAR(%s));\n", xldl);
+                free(xldl);
+                //printf ("    load_bg_image(ui,\"./resources/%s\");\n", basename(designer->image));
             }
         }
 
@@ -256,6 +318,8 @@ void print_list(XUiDesigner *designer) {
                     } else {
                         char * xldl = strdup(basename(designer->controls[i].image));
                         strdecode(xldl, ".", "_");
+                        strdecode(xldl, "-", "_");
+                        strdecode(xldl, " ", "_");
                         printf ("    widget_get_png(ui->elem[%i], LDVAR(%s));\n",
                                 j, xldl);
                         free(xldl);
@@ -320,6 +384,8 @@ void print_list(XUiDesigner *designer) {
                 } else {
                     char * xldl = strdup(basename(designer->controls[i].image));
                     strdecode(xldl, ".", "_");
+                    strdecode(xldl, "-", "_");
+                    strdecode(xldl, " ", "_");
                     printf ("    widget_get_png(ui->widget[%i], LDVAR(%s));\n",
                     //printf ("    load_controller_image(ui->widget[%i], \"./resources/%s\");\n",
                             j, xldl);
@@ -514,7 +580,15 @@ void run_save(void *w_, void* user_data) {
             }
         }
         if (designer->image != NULL) {
-            asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,filepath);
+            //image_to_c(designer->image,filepath);
+            char* xldl = strdup(basename(designer->image));
+            strdecode(xldl, "-", "_");
+            strdecode(xldl, " ", "_");
+            char* fxldl = NULL;
+            asprintf(&fxldl, "%s/%s", filepath, xldl);
+            asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
+            free(xldl);
+            free(fxldl);
             int ret = system(cmd);
             if (!ret) {
                 free(cmd);
@@ -529,7 +603,15 @@ void run_save(void *w_, void* user_data) {
             i = 0;
             for (;i<MAX_CONTROLS;i++) {
                 if (designer->controls[i].image != NULL) {
-                    asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,filepath);
+                    //image_to_c(designer->controls[i].image,filepath);
+                    char* xldl = strdup(basename(designer->controls[i].image));
+                    strdecode(xldl, "-", "_");
+                    strdecode(xldl, " ", "_");
+                    char* fxldl = NULL;
+                    asprintf(&fxldl, "%s/%s", filepath, xldl);
+                    asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,fxldl);
+                    free(xldl);
+                    free(fxldl);
                     int ret = system(cmd);
                     if (!ret) {
                         free(cmd);

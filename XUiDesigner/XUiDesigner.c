@@ -753,13 +753,26 @@ int main (int argc, char ** argv) {
     Xputty app;
     main_init(&app);
     designer->new_label = NULL;
-    designer->new_label = (char **)realloc(designer->new_label, (MAX_CONTROLS) * sizeof(char *));
+    designer->new_label = (char **)malloc(MAX_CONTROLS * sizeof(char *));
     int m = 0;
+    for (;m<MAX_CONTROLS; m++) {
+        designer->new_label[m] = NULL;
+    }
+    
+    designer->tab_label = NULL;
+    designer->tab_label = (char **)malloc(MAX_CONTROLS * sizeof(char *));
+    m = 0;
+    for (;m<MAX_CONTROLS; m++) {
+        designer->tab_label[m] = NULL;
+    }
+
+    m = 0;
     for (;m<MAX_CONTROLS;m++) {
         designer->controls[m].wid = NULL;
         designer->controls[m].image = NULL;
         designer->controls[m].grid_snap_option = 0;
     }
+
     //set_light_theme(&app);
     designer->w = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 1200, 800);
     designer->w->parent_struct = designer;
@@ -986,10 +999,15 @@ int main (int argc, char ** argv) {
     fprintf(stderr, "bye, bye\n");
     main_quit(&app);
     int i = 0;
-    for (;i<designer->wid_counter-1; i++) {
+    for (;i<MAX_CONTROLS; i++) {
         free(designer->new_label[i]);
     }
     free(designer->new_label);
+    i = 0;
+    for (;i<MAX_CONTROLS; i++) {
+        free(designer->tab_label[i]);
+    }
+    free(designer->tab_label);
     free(designer->image_path);
     free(designer->image);
     free(designer->lv2c.ui_uri);

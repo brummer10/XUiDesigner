@@ -132,6 +132,34 @@ static void entry_clip(Widget_t *w) {
 
 }
 
+static void update_label(XUiDesigner *designer, Widget_t *w) {
+    if (designer->active_widget == NULL) return;
+    if (strlen(w->input_label)) {
+        if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
+            int v = (int)adj_get_value(designer->active_widget->adj);
+            if (designer->active_widget_num+v > MAX_CONTROLS) {
+                Widget_t *dia = open_message_dialog(w, INFO_BOX, _("INFO"),
+                    _("MAX CONTROL COUNTER OVERFLOW | Sorry, cant edit the label anymore"),NULL);
+                XSetTransientForHint(w->app->dpy, dia->widget, w->widget);
+                return;
+            }
+            free(designer->tab_label[designer->active_widget_num+v]);
+            designer->tab_label[designer->active_widget_num+v] = NULL;
+            asprintf (&designer->tab_label[designer->active_widget_num+v], "%s", w->input_label);
+            designer->tab_label[designer->active_widget_num+v][strlen( w->input_label)-1] = 0;
+            Widget_t *wi = designer->active_widget->childlist->childs[v];
+            wi->label = (const char*)designer->tab_label[designer->active_widget_num+v];
+        } else {
+            free(designer->new_label[designer->active_widget_num]);
+            designer->new_label[designer->active_widget_num] = NULL;
+            asprintf (&designer->new_label[designer->active_widget_num], "%s", w->input_label);
+            designer->new_label[designer->active_widget_num][strlen( w->input_label)-1] = 0;
+            designer->active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
+        }
+        expose_widget(designer->active_widget);
+    }
+}
+
 void entry_get_text(void *w_, void *key_, void *user_data) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
@@ -141,43 +169,19 @@ void entry_get_text(void *w_, void *key_, void *user_data) {
     int nk = key_mapping(w->app->dpy, key);
     if (nk == 11) {
         entry_clip(w);
+        update_label(designer, w);
     } else {
         Status status;
         KeySym keysym;
         char buf[32];
         Xutf8LookupString(w->xic, key, buf, sizeof(buf) - 1, &keysym, &status);
         if (keysym == XK_Return) {
-            if (designer->active_widget != NULL) {
-                if (strlen(w->input_label)) {
-                    asprintf (&designer->new_label[designer->active_widget_num], "%s", w->input_label);
-                    designer->new_label[designer->active_widget_num][strlen( w->input_label)-1] = 0;
-                    if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
-                        int v = (int)adj_get_value(designer->active_widget->adj);
-                        Widget_t *wi = designer->active_widget->childlist->childs[v];
-                        wi->label = designer->active_widget->label;
-                    } else {
-                        designer->active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
-                    }
-                    expose_widget(designer->active_widget);
-                }
-            }
+            update_label(designer, w);
             return;
         }
         if(status == XLookupChars || status == XLookupBoth){
             entry_add_text(w, buf);
-            if (designer->active_widget != NULL) {
-                if (strlen(w->input_label)) {
-                    asprintf (&designer->new_label[designer->active_widget_num], "%s", w->input_label);
-                    designer->new_label[designer->active_widget_num][strlen( w->input_label)-1] = 0;
-                    designer->active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
-                    if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
-                        int v = (int)adj_get_value(designer->active_widget->adj);
-                        Widget_t *wi = designer->active_widget->childlist->childs[v];
-                        wi->label = designer->active_widget->label;
-                    }
-                    expose_widget(designer->active_widget);
-                }
-            }
+            update_label(designer, w);
         }
     }
 }

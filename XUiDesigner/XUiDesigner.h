@@ -200,7 +200,8 @@ typedef struct {
     bool run;
     int wid_counter;
     int select_widget_num;
-    char** new_label ;
+    char** new_label;
+    char** tab_label;
     char* image_path;
     char* image;
     LV2_CONTROLLER lv2c;

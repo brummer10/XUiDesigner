@@ -43,12 +43,16 @@ static void reset_plugin_ui(XUiDesigner *designer) {
         }
     }
     int i = 0;
-    for (;i<designer->wid_counter-1; i++) {
+    for (;i<MAX_CONTROLS; i++) {
         free(designer->new_label[i]);
     }
     free(designer->new_label);
     designer->new_label = NULL;
-    designer->new_label = (char **)realloc(designer->new_label, (MAX_CONTROLS) * sizeof(char *));
+    designer->new_label = (char **)malloc(MAX_CONTROLS * sizeof(char *));
+    i = 0;
+    for (;i<MAX_CONTROLS; i++) {
+        designer->new_label[i] = NULL;
+    }
 
     designer->modify_mod = XUI_NONE;
     designer->active_widget = NULL;
