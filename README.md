@@ -39,4 +39,6 @@ So you could control if the GUI controller act on the correct port index, have t
  - VMeter
  - HMeter
  - Frame
+ - TabBox
+ - WaveView
  - File Chooser Button

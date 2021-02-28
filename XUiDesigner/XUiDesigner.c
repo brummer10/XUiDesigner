@@ -175,6 +175,13 @@ static void remove_tabbox_entry(void *w_, void* user_data) {
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         if (designer->active_widget != NULL) {
             int v = (int)adj_get_value(designer->active_widget->adj);
+            Widget_t *wi = designer->active_widget->childlist->childs[v];
+            int el = wi->childlist->elem;
+            int j = el;
+            for(;j>0l;j--) {
+                Widget_t *w = wi->childlist->childs[j-1];
+                remove_from_list(designer, w);
+            }
             tabbox_remove_tab(designer->active_widget,v);
             expose_widget(designer->active_widget);
         }

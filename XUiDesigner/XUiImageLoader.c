@@ -321,6 +321,28 @@ void pop_menu_response(void *w_, void* item_, void* user_data) {
         case 3:
         break;
         case 4:
+        {
+            if (designer->controls[designer->active_widget_num].is_type == IS_FRAME) {
+                int elem = designer->active_widget->childlist->elem;
+                int i = elem;
+                for(;i>0;i--) {
+                    Widget_t *wi = designer->active_widget->childlist->childs[i-1];
+                    remove_from_list(designer, wi);
+                }
+            }
+            if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
+                int elem = designer->active_widget->childlist->elem;
+                int i = elem;
+                for(;i>0;i--) {
+                    Widget_t *wi = designer->active_widget->childlist->childs[i-1];
+                    int el = wi->childlist->elem;
+                    int j = el;
+                    for(;j>0l;j--) {
+                        Widget_t *w = wi->childlist->childs[j-1];
+                        remove_from_list(designer, w);
+                    }
+                }
+            }
             remove_from_list(designer, designer->active_widget);
             destroy_widget(designer->active_widget, w->app);
             designer->active_widget = NULL;
@@ -332,6 +354,7 @@ void pop_menu_response(void *w_, void* item_, void* user_data) {
             adj_set_value(designer->h_axis->adj, 10.0);
             widget_hide(designer->combobox_settings);
             widget_hide(designer->controller_settings);
+        }
         break;
         default:
         break;

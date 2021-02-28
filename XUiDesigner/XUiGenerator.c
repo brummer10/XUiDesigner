@@ -39,6 +39,8 @@ void remove_from_list(XUiDesigner *designer, Widget_t *wid) {
     free(designer->controls[wid->data].image);
     designer->controls[wid->data].image = NULL;
     designer->controls[wid->data].grid_snap_option = 0;
+    designer->controls[wid->data].in_frame = 0;
+    designer->controls[wid->data].in_tab = 0;
 }
 
 void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
@@ -422,6 +424,8 @@ void run_save(void *w_, void* user_data) {
                 asprintf(&cmd,"\n\n	# check LD version\n"
                     "	ifneq ($(shell $(LD) --version 2>&1 | head -n 1 | grep LLD),)\n"
                     "		ifneq ($(shell uname -a | grep  x86_64), )\n"
+                    "			LDEMULATION := elf_x86_64\n"
+                    "		else ifneq ($(shell uname -a | grep amd64), )\n"
                     "			LDEMULATION := elf_x86_64\n"
                     "		else ifneq ($(shell uname -a | grep i386), )\n"
                     "			LDEMULATION := elf_i386\n"
