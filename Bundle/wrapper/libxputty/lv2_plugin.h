@@ -34,13 +34,6 @@
 extern "C" {
 #endif
 
-typedef struct {
-    int stride;
-    int w;
-    int h;
-    unsigned char data[];
-}CairoImageData;
-
 // struct to define the knob pattern colors
 typedef struct {
     double p1f[4];

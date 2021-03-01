@@ -57,11 +57,13 @@ void image_to_c(char* image_name, char* filepath) {
     int h = cairo_image_surface_get_height(image);
     int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w);
 
+    char * xld = NULL;
     char * xldl = NULL;
-    asprintf(&xldl, "%s/%s",filepath, basename(image_name));
-    strdecode(xldl, ".png", ".c");
-    strdecode(xldl, "-", "_");
-    strdecode(xldl, " ", "_");
+    asprintf(&xld, "%s", basename(image_name));
+    strdecode(xld, ".png", ".c");
+    strdecode(xld, "-", "_");
+    strdecode(xld, " ", "_");
+    asprintf(&xldl, "%s",filepath, basename(image_name));
     FILE *fp;
     fp = fopen(xldl, "w");
     if (fp == NULL) {
@@ -72,11 +74,10 @@ void image_to_c(char* image_name, char* filepath) {
     const unsigned char *buff = cairo_image_surface_get_data(image);
     strdecode(xldl, ".c", "");
     fprintf(fp, "\n\n"
-        "CairoImageData %s;\n\n"
-        "%s.stride = %i;\n"
-        "%s.w      = %i;\n"
-        "%s.h      = %i;\n\n"
-        "%s.data[] = {\n", basename(xldl), basename(xldl), stride,
+        "const int %s_stride = %i;\n"
+        "const int %s_w      = %i;\n"
+        "const int %s_h      = %i;\n\n"
+        "const unsigned char %s_data[] = {\n", basename(xldl), stride,
             basename(xldl), w, basename(xldl), h, basename(xldl));
     int i = 0;
     int j = 0;
@@ -98,8 +99,8 @@ void image_to_c(char* image_name, char* filepath) {
         k++;
     }
     fprintf(fp, "};\n");
-
     fclose(fp);
+    free(xld);
     free(xldl);
     cairo_surface_destroy(image);
 }
