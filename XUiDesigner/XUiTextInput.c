@@ -192,11 +192,18 @@ void entry_get_text(void *w_, void *key_, void *user_data) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-void box_entry_set_text(Widget_t *w, float value) {
+void box_entry_set_value(Widget_t *w, float value) {
     memset(w->input_label, 0, 32 * (sizeof w->input_label[0]));
     char buffer[30];
     snprintf(buffer, sizeof buffer, "%.3f", value);
     strcat(w->input_label, buffer);
+    strcat(w->input_label, "|");
+    expose_widget(w);
+}
+
+void box_entry_set_text(Widget_t *w, const char* label) {
+    memset(w->input_label, 0, 32 * (sizeof w->input_label[0]));
+    strncat(w->input_label, label, 30);
     strcat(w->input_label, "|");
     expose_widget(w);
 }

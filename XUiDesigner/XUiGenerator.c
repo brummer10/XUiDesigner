@@ -22,9 +22,115 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <ctype.h>
 
 #include "XUiGenerator.h"
 #include "XUiGridControl.h"
+
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                         png2c
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+void strtovar(char* c) {
+    char* b = "_";
+    int i = 0;
+    for (i=0; c[i] != '\0'; i++) {
+        if (!isalnum((unsigned char)c[i])) {
+            c[i] = (*b);
+        } else {
+            c[i] = tolower((unsigned char)c[i]);
+        }
+    }
+}
+
+void strtoguard(char* c) {
+    char* b = "_";
+    int i = 0;
+    for (i=0; c[i] != '\0'; i++) {
+        if (!isalnum((unsigned char)c[i])) {
+            c[i] = (*b);
+        } else {
+            c[i] = toupper((unsigned char)c[i]);
+        }
+    }
+}
+
+void png2c(char* image_name, char* filepath) {
+    cairo_surface_t *image = cairo_image_surface_create_from_png(image_name);
+    int w = cairo_image_surface_get_width(image);
+    int h = cairo_image_surface_get_height(image);
+    int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w);
+
+    char * xld = NULL;
+    char * xldl = NULL;
+    asprintf(&xld, "%s", basename(image_name));
+    strdecode(xld, ".png", ".c");
+    strdecode(xld, "-", "_");
+    strdecode(xld, " ", "_");
+    asprintf(&xldl, "%s/%s",filepath, xld);
+    FILE *fp;
+    fp = fopen(xldl, "w");
+    if (fp == NULL) {
+        fprintf(stderr, "can't open file %s\n", xldl);
+        return ;
+    }
+
+    const unsigned char *buff = cairo_image_surface_get_data(image);
+    strdecode(xld, ".c", "");
+    strtoguard(xld);
+    fprintf(fp,
+        "\n#pragma once\n\n"
+        "#ifndef %s_H_\n"
+        "#define %s_H_\n\n"
+        "#ifdef __cplusplus\n"
+        "extern \"C\" {\n"
+        "#endif\n", xld, xld);
+
+    strtovar(xld);
+    fprintf(fp, "\n\n"
+        "static const unsigned char %s_data[] = {\n", xld);
+    int i = 0;
+    int j = 0;
+    int k = 1;
+    int c = 4;
+    for (; i < w * h * c; i++) {
+        if (j == 15 ) {
+            fprintf(fp, "0x%02x,\n", buff[i]);
+            j = 0;
+            k = 0;
+        } else if (k == c ){
+            fprintf(fp, "0x%02x,  ", buff[i]);
+            j++;
+            k = 0;
+        } else if (j == 0) {
+            fprintf(fp, "    0x%02x, ", buff[i]);
+            j++;
+        } else {
+            fprintf(fp, "0x%02x, ", buff[i]);
+            j++;
+        }
+        k++;
+    }
+    fprintf(fp, "};\n\n");
+    fprintf(fp, "CairoImageData %s = (CairoImageData) {\n"
+        "    .stride = %i,\n"
+        "    .width  = %i,\n"
+        "    .height = %i,\n"
+        "    .data = (unsigned char*)%s_data,\n};\n\n",xld, stride, w, h, xld);
+
+    fprintf(fp, "#ifdef __cplusplus\n"
+    "}\n"
+    "#endif\n"
+    "#endif\n");
+
+    fclose(fp);
+    free(xld);
+    free(xldl);
+    cairo_surface_destroy(image);
+}
 
 
 /*---------------------------------------------------------------------
@@ -49,60 +155,6 @@ void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
     designer->controls[wid->data].type = type;
     designer->controls[wid->data].have_adjustment = have_adjustment;
     designer->controls[wid->data].is_type = is_type;
-}
-
-void image_to_c(char* image_name, char* filepath) {
-    cairo_surface_t *image = cairo_image_surface_create_from_png(image_name);
-    int w = cairo_image_surface_get_width(image);
-    int h = cairo_image_surface_get_height(image);
-    int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w);
-
-    char * xld = NULL;
-    char * xldl = NULL;
-    asprintf(&xld, "%s", basename(image_name));
-    strdecode(xld, ".png", ".c");
-    strdecode(xld, "-", "_");
-    strdecode(xld, " ", "_");
-    asprintf(&xldl, "%s",filepath, basename(image_name));
-    FILE *fp;
-    fp = fopen(xldl, "w");
-    if (fp == NULL) {
-        fprintf(stderr, "can't open file %s\n", xldl);
-        return ;
-    }
-
-    const unsigned char *buff = cairo_image_surface_get_data(image);
-    strdecode(xldl, ".c", "");
-    fprintf(fp, "\n\n"
-        "const int %s_stride = %i;\n"
-        "const int %s_w      = %i;\n"
-        "const int %s_h      = %i;\n\n"
-        "const unsigned char %s_data[] = {\n", basename(xldl), stride,
-            basename(xldl), w, basename(xldl), h, basename(xldl));
-    int i = 0;
-    int j = 0;
-    int k = 1;
-    int c = 4;
-    for (; i < w * h * c; i++) {
-        if (j == 15 ) {
-            fprintf(fp, "0x%02x,\n", buff[i]);
-            j = 0;
-            k = 0;
-        } else if (k == c ){
-            fprintf(fp, "0x%02x,  ", buff[i]);
-            j++;
-            k = 0;
-        } else {
-            fprintf(fp, "0x%02x, ", buff[i]);
-            j++;
-        }
-        k++;
-    }
-    fprintf(fp, "};\n");
-    fclose(fp);
-    free(xld);
-    free(xldl);
-    cairo_surface_destroy(image);
 }
 
 void print_colors(XUiDesigner *designer) {
@@ -262,11 +314,12 @@ void print_list(XUiDesigner *designer) {
         XFetchName(designer->ui->app->dpy, w, &name);
 
         printf ("\n#define CONTROLS %i\n", j);
-        printf ("\n#define GUI_ELEMENTS %i\n\n", k);
+        printf ("\n#define GUI_ELEMENTS %i\n", k);
         printf ("\n#define TAB_ELEMENTS %i\n\n", l);
         printf ("\n#define PLUGIN_UI_URI \"%s\"\n\n",designer->lv2c.ui_uri);
         printf ("\n#include \"lv2_plugin.h\"\n\n");
-        if (have_image) printf ("\n#include \"xresources.h\"\n\n");
+        
+        if (have_image && !designer->run_test) printf ("\n#include \"xresources.h\"\n\n");
         print_colors(designer);
         printf ("#include \"%s\"\n\n\n"
         "void plugin_value_changed(X11_UI *ui, Widget_t *w, PortIndex index) {\n"
@@ -290,6 +343,7 @@ void print_list(XUiDesigner *designer) {
                 strdecode(xldl, ".", "_");
                 strdecode(xldl, "-", "_");
                 strdecode(xldl, " ", "_");
+                strtovar(xldl);
                 printf ("    widget_get_png(ui->win, LDVAR(%s));\n", xldl);
                 free(xldl);
                 //printf ("    load_bg_image(ui,\"./resources/%s\");\n", basename(designer->image));
@@ -321,6 +375,7 @@ void print_list(XUiDesigner *designer) {
                         strdecode(xldl, ".", "_");
                         strdecode(xldl, "-", "_");
                         strdecode(xldl, " ", "_");
+                        strtovar(xldl);
                         printf ("    widget_get_png(ui->elem[%i], LDVAR(%s));\n",
                                 j, xldl);
                         free(xldl);
@@ -387,6 +442,7 @@ void print_list(XUiDesigner *designer) {
                     strdecode(xldl, ".", "_");
                     strdecode(xldl, "-", "_");
                     strdecode(xldl, " ", "_");
+                    strtovar(xldl);
                     printf ("    widget_get_png(ui->widget[%i], LDVAR(%s));\n",
                     //printf ("    load_controller_image(ui->widget[%i], \"./resources/%s\");\n",
                             j, xldl);
@@ -581,10 +637,12 @@ void run_save(void *w_, void* user_data) {
             }
         }
         if (designer->image != NULL) {
-            //image_to_c(designer->image,filepath);
+            //png2c(designer->image,filepath);
             char* xldl = strdup(basename(designer->image));
             strdecode(xldl, "-", "_");
             strdecode(xldl, " ", "_");
+            strtovar(xldl);
+            strdecode(xldl, "_png", ".png");
             char* fxldl = NULL;
             asprintf(&fxldl, "%s/%s", filepath, xldl);
             asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
@@ -604,10 +662,12 @@ void run_save(void *w_, void* user_data) {
             i = 0;
             for (;i<MAX_CONTROLS;i++) {
                 if (designer->controls[i].image != NULL) {
-                    //image_to_c(designer->controls[i].image,filepath);
+                    //png2c(designer->controls[i].image,filepath);
                     char* xldl = strdup(basename(designer->controls[i].image));
                     strdecode(xldl, "-", "_");
                     strdecode(xldl, " ", "_");
+                    strtovar(xldl);
+                    strdecode(xldl, "_png", ".png");
                     char* fxldl = NULL;
                     asprintf(&fxldl, "%s/%s", filepath, xldl);
                     asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,fxldl);
@@ -663,6 +723,7 @@ void run_test(void *w_, void* user_data) {
             }
             widget_hide(designer->w);
             widget_hide(designer->ui);
+            widget_hide(designer->set_project);
             XFlush(designer->w->app->dpy);
             int ret = system("cd ./Bundle/test.lv2/test  && "
                 "cc -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector "

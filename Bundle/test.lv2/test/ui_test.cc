@@ -220,6 +220,8 @@ Widget_t* add_lv2_tab(Widget_t *w, Widget_t *p, PortIndex index, const char * la
 
 void load_bg_image(X11_UI* ui, const char* image) {
     cairo_surface_t *getpng = cairo_image_surface_create_from_png (image);
+    //cairo_surface_t *getpng = cairo_image_surface_create_for_data (image.data,
+    //                        CAIRO_FORMAT_ARGB32 ,image.width, image.height, image.stride);
     int width = cairo_image_surface_get_width(getpng);
     int height = cairo_image_surface_get_height(getpng);
     int width_t = ui->win->scale.init_width;
@@ -239,8 +241,10 @@ void load_bg_image(X11_UI* ui, const char* image) {
     cairo_destroy(cri);
 }
 
-void load_controller_image(Widget_t* w,const char* image) {
+void load_controller_image(Widget_t* w, const char* image) {
     cairo_surface_t *getpng = cairo_image_surface_create_from_png (image);
+    //cairo_surface_t *getpng = cairo_image_surface_create_for_data (image.data,
+    //                        CAIRO_FORMAT_ARGB32 ,image.width, image.height, image.stride);
     int width = cairo_image_surface_get_width(getpng);
     int height = cairo_image_surface_get_height(getpng);
     cairo_surface_destroy(w->image);

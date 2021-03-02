@@ -40,7 +40,9 @@ void entry_add_text(void  *w_, void *label_);
 
 void entry_get_text(void *w_, void *key_, void *user_data);
 
-void box_entry_set_text(Widget_t *w, float value);
+void box_entry_set_value(Widget_t *w, float value);
+
+void box_entry_set_text(Widget_t *w, const char* label);
 
 Widget_t *add_input_box(Widget_t *parent, int data, int x, int y, int width, int height);
 

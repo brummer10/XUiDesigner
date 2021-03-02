@@ -78,6 +78,18 @@ static void draw_ui(void *w_, void* user_data) {
     }
 }
 
+static void set_project_title(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (strlen(designer->project_title->input_label)>1) {
+        designer->project_title->input_label[strlen(designer->project_title->input_label)-1] = 0;
+        widget_set_title(designer->ui,designer->project_title->input_label);
+        strcat(designer->project_title->input_label, "|");
+        expose_widget(designer->ui);
+    }
+    widget_hide(designer->set_project);
+}
+
 static void set_port_index(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -412,10 +424,10 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
                 designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
             widget_hide(designer->tabbox_settings);
             widget_show_all(designer->controller_settings);
-            box_entry_set_text(designer->controller_entry[0], designer->active_widget->adj->min_value);
-            box_entry_set_text(designer->controller_entry[1], designer->active_widget->adj->max_value);
-            box_entry_set_text(designer->controller_entry[2], designer->active_widget->adj->std_value);
-            box_entry_set_text(designer->controller_entry[3], designer->active_widget->adj->step);
+            box_entry_set_value(designer->controller_entry[0], designer->active_widget->adj->min_value);
+            box_entry_set_value(designer->controller_entry[1], designer->active_widget->adj->max_value);
+            box_entry_set_value(designer->controller_entry[2], designer->active_widget->adj->std_value);
+            box_entry_set_value(designer->controller_entry[3], designer->active_widget->adj->step);
         } else if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
             widget_hide(designer->controller_settings);
             widget_show_all(designer->tabbox_settings);
@@ -672,10 +684,10 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         if (designer->controls[designer->active_widget_num].have_adjustment &&
                 designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
             widget_show_all(designer->controller_settings);
-            box_entry_set_text(designer->controller_entry[0], designer->active_widget->adj->min_value);
-            box_entry_set_text(designer->controller_entry[1], designer->active_widget->adj->max_value);
-            box_entry_set_text(designer->controller_entry[2], designer->active_widget->adj->std_value);
-            box_entry_set_text(designer->controller_entry[3], designer->active_widget->adj->step);
+            box_entry_set_value(designer->controller_entry[0], designer->active_widget->adj->min_value);
+            box_entry_set_value(designer->controller_entry[1], designer->active_widget->adj->max_value);
+            box_entry_set_value(designer->controller_entry[2], designer->active_widget->adj->std_value);
+            box_entry_set_value(designer->controller_entry[3], designer->active_widget->adj->step);
 
         } else {
             widget_hide(designer->controller_settings);
@@ -688,6 +700,14 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         if (designer->prev_active_widget != NULL)
             draw_trans(designer->prev_active_widget,NULL);
         designer->prev_active_widget = wid;
+        widget_hide(designer->set_project);
+    } else if(xbutton->button == Button3) {
+        widget_show_all(designer->set_project);
+        char *name = NULL;
+        XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
+        if (name != NULL)
+            box_entry_set_text(designer->project_title, name);
+            
     }
 }
 
@@ -990,6 +1010,20 @@ int main (int argc, char ** argv) {
 
     menu_add_item(designer->context_menu,_("Delete Controller"));
     designer->context_menu->func.button_release_callback = pop_menu_response;
+
+    designer->set_project = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 270, 50);
+    XChangeProperty(app.dpy, designer->set_project->widget, wmNetWmState, XA_ATOM, 32, 
+        PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
+    XSetTransientForHint(app.dpy, designer->set_project->widget, designer->ui->widget);
+    designer->set_project->parent_struct = designer;
+    designer->set_project->func.expose_callback = draw_window;
+    widget_set_title(designer->set_project, _("Project Title"));
+    designer->project_title = add_input_box(designer->set_project, 0, 10, 10, 200, 30);
+    designer->project_title->parent_struct = designer;
+    designer->project_title->func.user_callback = set_project_title;
+    Widget_t* tmp = add_button(designer->set_project, _("Set"), 220, 10, 40, 30);
+    tmp->parent_struct = designer;
+    tmp->func.value_changed_callback = set_project_title;
 
     widget_show_all(designer->ui);
     main_run(&app);
