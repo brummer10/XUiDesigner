@@ -497,7 +497,14 @@ void print_list(XUiDesigner *designer) {
 void run_save(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+    if(user_data !=NULL) {
+        if( access(*(const char**)user_data, F_OK ) == -1 ) {
+            Widget_t *dia = open_message_dialog(w, ERROR_BOX, *(const char**)user_data,
+                                                _("Couldn't access file, sorry"),NULL);
+            XSetTransientForHint(w->app->dpy, dia->widget, w->widget);
+            return;
+        }
+        
         int i = 0;
         int j = 0;
         bool have_image = false;
@@ -520,7 +527,7 @@ void run_save(void *w_, void* user_data) {
         XFetchName(designer->ui->app->dpy, w, &name);
         if (name == NULL) asprintf(&name, "%s", "noname");
         char* filepath = NULL;
-        asprintf(&filepath, "./Bundle/save.lv2/%s_ui",name);
+        asprintf(&filepath, "%s%s_ui",*(const char**)user_data,name);
         struct stat st = {0};
 
         if (stat(filepath, &st) == -1) {
@@ -528,7 +535,7 @@ void run_save(void *w_, void* user_data) {
         }
 
         char* filename = NULL;
-        asprintf(&filename, "./Bundle/save.lv2/%s_ui/%s.c",name, name );
+        asprintf(&filename, "%s%s_ui/%s.c",*(const char**)user_data,name, name );
         remove (filename);
         FILE *fp;
         if((fp=freopen(filename, "w" ,stdout))==NULL) {
@@ -540,7 +547,7 @@ void run_save(void *w_, void* user_data) {
         free(filename);
         if (system(NULL)) {
             char* cmd = NULL;
-            asprintf(&cmd, "cp ./Bundle/wrapper/libxputty/* \'%s\'", filepath);
+            asprintf(&cmd, "cp ./Bundle/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
             int ret = system(cmd);
             if (!ret) {
                 free(cmd);
@@ -554,6 +561,8 @@ void run_save(void *w_, void* user_data) {
                     "			LDEMULATION := elf_i386\n"
                     "		endif\n"
                     "		USE_LDD = 1\n"
+                    "	else ifneq ($(shell gold --version 2>&1 | head -n 1 | grep gold),)\n"
+                    "		LD = gold\n"
                     "	endif\n"
 
                     "\n\n	NAME = %s\n"
@@ -569,7 +578,8 @@ void run_save(void *w_, void* user_data) {
                     "	RESOURCES_LIB := $(notdir $(patsubst %s.png,%s.a,$(RESOURCES)))\n"
                     "	RESOURCE_EXTLD := $(notdir $(patsubst %s.png,%s_png,$(RESOURCES)))\n"
                     "	RESOURCEHEADER := xresources.h\n"
-                    "	LDFLAGS += -fvisibility=hidden `pkg-config --cflags --libs cairo x11 lilv-0` \\\n"
+                    "	LDFLAGS += -fvisibility=hidden -Wl,-Bstatic `pkg-config --cflags --libs xputty` \\\n"
+                    "	-Wl,-Bdynamic `pkg-config --cflags --libs cairo x11 lilv-0` \\\n"
                     "	-shared -lm -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -Wl,--gc-sections\n"
                     "	CFLAGS := -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector -fvisibility=hidden \\\n"
                     "	-fdata-sections -Wl,--gc-sections -Wl,-z,relro,-z,now -Wl,--exclude-libs,ALL\n\n"
@@ -591,7 +601,9 @@ void run_save(void *w_, void* user_data) {
                     "	$(AR) rcs $(patsubst %s.o,%s.a,$@) $@\n"
                     "endif\n\n"
                     "$(EXEC_NAME):$(RESOURCES_OBJ)\n"
-                    "	$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR)\n"
+                    "	@# use this line when you include libxputty as submodule\n"
+                    "	@#$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR)\n"
+                    "	$(CC) $(CFLAGS) \'$(NAME).c\' -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./\n"
                     "	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(EXEC_NAME)_ui.so\n\n"
                     "clean:\n"
                     "	rm -f *.a *.o *.so xresources.h\n\n",
@@ -620,7 +632,7 @@ void run_save(void *w_, void* user_data) {
         char* cmd = NULL;
         if (have_image || designer->image != NULL) {
             filepath = NULL;
-            asprintf(&filepath, "./Bundle/save.lv2/%s_ui/resources",name);
+            asprintf(&filepath, "%s%s_ui/resources",*(const char**)user_data,name);
             if (stat(filepath, &st) == -1) {
                 mkdir(filepath, 0700);
             } else {
@@ -637,7 +649,7 @@ void run_save(void *w_, void* user_data) {
             }
         }
         if (designer->image != NULL) {
-            //png2c(designer->image,filepath);
+            png2c(designer->image,filepath);
             char* xldl = strdup(basename(designer->image));
             strdecode(xldl, "-", "_");
             strdecode(xldl, " ", "_");
@@ -662,7 +674,7 @@ void run_save(void *w_, void* user_data) {
             i = 0;
             for (;i<MAX_CONTROLS;i++) {
                 if (designer->controls[i].image != NULL) {
-                    //png2c(designer->controls[i].image,filepath);
+                    png2c(designer->controls[i].image,filepath);
                     char* xldl = strdup(basename(designer->controls[i].image));
                     strdecode(xldl, "-", "_");
                     strdecode(xldl, " ", "_");
@@ -708,11 +720,12 @@ void run_test(void *w_, void* user_data) {
             return;
         }
         designer->run_test = true;
-        char* name = "./Bundle/test.lv2/test/test.c";
+        char* name = "/tmp/test.c";
         remove (name);
         FILE *fp;
         if((fp=freopen(name, "w" ,stdout))==NULL) {
-            printf("open failed\n");
+            fprintf(stderr,"open failed\n");
+            return;
         }
 
         print_list(designer);
@@ -725,13 +738,15 @@ void run_test(void *w_, void* user_data) {
             widget_hide(designer->ui);
             widget_hide(designer->set_project);
             XFlush(designer->w->app->dpy);
-            int ret = system("cd ./Bundle/test.lv2/test  && "
+            int ret = system("cd /tmp/  && "
                 "cc -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector "
-                "`pkg-config lilv-0 --cflags` test.c -L. ../../../libxputty/libxputty/libxputty.a "
-                "-o uitest  -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../../../libxputty/libxputty/include/ "
-                "`pkg-config --cflags --libs cairo x11 lilv-0` -lm ");
+                "`pkg-config lilv-0 --cflags` test.c "
+                "-o uitest  -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ "
+                "-I/usr/share/XUiDesigner/wrapper/libxputty "
+                "-Wl,-Bstatic `pkg-config --cflags --libs xputty` "
+                "-Wl,-Bdynamic `pkg-config --cflags --libs cairo x11 lilv-0` -lm ");
             if (!ret) {
-                ret = system("cd ./Bundle/test.lv2/test  && ./uitest");
+                ret = system("cd /tmp/  && ./uitest");
             }
             if (!ret) {
                 designer->run_test = false;

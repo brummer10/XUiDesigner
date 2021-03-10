@@ -34,6 +34,13 @@
 extern "C" {
 #endif
 
+typedef struct {
+    int stride;
+    int width;
+    int height;
+    unsigned char* data;
+} CairoImageData;
+
 // struct to define the knob pattern colors
 typedef struct {
     double p1f[4];
@@ -126,7 +133,7 @@ Widget_t* add_lv2_tab(Widget_t *w, Widget_t *p, PortIndex index, const char * la
 
 void load_bg_image(X11_UI* ui, const char* image);
 
-void load_controller_image(Widget_t* w,const char* image);
+void load_controller_image(Widget_t* w, const char* image);
 
 // free used mem on exit
 void plugin_cleanup(X11_UI *ui);

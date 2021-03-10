@@ -42,7 +42,7 @@
 	# set compile flags
 	LDFLAGS += -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../libxputty/libxputty/include/ \
 	`pkg-config --cflags --libs cairo x11 lilv-0` -lm
-	CXXFLAGS += -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector `pkg-config lilv-0 --cflags` 
+	CXXFLAGS += -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector
 	DEBUG_CXXFLAGS += -g -D DEBUG
 	# invoke build files
 	OBJECTS = $(wildcard *.c)
@@ -55,6 +55,7 @@
 .PHONY : $(HEADER_DIR)*.h all debug nls gettext updatepot po clean install uninstall 
 
 all : check $(NAME)
+	@cd ../libxputty/Build && make shared
 	@mkdir -p ./$(BUILD_DIR)
 	@mv ./$(EXEC_NAME) ./$(BUILD_DIR)
 	@#if [ -f ./$(BUILD_DIR)/$(EXEC_NAME) ]; then echo $(BLUE)"build finish, now run make install"; \
@@ -101,12 +102,15 @@ clean :
 
 install :
 ifneq ("$(wildcard ./$(BUILD_DIR))","")
-	mkdir -p $(DESTDIR)$(BIN_DIR)
-	cp ./$(BUILD_DIR)/$(EXEC_NAME) $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
-	mkdir -p $(DESTDIR)$(DESKAPPS_DIR)
-	cp $(NAME).desktop $(DESTDIR)$(DESKAPPS_DIR)
-	mkdir -p $(DESTDIR)$(PIXMAPS_DIR)
-	cp $(NAME).png $(DESTDIR)$(PIXMAPS_DIR)
+	@cd ../libxputty/Build && make install
+	@mkdir -p $(DESTDIR)$(BIN_DIR)
+	@cp ./$(BUILD_DIR)/$(EXEC_NAME) $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
+	@mkdir -p $(DESTDIR)$(DESKAPPS_DIR)
+	@cp $(NAME).desktop $(DESTDIR)$(DESKAPPS_DIR)
+	@mkdir -p $(DESTDIR)$(PIXMAPS_DIR)
+	@cp ../$(NAME).svg $(DESTDIR)$(PIXMAPS_DIR)
+	@mkdir -p $(DESTDIR)/usr/share/XUiDesigner/wrapper
+	@cp -r ../Bundle/wrapper/* $(DESTDIR)/usr/share/XUiDesigner/wrapper
 	@if [ ${LANGW} -gt 1 ]; then \
 		for lang in $(LANGS) ; \
 		do \
@@ -121,7 +125,7 @@ ifneq ("$(wildcard ./$(BUILD_DIR))","")
 				cp $(LANGS)/$(EXEC_NAME).mo $(DESTDIR)$(SHARE_DIR)/$(LANGS); \
 			fi \
 	fi
-	update-desktop-database || true
+	@update-desktop-database || true
 	@echo ". ." $(BLUE)", done"$(NONE)
 else
 	@echo ". ." $(BLUE)", you must build first"$(NONE)
@@ -130,7 +134,8 @@ endif
 uninstall :
 	@rm -rf $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
 	@rm -rf $(DESTDIR)$(DESKAPPS_DIR)/$(NAME).desktop
-	@rm -rf $(DESTDIR)$(PIXMAPS_DIR)/$(NAME).png
+	@rm -rf $(DESTDIR)$(PIXMAPS_DIR)/$(NAME).svg
+	@rm -rf $(DESTDIR)$(SHARE_DIR)/XUiDesigner
 	@rm -rf $(addprefix $(SHARE_DIR)/, $(MSGOBJS))
 	@echo ". ." $(BLUE)", done"$(NONE)
 

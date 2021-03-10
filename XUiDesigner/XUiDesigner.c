@@ -719,6 +719,16 @@ static void run_exit(void *w_, void* user_data) {
     }
 }
 
+static void run_save_as(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        const char* home = getenv("HOME");
+        open_directory_dialog(designer->ui, home);
+        designer->ui->func.dialog_callback = run_save;
+    }
+}
+
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 main
@@ -876,7 +886,7 @@ int main (int argc, char ** argv) {
     widget_get_png(designer->save, LDVAR(save_png));
     tooltip_set_text(designer->save,_("Save"));
     designer->save->parent_struct = designer;
-    designer->save->func.value_changed_callback = run_save;
+    designer->save->func.value_changed_callback = run_save_as;
 
     designer->exit = add_button(designer->w, "", 1140, 740, 40, 40);
     widget_get_png(designer->exit, LDVAR(exit_png));
