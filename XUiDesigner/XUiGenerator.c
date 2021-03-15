@@ -547,12 +547,14 @@ void run_save(void *w_, void* user_data) {
         free(filename);
         if (system(NULL)) {
             char* cmd = NULL;
-            asprintf(&cmd, "cp ./Bundle/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
+            asprintf(&cmd, "cp /usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
             int ret = system(cmd);
             if (!ret) {
                 free(cmd);
                 asprintf(&cmd,"\n\n	# check LD version\n"
-                    "	ifneq ($(shell $(LD) --version 2>&1 | head -n 1 | grep LLD),)\n"
+                    "	ifneq ($(shell xxd --version 2>&1 | head -n 1 | grep xxd),)\n"
+                    "		USE_XXD = 1\n"
+                    "	else ifneq ($(shell $(LD) --version 2>&1 | head -n 1 | grep LLD),)\n"
                     "		ifneq ($(shell uname -a | grep  x86_64), )\n"
                     "			LDEMULATION := elf_x86_64\n"
                     "		else ifneq ($(shell uname -a | grep amd64), )\n"
@@ -591,23 +593,31 @@ void run_save(void *w_, void* user_data) {
                     "	for f in $(RESOURCE_EXTLD); do \\\n"
                     "		echo 'EXTLD('$${f}')' >> $(RESOURCEHEADER) ; \\\n"
                     "	done\n\n"
-                    "ifdef USE_LDD\n"
+                    "ifdef USE_XXD\n"
+                    "$(RESOURCES_OBJ): $(RESOURCES)\n"
+                    "	@#use this line to regenerate the *.c files from used images\n"
+                    "	@#cd $(RESOURCES_DIR) && xxd -i $(patsubst %s.o,%s.png,$@) > $(patsubst %s.o,%s.c,$@)\n"
+                    "	$(CC) -c $(RESOURCES_DIR)$(patsubst %s.o,%s.c,$@) -o $@\n"
+                    "	$(AR) rcs $(patsubst %s.o,%s.a,$@) $@\n"
+                    "else ifdef USE_LDD\n"
                     "$(RESOURCES_OBJ): $(RESOURCES)\n"
                     "	cd $(RESOURCES_DIR) && $(LD) -r -b binary -m $(LDEMULATION) -z noexecstack $(patsubst %s.o,%s.png,$@) -o ../$@\n"
                     "	$(AR) rcs $(patsubst %s.o,%s.a,$@) $@\n"
+                    "	LDFLAGS += -DUSE_LD=1\n"
                     "else\n"
                     "$(RESOURCES_OBJ): $(RESOURCES)\n"
                     "	cd $(RESOURCES_DIR) && $(LD) -r -b binary -z noexecstack --strip-all $(patsubst %s.o,%s.png,$@) -o ../$@\n"
                     "	$(AR) rcs $(patsubst %s.o,%s.a,$@) $@\n"
+                    "	LDFLAGS += -DUSE_LD=1\n"
                     "endif\n\n"
                     "$(EXEC_NAME):$(RESOURCES_OBJ)\n"
                     "	@# use this line when you include libxputty as submodule\n"
                     "	@#$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR)\n"
-                    "	$(CC) $(CFLAGS) \'$(NAME).c\' -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./\n"
+                    "	$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./\n"
                     "	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(EXEC_NAME)_ui.so\n\n"
                     "clean:\n"
                     "	rm -f *.a *.o *.so xresources.h\n\n",
-                    name, "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%");
+                    name, "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%");
                 char* makefile = NULL;
                 asprintf(&makefile, "%s/makefile",filepath);
                 FILE *fpm;
@@ -649,7 +659,7 @@ void run_save(void *w_, void* user_data) {
             }
         }
         if (designer->image != NULL) {
-            png2c(designer->image,filepath);
+            //png2c(designer->image,filepath);
             char* xldl = strdup(basename(designer->image));
             strdecode(xldl, "-", "_");
             strdecode(xldl, " ", "_");
@@ -658,10 +668,15 @@ void run_save(void *w_, void* user_data) {
             char* fxldl = NULL;
             asprintf(&fxldl, "%s/%s", filepath, xldl);
             asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
-            free(xldl);
-            free(fxldl);
             int ret = system(cmd);
             if (!ret) {
+                char* xldc =  strdup(xldl);
+                strdecode(xldc, ".png", ".c");
+                free(cmd);
+                cmd = NULL;
+                asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
+                ret = system(cmd);
+                free(xldc);
                 free(cmd);
                 cmd = NULL;
             } else {
@@ -669,12 +684,14 @@ void run_save(void *w_, void* user_data) {
                 cmd = NULL;
                 fprintf(stderr, "Fail to copy image\n");
             }
+            free(xldl);
+            free(fxldl);
         }
         if (have_image) {
             i = 0;
             for (;i<MAX_CONTROLS;i++) {
                 if (designer->controls[i].image != NULL) {
-                    png2c(designer->controls[i].image,filepath);
+                    //png2c(designer->controls[i].image,filepath);
                     char* xldl = strdup(basename(designer->controls[i].image));
                     strdecode(xldl, "-", "_");
                     strdecode(xldl, " ", "_");
@@ -683,10 +700,15 @@ void run_save(void *w_, void* user_data) {
                     char* fxldl = NULL;
                     asprintf(&fxldl, "%s/%s", filepath, xldl);
                     asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,fxldl);
-                    free(xldl);
-                    free(fxldl);
                     int ret = system(cmd);
                     if (!ret) {
+                        char* xldc = strdup(xldl);
+                        strdecode(xldc, ".png", ".c");
+                        free(cmd);
+                        cmd = NULL;
+                        asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
+                        ret = system(cmd);
+                        free(xldc);
                         free(cmd);
                         cmd = NULL;
                     } else {
@@ -694,6 +716,8 @@ void run_save(void *w_, void* user_data) {
                         cmd = NULL;
                         fprintf(stderr, "Fail to copy image\n");
                     }
+                    free(xldl);
+                    free(fxldl);
                 }
             }
             free(filepath);
