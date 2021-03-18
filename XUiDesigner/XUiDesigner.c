@@ -41,6 +41,18 @@ static void draw_window(void *w_, void* user_data) {
     cairo_paint (w->crb);
 }
 
+static void draw_systray(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    use_bg_color_scheme(w, NORMAL_);
+    cairo_paint (w->crb);
+    if (w->image) {
+        widget_set_scale(w);
+        cairo_set_source_surface (w->crb, w->image, 0, 0);
+        cairo_mask_surface (w->crb, w->image, 0, 0);
+        widget_reset_scale(w);
+    }
+}
+
 static void draw_ui(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XWindowAttributes attrs;
@@ -707,7 +719,65 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
         if (name != NULL)
             box_entry_set_text(designer->project_title, name);
-            
+    }
+}
+
+static void systray_menu_response(void *w_, void* item_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    switch (*(int*)item_) {
+        case 0:
+        {
+            const char* home = getenv("HOME");
+            Widget_t* tmp = open_directory_dialog(designer->ui, home);
+            Atom wmStateAbove = XInternAtom(w->app->dpy, "_NET_WM_STATE_ABOVE", 1 );
+            Atom wmNetWmState = XInternAtom(w->app->dpy, "_NET_WM_STATE", 1 );
+            XChangeProperty(w->app->dpy, tmp->widget, wmNetWmState, XA_ATOM, 32, 
+                PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
+            XSetTransientForHint(w->app->dpy, tmp->widget, designer->ui->widget);
+            designer->ui->func.dialog_callback = run_save;
+        }
+        break;
+        case 1:
+        {
+            widget_show_all(designer->set_project);
+            char *name = NULL;
+            XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
+            if (name != NULL)
+                box_entry_set_text(designer->project_title, name);
+        }
+        break;
+        case 2:
+            quit(designer->w);
+        break;
+        default:
+        break;
+    }
+}
+
+static void systray_released(void *w_, void* button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    XButtonEvent *xbutton = (XButtonEvent*)button_;
+    if (w->flags & HAS_POINTER) {
+        if (xbutton->button == Button1) {
+            XWindowAttributes attrs;
+            XGetWindowAttributes(w->app->dpy, (Window)designer->w->widget, &attrs);
+            if (attrs.map_state == IsViewable) {
+                if ((int)adj_get_value(designer->color_chooser->adj)) {
+                    adj_set_value(designer->color_chooser->adj, 0.0);
+                }
+                widget_hide(designer->w);
+                widget_hide(designer->ui);
+                widget_hide(designer->set_project);
+                XFlush(designer->w->app->dpy);
+            } else {
+                widget_show_all(designer->w);
+                widget_show_all(designer->ui);
+            }
+        } else if (xbutton->button == Button3) {
+            pop_menu_show(w,designer->systray_menu,3,true);
+        }
     }
 }
 
@@ -809,6 +879,13 @@ int main (int argc, char ** argv) {
     widget_set_title(designer->w, _("XUiDesigner"));
     widget_set_icon_from_png(designer->w, designer->icon, LDVAR(gear_png));
     designer->w->func.expose_callback = draw_window;
+
+    designer->systray = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 240, 240);
+    designer->systray->parent_struct = designer;
+    designer->systray->func.expose_callback = draw_systray;
+    widget_get_png(designer->systray, LDVAR(gear_png));
+    designer->systray->func.button_release_callback = systray_released;
+    send_systray_message(designer->systray);
 
     designer->world = lilv_world_new();
     if (path !=NULL) set_path(designer->world, path);
@@ -987,6 +1064,13 @@ int main (int argc, char ** argv) {
     designer->tabbox_entry[1] = add_button(designer->tabbox_settings, _("Remove Tab"), 40, 80, 100, 30);
     designer->tabbox_entry[1]->parent_struct = designer;
     designer->tabbox_entry[1]->func.value_changed_callback = remove_tabbox_entry;
+
+    designer->systray_menu = create_menu(designer->w,25);
+    designer->systray_menu->parent_struct = designer;
+    menu_add_item(designer->systray_menu,_("Save as:"));
+    menu_add_item(designer->systray_menu,_("Set title"));
+    menu_add_item(designer->systray_menu,_("Quit"));
+    designer->systray_menu->func.button_release_callback = systray_menu_response;
 
     designer->context_menu = create_menu(designer->w,25);
     designer->context_menu->parent_struct = designer;

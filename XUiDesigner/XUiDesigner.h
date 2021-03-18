@@ -153,6 +153,8 @@ typedef struct {
     Widget_t *prev_active_widget;
     Widget_t *w;
     Widget_t *ui;
+    Widget_t *systray;
+    Widget_t *systray_menu;
     Widget_t *set_project;
     Widget_t *project_title;
     Widget_t *controller_label;
