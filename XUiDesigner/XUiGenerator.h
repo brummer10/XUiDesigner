@@ -39,6 +39,8 @@ void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
 
 void print_list(XUiDesigner *designer);
 
+void print_ttl(XUiDesigner *designer);
+
 void run_test(void *w_, void* user_data);
 
 void run_save(void *w_, void* user_data);

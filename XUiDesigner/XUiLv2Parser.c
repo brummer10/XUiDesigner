@@ -56,6 +56,9 @@ static void reset_plugin_ui(XUiDesigner *designer) {
 
     designer->modify_mod = XUI_NONE;
     designer->active_widget = NULL;
+    designer->is_project = false;
+    designer->lv2c.audio_input = 0;
+    designer->lv2c.audio_output = 0;
     entry_set_text(designer, "");
     adj_set_value(designer->x_axis->adj, 0.0);
     adj_set_value(designer->y_axis->adj, 0.0);
@@ -278,7 +281,19 @@ void load_plugin_ui(void* w_, void* user_data) {
         const LilvPlugin* plugin = lilv_plugins_get_by_uri(designer->lv2_plugins, uri);
  
         if (plugin) {
-            //const LilvNode* uri = lilv_plugin_get_uri(plugin);
+            const LilvNode* uri = lilv_plugin_get_uri(plugin);
+            free(designer->lv2c.uri);
+            designer->lv2c.uri = NULL;
+            asprintf(&designer->lv2c.uri, "%s", lilv_node_as_string(uri));
+            const LilvPluginClass* cls = lilv_plugin_get_class(plugin);
+            free(designer->lv2c.plugintype);
+            designer->lv2c.plugintype = NULL;
+            asprintf(&designer->lv2c.plugintype, "%s", lilv_node_as_string(lilv_plugin_class_get_label(cls)));
+             const LilvNode* author = lilv_plugin_get_author_name(plugin);
+            free(designer->lv2c.author);
+            designer->lv2c.author = NULL;
+            asprintf(&designer->lv2c.author, "%s", lilv_node_as_string(author));
+         
             LilvNode* nd = NULL;
             //const LilvNode* uri = lilv_plugin_get_uri(plugin);
             LilvUIs* uis = lilv_plugin_get_uis(plugin);
@@ -407,8 +422,10 @@ void load_plugin_ui(void* w_, void* user_data) {
                 if (lilv_port_is_a(plugin, port, lv2_AudioPort)) {
                     if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
                         n_in++;
+                        designer->lv2c.audio_input++;
                     } else {
                         n_out++;
+                        designer->lv2c.audio_output++;
                     }
                     continue;
                 } else if (lilv_port_is_a(plugin, port, lv2_CVPort)) {

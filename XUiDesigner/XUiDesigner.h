@@ -123,6 +123,11 @@ typedef struct {
 
 typedef struct {
     char* ui_uri;
+    char* uri;
+    char* author;
+    char* plugintype;
+    int audio_input;
+    int audio_output;
     bool is_input_port;
     bool is_output_port;
     bool is_atom_patch;
@@ -157,6 +162,12 @@ typedef struct {
     Widget_t *systray_menu;
     Widget_t *set_project;
     Widget_t *project_title;
+    Widget_t *project_author;
+    Widget_t *project_type;
+    Widget_t *project_uri;
+    Widget_t *project_ui_uri;
+    Widget_t *project_audio_input;
+    Widget_t *project_audio_output;
     Widget_t *controller_label;
     Widget_t *widgets;
     Widget_t *index;
@@ -193,6 +204,7 @@ typedef struct {
     Colors *selected_scheme;
     bool run_test;
     bool grid_view;
+    bool is_project;
     int active_widget_num;
     int pos_x;
     int pos_y;

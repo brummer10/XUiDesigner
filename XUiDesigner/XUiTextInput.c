@@ -121,7 +121,10 @@ static void entry_clip(Widget_t *w) {
         }
         if (!u) j =2;
 
-        memset(&w->input_label[strlen( w->input_label)-(sizeof(char)*(j))],0,sizeof(char)*(j));
+        if (IS_UTF8(w->input_label[0]) && (strlen( w->input_label)-(sizeof(char)*(j)) == 1)) 
+            memset(&w->input_label[0],0,sizeof(char)*(j));
+        else
+            memset(&w->input_label[strlen( w->input_label)-(sizeof(char)*(j))],0,sizeof(char)*(j));
         strcat( w->input_label, "|");
     }
     cairo_set_font_size (w->cr, 12.0);
@@ -278,7 +281,10 @@ static void box_entry_clip(Widget_t *w) {
         }
         if (!u) j =2;
 
-        memset(&w->input_label[strlen( w->input_label)-(sizeof(char)*(j))],0,sizeof(char)*(j));
+        if (IS_UTF8(w->input_label[0]) && (strlen( w->input_label)-(sizeof(char)*(j)) == 1)) 
+            memset(&w->input_label[0],0,sizeof(char)*(j));
+        else
+            memset(&w->input_label[strlen( w->input_label)-(sizeof(char)*(j))],0,sizeof(char)*(j));
         strcat( w->input_label, "|");
     }
     cairo_set_font_size (w->cr, 12.0);

@@ -284,11 +284,206 @@ const char* parse_adjusment_type(CL_type cl_type) {
     }
 }
 
+
+void print_manifest(XUiDesigner *designer) {
+    char *name = NULL;
+    XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
+    if (name == NULL) asprintf(&name, "%s", "noname");
+    strdecode(name, " ", "_");
+
+    printf ("\n@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .\n"
+        "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n"
+
+        "<%s>\n"
+        "    a lv2:Plugin ;\n"
+        "    lv2:binary <%s.so>  ;\n"
+        "    rdfs:seeAlso <%s.ttl> .\n", designer->lv2c.uri, name, name);
+    free(name);
+}
+
+
+void print_ttl(XUiDesigner *designer) {
+    char *name = NULL;
+    XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
+    if (name == NULL) asprintf(&name, "%s", "noname");
+    printf ("\n@prefix doap: <http://usefulinc.com/ns/doap#> .\n"
+        "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n"
+        "@prefix lv2: <http://lv2plug.in/ns/lv2core#> .\n"
+        "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
+        "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n"
+        "@prefix guiext: <http://lv2plug.in/ns/extensions/ui#>.\n"
+        "@prefix time: <http://lv2plug.in/ns/ext/time#>.\n"
+        "@prefix units: <http://lv2plug.in/ns/extensions/units#> .\n"
+        "@prefix atom:  <http://lv2plug.in/ns/ext/atom#> .\n"
+        "@prefix urid:  <http://lv2plug.in/ns/ext/urid#> .\n"
+        "@prefix pprop: <http://lv2plug.in/ns/ext/port-props#> .\n"
+        "@prefix patch: <http://lv2plug.in/ns/ext/patch#> .\n\n\n");
+
+
+    printf ("<urn:name#me>\n"
+            "   a foaf:Person ;\n"
+            "   foaf:name \"%s\" .\n\n"
+
+        "<%s>\n"
+            "   a lv2:Plugin ,\n"
+            "       lv2:%s ;\n"
+            "   doap:maintainer <urn:name#me> ;\n"
+            "   doap:name \"%s\" ;\n"
+            "   lv2:project <%s> ;\n"
+            "   lv2:requiredFeature urid:map ;\n"
+            "   lv2:optionalFeature lv2:hardRTCapable ;\n"
+              
+            "   lv2:minorVersion 1 ;\n"
+            "   lv2:microVersion 0 ;\n\n"
+
+        "guiext:ui <%s> ;\n\n"
+            
+        "rdfs:comment \"\"\"\n"
+
+        "...\n"
+
+        "\"\"\";\n\n", designer->lv2c.author, designer->lv2c.uri, designer->lv2c.plugintype,
+                name, designer->lv2c.uri, designer->lv2c.ui_uri );
+
+
+    int i = 0;
+    int p = 0;
+    printf ("lv2:port ");
+    for (;i<designer->lv2c.audio_input;i++) {
+        printf (", [\n"
+        "   a lv2:AudioPort ,\n"
+        "       lv2:InputPort ;\n"
+        "   lv2:index %i ;\n"
+        "   lv2:symbol \"in%i\" ;\n"
+        "   lv2:name \"In%i\" ;\n"
+        "]", p, i, i);
+        p++;
+    }
+    i = 0;
+    for (;i<designer->lv2c.audio_output;i++) {
+        printf (", [\n"
+        "   a lv2:AudioPort ,\n"
+        "       lv2:OutputPort ;\n"
+        "   lv2:index %i ;\n"
+        "   lv2:symbol \"out%i\" ;\n"
+        "   lv2:name \"Out%i\" ;\n"
+        "]", p, i, i);
+        p++;
+    }
+    i = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL) {
+            Widget_t * wid = designer->controls[i].wid;
+            if (designer->controls[i].is_type == IS_FRAME ||
+                designer->controls[i].is_type == IS_TABBOX) {
+                continue;
+            } else {
+                if (designer->controls[i].have_adjustment) {
+                    if (designer->controls[i].is_type == IS_COMBOBOX) {
+                        Widget_t *menu = wid->childlist->childs[1];
+                        Widget_t* view_port =  menu->childlist->childs[0];
+                        ComboBox_t *comboboxlist = (ComboBox_t*)view_port->parent_struct;
+                        printf (", [\n"
+                            "   a lv2:InputPort ,\n"
+                            "       lv2:ControlPort ;\n"
+                            "   lv2:index %i ;\n"
+                            "   lv2:symbol \"%s\" ;\n"
+                            "   lv2:name \"%s\" ;\n"
+                            "   lv2:default %.1f ;\n"
+                            "   lv2:minimum %.1f ;\n"
+                            "   lv2:maximum %.1f ;\n"
+                            "   lv2:portProperty lv2:integer ;\n"
+                            "   lv2:portProperty lv2:enumeration ;\n"
+                                , designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
+                                designer->controls[i].wid->label, wid->adj->std_value,
+                                wid->adj->min_value, wid->adj->max_value);
+                        unsigned int k = 0;
+                        int l = (int)wid->adj->min_value;
+                        for(; k<comboboxlist->list_size;k++) {
+                            printf ("   lv2:scalePoint [rdfs:label \"%s\"; rdf:value %i];\n", comboboxlist->list_names[k],l);
+                            l++;
+                        }
+                        printf ("]");
+                    } else if (designer->controls[i].is_type == IS_VMETER ||
+                            designer->controls[i].is_type == IS_HMETER) {
+                        printf (", [\n"
+                            "   a lv2:OutputPort ,\n"
+                            "       lv2:ControlPort ;\n"
+                            "   lv2:index %i ;\n"
+                            "   lv2:symbol \"%s\" ;\n"
+                            "   lv2:name \"%s\" ;\n"
+                            "   lv2:default %f ;\n"
+                            "   lv2:minimum %f ;\n"
+                            "   lv2:maximum %f ;\n"
+                            "]", designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
+                                designer->controls[i].wid->label, wid->adj->std_value,
+                                wid->adj->min_value, wid->adj->max_value);
+                    } else {
+                        printf (", [\n"
+                            "   a lv2:InputPort ,\n"
+                            "       lv2:ControlPort ;\n"
+                            "   lv2:index %i ;\n"
+                            "   lv2:symbol \"%s\" ;\n"
+                            "   lv2:name \"%s\" ;\n"
+                            "   lv2:default %f ;\n"
+                            "   lv2:minimum %f ;\n"
+                            "   lv2:maximum %f ;\n"
+                            "]", designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
+                                designer->controls[i].wid->label, wid->adj->std_value,
+                                wid->adj->min_value, wid->adj->max_value);
+                    }
+                } else if (designer->controls[i].is_type == IS_TOGGLE_BUTTON ||
+                        designer->controls[i].is_type == IS_IMAGE_TOGGLE) {
+                    printf (", [\n"
+                        "   a lv2:InputPort ,\n"
+                        "       lv2:ControlPort ;\n"
+                        "   lv2:index %i ;\n"
+                        "   lv2:symbol \"%s\" ;\n"
+                        "   lv2:portProperty lv2:toggled ;\n"
+                        "   lv2:name \"%s\" ;\n"
+                        "   lv2:default 0 ;\n"
+                        "   lv2:minimum 0 ;\n"
+                        "   lv2:maximum 1 ;\n"
+                        "]", designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
+                            designer->controls[i].wid->label);
+                } else if (designer->controls[i].is_type == IS_BUTTON) {
+                    printf (", [\n"
+                        "   a lv2:InputPort ,\n"
+                        "       lv2:ControlPort ;\n"
+                        "   lv2:index %i ;\n"
+                        "   lv2:symbol \"%s\" ;\n"
+                        "   lv2:portProperty lv2:toggled, pprop:trigger ;\n"
+                        "   lv2:name \"%s\" ;\n"
+                        "   lv2:default 0 ;\n"
+                        "   lv2:minimum 0 ;\n"
+                        "   lv2:maximum 1 ;\n"
+                        "]", designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
+                            designer->controls[i].wid->label);
+                }
+            }
+        }
+        p++;
+    }
+    strdecode(name, " ", "_");
+    printf (" .\n\n");
+    printf ("<%s>\n"
+      "   a guiext:X11UI;\n"
+      "   guiext:binary <%s_ui.so> ;\n"
+      "         lv2:extensionData guiext::idle ;\n"
+      "         lv2:extensionData guiext:resize ;\n"
+      "         lv2:extensionData guiext:idleInterface ;\n"
+      "         lv2:requiredFeature guiext:idleInterface ;\n"
+      "   .\n", designer->lv2c.ui_uri, name);
+    free(name);
+
+}
+
 void print_list(XUiDesigner *designer) {
     int i = 0;
     int j = 0;
     int k = 0;
     int l = 0;
+    int p = designer->lv2c.audio_input + designer->lv2c.audio_output;
     bool have_image = false;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && (designer->controls[i].is_type != IS_FRAME &&
@@ -363,7 +558,7 @@ void print_list(XUiDesigner *designer) {
             if (designer->controls[i].is_type == IS_FRAME) {
                 printf ("    ui->elem[%i] = %s (ui->elem[%i], ui->win, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
                     j, designer->controls[i].type, j,
-                    designer->controls[i].port_index, designer->controls[i].wid->label,
+                    designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
                     designer->controls[i].wid-> width, designer->controls[i].wid->height);
                 if (designer->controls[i].image != NULL ) {
@@ -387,7 +582,7 @@ void print_list(XUiDesigner *designer) {
             } else if (designer->controls[i].is_type == IS_TABBOX) {
                 printf ("    ui->elem[%i] = %s (ui->elem[%i], ui->win, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
                     j, designer->controls[i].type, j,
-                    designer->controls[i].port_index, designer->controls[i].wid->label,
+                    designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
                     designer->controls[i].wid-> width, designer->controls[i].wid->height);
                 ttb[j] = l;
@@ -424,7 +619,7 @@ void print_list(XUiDesigner *designer) {
                 }
                 printf ("    ui->widget[%i] = %s (ui->widget[%i], %s, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
                     j, designer->controls[i].type, j, parent,
-                    designer->controls[i].port_index, designer->controls[i].wid->label,
+                    designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
                     designer->controls[i].wid-> width, designer->controls[i].wid->height);
                 free(parent);
@@ -478,6 +673,7 @@ void print_list(XUiDesigner *designer) {
             }
             printf ("\n");
             if (designer->controls[i].is_type != IS_FRAME) j++;
+            if (designer->controls[i].is_type != IS_FRAME) p++;
         }
     }
     printf ("}\n\n"
@@ -526,6 +722,7 @@ void run_save(void *w_, void* user_data) {
         char *name = NULL;
         XFetchName(designer->ui->app->dpy, w, &name);
         if (name == NULL) asprintf(&name, "%s", "noname");
+        strdecode(name, " ", "_");
         char* filepath = NULL;
         asprintf(&filepath, "%s%s_ui",*(const char**)user_data,name);
         struct stat st = {0};
@@ -544,7 +741,25 @@ void run_save(void *w_, void* user_data) {
         fprintf(stderr, "save to %s\n", filename);
         print_list(designer);
         fclose(fp);
+        fp = NULL;
+        strdecode(filename, ".c", ".ttl");
+        if((fp=freopen(filename, "w" ,stdout))==NULL) {
+            printf("open failed\n");
+        }
+        print_ttl(designer);
+        fclose(fp);
+        fp = NULL;
         free(filename);
+        filename = NULL;
+        asprintf(&filename, "%s%s_ui/manifest.ttl",*(const char**)user_data,name);
+        if((fp=freopen(filename, "w" ,stdout))==NULL) {
+            printf("open failed\n");
+        }
+        print_manifest(designer);
+        fclose(fp);
+        fp = NULL;
+        free(filename);
+        filename = NULL;
         if (system(NULL)) {
             char* cmd = NULL;
             asprintf(&cmd, "cp /usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);

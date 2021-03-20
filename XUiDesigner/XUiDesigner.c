@@ -99,7 +99,81 @@ static void set_project_title(void *w_, void* user_data) {
         strcat(designer->project_title->input_label, "|");
         expose_widget(designer->ui);
     }
-    widget_hide(designer->set_project);
+}
+
+static void set_project_author(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (strlen(designer->project_author->input_label)>1) {
+        designer->project_author->input_label[strlen(designer->project_author->input_label)-1] = 0;
+        free(designer->lv2c.author);
+        designer->lv2c.author = NULL;
+        asprintf(&designer->lv2c.author, "%s", designer->project_author->input_label);
+        strcat(designer->project_author->input_label, "|");
+    }
+}
+
+static void set_project_uri(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (strlen(designer->project_uri->input_label)>1) {
+        designer->project_uri->input_label[strlen(designer->project_uri->input_label)-1] = 0;
+        free(designer->lv2c.uri);
+        designer->lv2c.uri = NULL;
+        asprintf(&designer->lv2c.uri, "%s", designer->project_uri->input_label);
+        strcat(designer->project_uri->input_label, "|");
+    }
+}
+
+static void set_project_ui_uri(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (strlen(designer->project_ui_uri->input_label)>1) {
+        designer->project_ui_uri->input_label[strlen(designer->project_ui_uri->input_label)-1] = 0;
+        free(designer->lv2c.ui_uri);
+        designer->lv2c.ui_uri = NULL;
+        asprintf(&designer->lv2c.ui_uri, "%s", designer->project_ui_uri->input_label);
+        strcat(designer->project_ui_uri->input_label, "|");
+    }
+}
+
+static void set_project_type(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    Widget_t* menu =  w->childlist->childs[1];
+    Widget_t* view_port =  menu->childlist->childs[0];
+    ComboBox_t *comboboxlist = (ComboBox_t*)view_port->parent_struct;
+    free(designer->lv2c.plugintype);
+    designer->lv2c.plugintype = NULL;
+    asprintf(&designer->lv2c.plugintype, "%s", comboboxlist->list_names[(int)adj_get_value(w->adj)]);
+}
+
+static void set_project_audio_input(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    designer->lv2c.audio_input = (int)adj_get_value(w->adj);
+}
+
+static void set_project_audio_output(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    designer->lv2c.audio_output = (int)adj_get_value(w->adj);
+}
+
+static void set_project(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        set_project_audio_output(designer->project_audio_output, NULL);
+        set_project_audio_input(designer->project_audio_input, NULL);
+        set_project_type(designer->project_type, NULL);
+        set_project_ui_uri(designer->project_ui_uri, NULL);
+        set_project_uri(designer->project_uri, NULL);
+        set_project_author(designer->project_author, NULL);
+        set_project_title(designer->project_title, NULL);
+        widget_hide(designer->set_project);
+        designer->is_project = true;
+    }
 }
 
 static void set_port_index(void *w_, void* user_data) {
@@ -637,7 +711,7 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
             break;
             case 7:
-                wid = add_valuedisplay(w, "", xbutton->x, xbutton->y, 40, 30);
+                wid = add_valuedisplay(w, "ValueDisplay", xbutton->x, xbutton->y, 40, 30);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
             break;
@@ -719,6 +793,12 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
         if (name != NULL)
             box_entry_set_text(designer->project_title, name);
+        if (designer->lv2c.uri != NULL)
+            box_entry_set_text(designer->project_uri, designer->lv2c.uri);
+        if (designer->lv2c.ui_uri != NULL)
+            box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
+        if (designer->lv2c.author != NULL)
+            box_entry_set_text(designer->project_author, designer->lv2c.author);
     }
 }
 
@@ -745,6 +825,13 @@ static void systray_menu_response(void *w_, void* item_, void* user_data) {
             XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
             if (name != NULL)
                 box_entry_set_text(designer->project_title, name);
+            if (designer->lv2c.uri != NULL)
+                box_entry_set_text(designer->project_uri, designer->lv2c.uri);
+            if (designer->lv2c.ui_uri != NULL)
+                box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
+            if (designer->lv2c.author != NULL)
+                box_entry_set_text(designer->project_author, designer->lv2c.author);
+
         }
         break;
         case 2:
@@ -847,8 +934,16 @@ int main (int argc, char ** argv) {
     designer->icon = NULL;
     designer->run_test = false;
     designer->lv2c.ui_uri = NULL;
+    asprintf(&designer->lv2c.ui_uri, "%s", "urn:test_ui");
+    designer->lv2c.uri = NULL;
+    asprintf(&designer->lv2c.uri, "%s", "urn:test");
+    designer->lv2c.author = NULL;
+    designer->lv2c.plugintype = NULL;
+    designer->lv2c.audio_input = 0;
+    designer->lv2c.audio_output = 0;
     designer->grid_width = 30;
     designer->grid_height = 15;
+    designer->is_project = false;
 
     Xputty app;
     main_init(&app);
@@ -1068,7 +1163,7 @@ int main (int argc, char ** argv) {
     designer->systray_menu = create_menu(designer->w,25);
     designer->systray_menu->parent_struct = designer;
     menu_add_item(designer->systray_menu,_("Save as:"));
-    menu_add_item(designer->systray_menu,_("Set title"));
+    menu_add_item(designer->systray_menu,_("Setup Project"));
     menu_add_item(designer->systray_menu,_("Quit"));
     designer->systray_menu->func.button_release_callback = systray_menu_response;
 
@@ -1105,26 +1200,97 @@ int main (int argc, char ** argv) {
     menu_add_item(designer->context_menu,_("Delete Controller"));
     designer->context_menu->func.button_release_callback = pop_menu_response;
 
-    designer->set_project = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 270, 50);
+    designer->set_project = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 220, 440);
     XChangeProperty(app.dpy, designer->set_project->widget, wmNetWmState, XA_ATOM, 32, 
         PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
     XSetTransientForHint(app.dpy, designer->set_project->widget, designer->ui->widget);
     designer->set_project->parent_struct = designer;
     designer->set_project->func.expose_callback = draw_window;
-    widget_set_title(designer->set_project, _("Project Title"));
-    designer->project_title = add_input_box(designer->set_project, 0, 10, 10, 200, 30);
+    widget_set_title(designer->set_project, _("Project"));
+    add_label(designer->set_project, _("Projet Name"), 0, 0, 180, 30);
+    designer->project_title = add_input_box(designer->set_project, 0, 10, 30, 200, 30);
     designer->project_title->parent_struct = designer;
     designer->project_title->func.user_callback = set_project_title;
-    Widget_t* tmp = add_button(designer->set_project, _("Set"), 220, 10, 40, 30);
+    Widget_t* tmp = add_button(designer->set_project, _("Set"), 170, 400, 40, 30);
     tmp->parent_struct = designer;
-    tmp->func.value_changed_callback = set_project_title;
+    tmp->func.value_changed_callback = set_project;
+    add_label(designer->set_project, _("Author"), 0, 60, 180, 30);
+    designer->project_author = add_input_box(designer->set_project, 0, 10, 90, 200, 30);
+    designer->project_author->parent_struct = designer;
+    designer->project_author->func.user_callback = set_project_author;
+    add_label(designer->set_project, _("URI"), 0, 120, 180, 30);
+    designer->project_uri = add_input_box(designer->set_project, 0, 10, 150, 200, 30);
+    designer->project_uri->parent_struct = designer;
+    designer->project_uri->func.user_callback = set_project_uri;
+    add_label(designer->set_project, _("UI URI"), 0, 180, 180, 30);
+    designer->project_ui_uri = add_input_box(designer->set_project, 0, 10, 210, 200, 30);
+    designer->project_ui_uri->parent_struct = designer;
+    designer->project_ui_uri->func.user_callback = set_project_ui_uri;
+    add_label(designer->set_project, _("Plugin Type"), 0, 240, 180, 30);
+    designer->project_type = add_combobox(designer->set_project, "Type", 10, 270, 200, 30);
+    designer->project_type->parent_struct = designer;
+    combobox_add_entry(designer->project_type,"DelayPlugin");
+    combobox_add_entry(designer->project_type,"ReverbPlugin");
+    combobox_add_entry(designer->project_type,"DistortionPlugin");
+    combobox_add_entry(designer->project_type,"WaveshaperPlugin");
+    combobox_add_entry(designer->project_type,"DynamicsPlugin");
+    combobox_add_entry(designer->project_type,"AmplifierPlugin");
+    combobox_add_entry(designer->project_type,"CompressorPlugin");
+    combobox_add_entry(designer->project_type,"EnvelopePlugin");
+    combobox_add_entry(designer->project_type,"ExpanderPlugin");
+    combobox_add_entry(designer->project_type,"GatePlugin");
+    combobox_add_entry(designer->project_type,"LimiterPlugin");
+    combobox_add_entry(designer->project_type,"FilterPlugin");
+    combobox_add_entry(designer->project_type,"AllpassPlugin");
+    combobox_add_entry(designer->project_type,"BandpassPlugin");
+    combobox_add_entry(designer->project_type,"CombPlugin");
+    combobox_add_entry(designer->project_type,"EQPlugin");
+    combobox_add_entry(designer->project_type,"MultiEQPlugin");
+    combobox_add_entry(designer->project_type,"ParaEQPlugin");
+    combobox_add_entry(designer->project_type,"HighpassPlugin");
+    combobox_add_entry(designer->project_type,"LowpassPlugin");
+    combobox_add_entry(designer->project_type,"GeneratorPlugin");
+    combobox_add_entry(designer->project_type,"ConstantPlugin");
+    combobox_add_entry(designer->project_type,"InstrumentPlugin");
+    combobox_add_entry(designer->project_type,"OscillatorPlugin");
+    combobox_add_entry(designer->project_type,"ModulatorPlugin");
+    combobox_add_entry(designer->project_type,"ChorusPlugin");
+    combobox_add_entry(designer->project_type,"FlangerPlugin");
+    combobox_add_entry(designer->project_type,"PhaserPlugin");
+    combobox_add_entry(designer->project_type,"ReverbPlugin");
+    combobox_add_entry(designer->project_type,"SimulatorPlugin");
+    combobox_add_entry(designer->project_type,"ReverbPlugin");
+    combobox_add_entry(designer->project_type,"SpatialPlugin");
+    combobox_add_entry(designer->project_type,"SpectralPlugin");
+    combobox_add_entry(designer->project_type,"PitchPlugin");
+    combobox_add_entry(designer->project_type,"UtilityPlugin");
+    combobox_add_entry(designer->project_type,"AnalyserPlugin");
+    combobox_add_entry(designer->project_type,"ConverterPlugin");
+    combobox_add_entry(designer->project_type,"FunctionPlugin");
+    combobox_add_entry(designer->project_type,"MixerPlugin");
+    designer->project_type->func.value_changed_callback = set_project_type;
+    add_label(designer->set_project, _("Audio Input"), 10, 300, 80, 30);
+    designer->project_audio_input = add_combobox(designer->set_project, "", 10, 330, 80, 30);
+    designer->project_audio_input->parent_struct = designer;
+    combobox_add_numeric_entrys(designer->project_audio_input, 0, 16);
+    combobox_set_active_entry(designer->project_audio_input, 0);
+    designer->project_audio_input->func.value_changed_callback = set_project_audio_input;
+    add_label(designer->set_project, _("Audio Output"), 130, 300, 80, 30);
+    designer->project_audio_output = add_combobox(designer->set_project, "", 130, 330, 80, 30);
+    designer->project_audio_output->parent_struct = designer;
+    combobox_add_numeric_entrys(designer->project_audio_output, 0, 16);
+    combobox_set_active_entry(designer->project_audio_output, 0);
+    designer->project_audio_output->func.value_changed_callback = set_project_audio_output;
 
     widget_show_all(designer->ui);
     main_run(&app);
 
-    //print_list(designer);
+    //print_ttl(designer);
     lilv_world_free(designer->world);
     fprintf(stderr, "bye, bye\n");
+    if (designer->icon) {
+        XFreePixmap(designer->w->app->dpy, (*designer->icon));
+    }
     main_quit(&app);
     int i = 0;
     for (;i<MAX_CONTROLS; i++) {
@@ -1139,12 +1305,10 @@ int main (int argc, char ** argv) {
     free(designer->image_path);
     free(designer->image);
     free(designer->lv2c.ui_uri);
+    free(designer->lv2c.uri);
     m = 0;
     for (;m<MAX_CONTROLS;m++) {
         free(designer->controls[m].image);
-    }
-    if (designer->icon) {
-        XFreePixmap(designer->w->app->dpy, (*designer->icon));
     }
     free(designer);
 
