@@ -20,6 +20,9 @@
 
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <pwd.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
 

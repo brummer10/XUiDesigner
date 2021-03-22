@@ -30,7 +30,7 @@
 ----------------------------------------------------------------------*/
 
 static void reset_plugin_ui(XUiDesigner *designer) {
-    widget_set_title(designer->ui, "");
+    widget_set_title(designer->ui, "NoName");
     designer->ui->width = 600;
     designer->ui->height = 400;
     widget_hide(designer->ui);

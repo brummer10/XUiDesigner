@@ -227,14 +227,14 @@ void create_project_settings_window(XUiDesigner *designer) {
     designer->project_audio_input = add_combobox(designer->set_project, "", 10, 330, 80, 30);
     designer->project_audio_input->parent_struct = designer;
     combobox_add_numeric_entrys(designer->project_audio_input, 0, 16);
-    combobox_set_active_entry(designer->project_audio_input, 0);
+    combobox_set_active_entry(designer->project_audio_input, 1);
     designer->project_audio_input->func.value_changed_callback = set_project_audio_input;
 
     add_label(designer->set_project, _("Audio Output"), 130, 300, 80, 30);
     designer->project_audio_output = add_combobox(designer->set_project, "", 130, 330, 80, 30);
     designer->project_audio_output->parent_struct = designer;
     combobox_add_numeric_entrys(designer->project_audio_output, 0, 16);
-    combobox_set_active_entry(designer->project_audio_output, 0);
+    combobox_set_active_entry(designer->project_audio_output, 1);
     designer->project_audio_output->func.value_changed_callback = set_project_audio_output;
 
     add_label(designer->set_project, _("MIDI"), 0, 360, 180, 30);

@@ -786,17 +786,23 @@ static void run_settings(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-        widget_show_all(designer->set_project);
-        char *name = NULL;
-        XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
-        if (name != NULL)
-            box_entry_set_text(designer->project_title, name);
-        if (designer->lv2c.uri != NULL)
-            box_entry_set_text(designer->project_uri, designer->lv2c.uri);
-        if (designer->lv2c.ui_uri != NULL)
-            box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
-        if (designer->lv2c.author != NULL)
-            box_entry_set_text(designer->project_author, designer->lv2c.author);
+        XWindowAttributes attrs;
+        XGetWindowAttributes(w->app->dpy, (Window)designer->set_project->widget, &attrs);
+        if (attrs.map_state != IsViewable) {
+            widget_show_all(designer->set_project);
+            char *name = NULL;
+            XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
+            if (name != NULL)
+                box_entry_set_text(designer->project_title, name);
+            if (designer->lv2c.uri != NULL)
+                box_entry_set_text(designer->project_uri, designer->lv2c.uri);
+            if (designer->lv2c.ui_uri != NULL)
+                box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
+            if (designer->lv2c.author != NULL)
+                box_entry_set_text(designer->project_author, designer->lv2c.author);
+        } else {
+            widget_hide(designer->set_project);
+        }
     }
 }
 
@@ -818,6 +824,14 @@ static void run_save_as(void *w_, void* user_data) {
     }
 }
 
+char *getUserName() {
+    uid_t uid = geteuid();
+    struct passwd *pw = getpwuid(uid);
+    if (pw) {
+        return pw->pw_name;
+    }
+    return "";
+}
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 main
@@ -869,10 +883,10 @@ int main (int argc, char ** argv) {
     asprintf(&designer->lv2c.ui_uri, "%s", "urn:test_ui");
     designer->lv2c.uri = NULL;
     asprintf(&designer->lv2c.uri, "%s", "urn:test");
-    designer->lv2c.author = NULL;
-    designer->lv2c.plugintype = NULL;
-    designer->lv2c.audio_input = 0;
-    designer->lv2c.audio_output = 0;
+    designer->lv2c.author = getUserName();
+    designer->lv2c.plugintype = "MixerPlugin";
+    designer->lv2c.audio_input = 1;
+    designer->lv2c.audio_output = 1;
     designer->lv2c.midi_input = 0;
     designer->lv2c.midi_output = 0;
     designer->lv2c.bypass = 0;
@@ -936,6 +950,7 @@ int main (int argc, char ** argv) {
     XChangeProperty(app.dpy, designer->ui->widget, wmNetWmState, XA_ATOM, 32, 
         PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
     XSetTransientForHint(app.dpy, designer->ui->widget, designer->w->widget);
+    widget_set_title(designer->ui, _("NoName"));
     designer->ui->parent_struct = designer;
     designer->ui->func.expose_callback = draw_ui;
     designer->ui->func.button_release_callback = button_released_callback;
