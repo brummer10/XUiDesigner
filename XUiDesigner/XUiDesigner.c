@@ -746,7 +746,6 @@ static void systray_menu_response(void *w_, void* item_, void* user_data) {
                 box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
             if (designer->lv2c.author != NULL)
                 box_entry_set_text(designer->project_author, designer->lv2c.author);
-
         }
         break;
         case 2:
@@ -780,6 +779,24 @@ static void systray_released(void *w_, void* button_, void* user_data) {
         } else if (xbutton->button == Button3) {
             pop_menu_show(w,designer->systray_menu,3,true);
         }
+    }
+}
+
+static void run_settings(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        widget_show_all(designer->set_project);
+        char *name = NULL;
+        XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
+        if (name != NULL)
+            box_entry_set_text(designer->project_title, name);
+        if (designer->lv2c.uri != NULL)
+            box_entry_set_text(designer->project_uri, designer->lv2c.uri);
+        if (designer->lv2c.ui_uri != NULL)
+            box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
+        if (designer->lv2c.author != NULL)
+            box_entry_set_text(designer->project_author, designer->lv2c.author);
     }
 }
 
@@ -966,6 +983,12 @@ int main (int argc, char ** argv) {
     tooltip_set_text(designer->grid,_("Snap to grid"));
     designer->grid->parent_struct = designer;
     designer->grid->func.value_changed_callback = use_grid;
+
+    designer->settings = add_button(designer->w, "", 960, 740, 40, 40);
+    widget_get_png(designer->settings, LDVAR(settings_png));
+    tooltip_set_text(designer->settings,_("Project Settings"));
+    designer->settings->parent_struct = designer;
+    designer->settings->func.value_changed_callback = run_settings;
 
     designer->test = add_button(designer->w, "", 1020, 740, 40, 40);
     widget_get_png(designer->test, LDVAR(gear_png));
