@@ -883,8 +883,10 @@ int main (int argc, char ** argv) {
     asprintf(&designer->lv2c.ui_uri, "%s", "urn:test_ui");
     designer->lv2c.uri = NULL;
     asprintf(&designer->lv2c.uri, "%s", "urn:test");
-    designer->lv2c.author = getUserName();
-    designer->lv2c.plugintype = "MixerPlugin";
+    designer->lv2c.author = NULL;
+    asprintf(&designer->lv2c.author, "%s", getUserName());
+    designer->lv2c.plugintype = NULL;
+    asprintf(&designer->lv2c.plugintype, "%s", "MixerPlugin");
     designer->lv2c.audio_input = 1;
     designer->lv2c.audio_output = 1;
     designer->lv2c.midi_input = 0;
