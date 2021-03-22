@@ -41,6 +41,10 @@ void print_list(XUiDesigner *designer);
 
 void print_ttl(XUiDesigner *designer);
 
+void print_manifest(XUiDesigner *designer);
+
+void print_plugin(XUiDesigner *designer);
+
 void run_test(void *w_, void* user_data);
 
 void run_save(void *w_, void* user_data);

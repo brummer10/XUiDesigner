@@ -106,6 +106,7 @@ typedef struct {
     char* image;
     WidgetType is_type;
     uint32_t port_index;
+    bool destignation_enabled;
     bool is_atom_patch;
     bool have_adjustment;
     int grid_snap_option;
@@ -128,6 +129,9 @@ typedef struct {
     char* plugintype;
     int audio_input;
     int audio_output;
+    int midi_input;
+    int midi_output;
+    int bypass;
     bool is_input_port;
     bool is_output_port;
     bool is_atom_patch;
@@ -168,6 +172,9 @@ typedef struct {
     Widget_t *project_ui_uri;
     Widget_t *project_audio_input;
     Widget_t *project_audio_output;
+    Widget_t *project_midi_input;
+    Widget_t *project_midi_output;
+    Widget_t *project_bypass;
     Widget_t *controller_label;
     Widget_t *widgets;
     Widget_t *index;
@@ -224,6 +231,7 @@ typedef struct {
     Controller controls[MAX_CONTROLS];
 } XUiDesigner;
 
+void draw_window(void *w_, void* user_data);
 
 void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer);
 
