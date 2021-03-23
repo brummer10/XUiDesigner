@@ -49,3 +49,10 @@ XUIDesigner have a test-mode as well, which will build and run the created GUI, 
  - TabBox
  - WaveView
  - File Chooser Button
+
+## Build
+
+- git submodule init
+- git submodule update
+- make
+- sudo make install # will install into /usr/bin
