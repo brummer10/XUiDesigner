@@ -1120,7 +1120,7 @@ void print_list(XUiDesigner *designer) {
                 strdecode(xldl, "-", "_");
                 strdecode(xldl, " ", "_");
                 strtovar(xldl);
-                printf ("    widget_get_png(ui->win, LDVAR(%s));\n", xldl);
+                printf ("    widget_get_scaled_png(ui->win, LDVAR(%s));\n", xldl);
                 free(xldl);
                 //printf ("    load_bg_image(ui,\"./resources/%s\");\n", basename(designer->image));
             }
@@ -1152,7 +1152,7 @@ void print_list(XUiDesigner *designer) {
                         strdecode(xldl, "-", "_");
                         strdecode(xldl, " ", "_");
                         strtovar(xldl);
-                        printf ("    widget_get_png(ui->elem[%i], LDVAR(%s));\n",
+                        printf ("    widget_get_scaled_png(ui->elem[%i], LDVAR(%s));\n",
                                 j, xldl);
                         free(xldl);
                        // printf ("    load_controller_image(ui->elem[%i], \"./resources/%s\");\n",
