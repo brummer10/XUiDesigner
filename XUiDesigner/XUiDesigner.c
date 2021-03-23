@@ -28,6 +28,7 @@
 #include "XUiGridControl.h"
 #include "XUiReparent.h"
 #include "XUiSettings.h"
+#include "XUiWriteTurtle.h"
 #include "xtabbox_private.h"
 
 /*---------------------------------------------------------------------
