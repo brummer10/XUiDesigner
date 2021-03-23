@@ -59,6 +59,22 @@ static void reset_plugin_ui(XUiDesigner *designer) {
     designer->is_project = false;
     designer->lv2c.audio_input = 0;
     designer->lv2c.audio_output = 0;
+    adj_set_value(designer->project_audio_input->adj, (float)designer->lv2c.audio_input);
+    adj_set_value(designer->project_audio_output->adj, (float)designer->lv2c.audio_output);
+    free(designer->lv2c.uri);
+    designer->lv2c.uri = NULL;
+    asprintf(&designer->lv2c.uri, "%s", "urn:test_ui");
+    free(designer->lv2c.plugintype);
+    designer->lv2c.plugintype = NULL;
+    asprintf(&designer->lv2c.plugintype, "%s", "MixerPlugin");
+    adj_set_value(designer->project_type->adj, designer->project_type->adj->max_value);
+    free(designer->lv2c.author);
+    designer->lv2c.author = NULL;
+    asprintf(&designer->lv2c.author, "%s", getUserName());
+    free(designer->lv2c.ui_uri);
+    designer->lv2c.ui_uri = NULL;
+    asprintf(&designer->lv2c.ui_uri, "%s", "urn:test_ui");    
+
     entry_set_text(designer, "");
     adj_set_value(designer->x_axis->adj, 0.0);
     adj_set_value(designer->y_axis->adj, 0.0);
@@ -423,9 +439,11 @@ void load_plugin_ui(void* w_, void* user_data) {
                     if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
                         n_in++;
                         designer->lv2c.audio_input++;
+                        adj_set_value(designer->project_audio_input->adj, (float)designer->lv2c.audio_input);
                     } else {
                         n_out++;
                         designer->lv2c.audio_output++;
+                        adj_set_value(designer->project_audio_output->adj, (float)designer->lv2c.audio_output);
                     }
                     continue;
                 } else if (lilv_port_is_a(plugin, port, lv2_CVPort)) {

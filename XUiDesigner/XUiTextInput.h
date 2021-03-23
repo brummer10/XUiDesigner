@@ -32,6 +32,12 @@
 extern "C" {
 #endif
 
+
+typedef struct {
+    char input_label[256];
+} TextBox_t;
+
+
 void utf8ncpy(char* dst, const char* src, size_t sizeDest );
 
 void entry_set_text(XUiDesigner *designer, const char* label);

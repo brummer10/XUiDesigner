@@ -27,10 +27,11 @@
 static void set_project_title(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (strlen(designer->project_title->input_label)>1) {
-        designer->project_title->input_label[strlen(designer->project_title->input_label)-1] = 0;
-        widget_set_title(designer->ui,designer->project_title->input_label);
-        strcat(designer->project_title->input_label, "|");
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    if (strlen(text_box->input_label)>1) {
+        text_box->input_label[strlen(text_box->input_label)-1] = 0;
+        widget_set_title(designer->ui,text_box->input_label);
+        strcat(text_box->input_label, "|");
         expose_widget(designer->ui);
     }
 }
@@ -38,36 +39,39 @@ static void set_project_title(void *w_, void* user_data) {
 static void set_project_author(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (strlen(designer->project_author->input_label)>1) {
-        designer->project_author->input_label[strlen(designer->project_author->input_label)-1] = 0;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    if (strlen(text_box->input_label)>1) {
+        text_box->input_label[strlen(text_box->input_label)-1] = 0;
         free(designer->lv2c.author);
         designer->lv2c.author = NULL;
-        asprintf(&designer->lv2c.author, "%s", designer->project_author->input_label);
-        strcat(designer->project_author->input_label, "|");
+        asprintf(&designer->lv2c.author, "%s", text_box->input_label);
+        strcat(text_box->input_label, "|");
     }
 }
 
 static void set_project_uri(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (strlen(designer->project_uri->input_label)>1) {
-        designer->project_uri->input_label[strlen(designer->project_uri->input_label)-1] = 0;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    if (strlen(text_box->input_label)>1) {
+        text_box->input_label[strlen(text_box->input_label)-1] = 0;
         free(designer->lv2c.uri);
         designer->lv2c.uri = NULL;
-        asprintf(&designer->lv2c.uri, "%s", designer->project_uri->input_label);
-        strcat(designer->project_uri->input_label, "|");
+        asprintf(&designer->lv2c.uri, "%s", text_box->input_label);
+        strcat(text_box->input_label, "|");
     }
 }
 
 static void set_project_ui_uri(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (strlen(designer->project_ui_uri->input_label)>1) {
-        designer->project_ui_uri->input_label[strlen(designer->project_ui_uri->input_label)-1] = 0;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    if (strlen(text_box->input_label)>1) {
+        text_box->input_label[strlen(text_box->input_label)-1] = 0;
         free(designer->lv2c.ui_uri);
         designer->lv2c.ui_uri = NULL;
-        asprintf(&designer->lv2c.ui_uri, "%s", designer->project_ui_uri->input_label);
-        strcat(designer->project_ui_uri->input_label, "|");
+        asprintf(&designer->lv2c.ui_uri, "%s", text_box->input_label);
+        strcat(text_box->input_label, "|");
     }
 }
 
@@ -151,7 +155,7 @@ void create_project_settings_window(XUiDesigner *designer) {
     Atom wmStateAbove = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE_ABOVE", 1 );
     Atom wmNetWmState = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE", 1 );
 
-    designer->set_project = create_window(designer->w->app, DefaultRootWindow(designer->w->app->dpy), 0, 0, 220, 520);
+    designer->set_project = create_window(designer->w->app, DefaultRootWindow(designer->w->app->dpy), 0, 0, 320, 520);
     XChangeProperty(designer->w->app->dpy, designer->set_project->widget, wmNetWmState, XA_ATOM, 32, 
         PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
     XSetTransientForHint(designer->w->app->dpy, designer->set_project->widget, designer->ui->widget);
@@ -159,28 +163,28 @@ void create_project_settings_window(XUiDesigner *designer) {
     designer->set_project->func.expose_callback = draw_window;
     widget_set_title(designer->set_project, _("Project"));
 
-    add_label(designer->set_project, _("Projet Name"), 0, 0, 180, 30);
-    designer->project_title = add_input_box(designer->set_project, 0, 10, 30, 200, 30);
+    add_label(designer->set_project, _("Projet Name"), 0, 0, 260, 30);
+    designer->project_title = add_input_box(designer->set_project, 0, 10, 30, 300, 30);
     designer->project_title->parent_struct = designer;
     designer->project_title->func.user_callback = set_project_title;
 
-    add_label(designer->set_project, _("Author"), 0, 60, 180, 30);
-    designer->project_author = add_input_box(designer->set_project, 0, 10, 90, 200, 30);
+    add_label(designer->set_project, _("Author"), 0, 60, 240, 30);
+    designer->project_author = add_input_box(designer->set_project, 0, 10, 90, 300, 30);
     designer->project_author->parent_struct = designer;
     designer->project_author->func.user_callback = set_project_author;
 
-    add_label(designer->set_project, _("URI"), 0, 120, 180, 30);
-    designer->project_uri = add_input_box(designer->set_project, 0, 10, 150, 200, 30);
+    add_label(designer->set_project, _("URI"), 0, 120, 240, 30);
+    designer->project_uri = add_input_box(designer->set_project, 0, 10, 150, 300, 30);
     designer->project_uri->parent_struct = designer;
     designer->project_uri->func.user_callback = set_project_uri;
 
-    add_label(designer->set_project, _("UI URI"), 0, 180, 180, 30);
-    designer->project_ui_uri = add_input_box(designer->set_project, 0, 10, 210, 200, 30);
+    add_label(designer->set_project, _("UI URI"), 0, 180, 240, 30);
+    designer->project_ui_uri = add_input_box(designer->set_project, 0, 10, 210, 300, 30);
     designer->project_ui_uri->parent_struct = designer;
     designer->project_ui_uri->func.user_callback = set_project_ui_uri;
 
     add_label(designer->set_project, _("Plugin Type"), 0, 240, 180, 30);
-    designer->project_type = add_combobox(designer->set_project, "Type", 10, 270, 200, 30);
+    designer->project_type = add_combobox(designer->set_project, "Type", 10, 270, 300, 30);
     designer->project_type->parent_struct = designer;
     combobox_add_entry(designer->project_type,"DelayPlugin");
     combobox_add_entry(designer->project_type,"ReverbPlugin");

@@ -196,18 +196,20 @@ void entry_get_text(void *w_, void *key_, void *user_data) {
 ----------------------------------------------------------------------*/
 
 void box_entry_set_value(Widget_t *w, float value) {
-    memset(w->input_label, 0, 32 * (sizeof w->input_label[0]));
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
     char buffer[30];
     snprintf(buffer, sizeof buffer, "%.3f", value);
-    strcat(w->input_label, buffer);
-    strcat(w->input_label, "|");
+    strcat(text_box->input_label, buffer);
+    strcat(text_box->input_label, "|");
     expose_widget(w);
 }
 
 void box_entry_set_text(Widget_t *w, const char* label) {
-    memset(w->input_label, 0, 32 * (sizeof w->input_label[0]));
-    strncat(w->input_label, label, 30);
-    strcat(w->input_label, "|");
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
+    strncat(text_box->input_label, label, 254);
+    strcat(text_box->input_label, "|");
     expose_widget(w);
 }
 
@@ -236,6 +238,7 @@ static void draw_box_entry(void *w_, void* user_data) {
 static void box_entry_add_text(void  *w_, void *label_) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
     char *label = (char*)label_;
     if (!label) {
         label = (char*)"";
@@ -244,35 +247,36 @@ static void box_entry_add_text(void  *w_, void *label_) {
     cairo_text_extents_t extents;
     use_text_color_scheme(w, NORMAL_);
     cairo_set_font_size (w->cr, 11.0);
-    if (strlen( w->input_label))
-         w->input_label[strlen( w->input_label)-1] = 0;
-    if (strlen( w->input_label)<30) {
+    if (strlen( text_box->input_label))
+         text_box->input_label[strlen( text_box->input_label)-1] = 0;
+    if (strlen( text_box->input_label)<254) {
         if (strlen(label))
-        strcat( w->input_label, label);
+        strcat( text_box->input_label, label);
     }
-    w->label = w->input_label;
-    strcat( w->input_label, "|");
+    w->label = text_box->input_label;
+    strcat( text_box->input_label, "|");
     cairo_set_font_size (w->cr, 12.0);
-    cairo_text_extents(w->cr, w->input_label , &extents);
+    cairo_text_extents(w->cr, text_box->input_label , &extents);
 
     cairo_move_to (w->cr, 2, 12.0+extents.height);
-    cairo_show_text(w->cr,  w->input_label);
+    cairo_show_text(w->cr,  text_box->input_label);
 
 }
 
 static void box_entry_clip(Widget_t *w) {
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
     draw_entry(w,NULL);
     cairo_text_extents_t extents;
     use_text_color_scheme(w, NORMAL_);
     cairo_set_font_size (w->cr, 11.0);
 
     // check for UTF 8 char
-    if (strlen( w->input_label)>=2) {
-        int i = strlen( w->input_label)-1;
+    if (strlen( text_box->input_label)>=2) {
+        int i = strlen( text_box->input_label)-1;
         int j = 0;
         int u = 0;
         for(;i>0;i--) {
-            if(IS_UTF8(w->input_label[i])) {
+            if(IS_UTF8(text_box->input_label[i])) {
                  u++;
             }
             j++;
@@ -281,23 +285,24 @@ static void box_entry_clip(Widget_t *w) {
         }
         if (!u) j =2;
 
-        if (IS_UTF8(w->input_label[0]) && (strlen( w->input_label)-(sizeof(char)*(j)) == 1)) 
-            memset(&w->input_label[0],0,sizeof(char)*(j));
+        if (IS_UTF8(text_box->input_label[0]) && (strlen( text_box->input_label)-(sizeof(char)*(j)) == 1)) 
+            memset(&text_box->input_label[0],0,sizeof(char)*(j));
         else
-            memset(&w->input_label[strlen( w->input_label)-(sizeof(char)*(j))],0,sizeof(char)*(j));
-        strcat( w->input_label, "|");
+            memset(&text_box->input_label[strlen( text_box->input_label)-(sizeof(char)*(j))],0,sizeof(char)*(j));
+        strcat( text_box->input_label, "|");
     }
     cairo_set_font_size (w->cr, 12.0);
-    cairo_text_extents(w->cr, w->input_label , &extents);
+    cairo_text_extents(w->cr, text_box->input_label , &extents);
 
     cairo_move_to (w->cr, 2, 12.0+extents.height);
-    cairo_show_text(w->cr,  w->input_label);
+    cairo_show_text(w->cr, text_box->input_label);
 
 }
 
 static void box_entry_get_text(void *w_, void *key_, void *user_data) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
     XKeyEvent *key = (XKeyEvent*)key_;
     if (!key) return;
     int nk = key_mapping(w->app->dpy, key);
@@ -309,8 +314,8 @@ static void box_entry_get_text(void *w_, void *key_, void *user_data) {
         char buf[32];
         Xutf8LookupString(w->xic, key, buf, sizeof(buf) - 1, &keysym, &status);
         if (keysym == XK_Return) {
-            if (strlen(w->input_label)>1) {
-                w->func.user_callback(w, (void*)w->input_label);
+            if (strlen(text_box->input_label)>1) {
+                w->func.user_callback(w, (void*)text_box->input_label);
             }
             return;
         }
@@ -336,13 +341,23 @@ static void box_entry_get_text(void *w_, void *key_, void *user_data) {
     }
 }
 
+void text_box_mem_free(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    free(text_box);
+}
+
 // data = 0; textinput / data = 1; numeric input
 Widget_t *add_input_box(Widget_t *parent, int data, int x, int y, int width, int height) {
     Widget_t *wid = create_widget(parent->app, parent, x, y, width, height);
-    memset(wid->input_label, 0, 32 * (sizeof wid->input_label[0]) );
+    TextBox_t* text_box = (TextBox_t*)malloc(sizeof(TextBox_t));
+    wid->private_struct = text_box;
+    memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]) );
+    wid->flags |= HAS_MEM;
     wid->data = data;
     wid->func.expose_callback = box_entry_add_text;
     wid->func.key_press_callback = box_entry_get_text;
+    wid->func.mem_free_callback = text_box_mem_free;
     wid->flags &= ~USE_TRANSPARENCY;
     //wid->scale.gravity = EASTWEST;
     Cursor c = XCreateFontCursor(parent->app->dpy, XC_xterm);

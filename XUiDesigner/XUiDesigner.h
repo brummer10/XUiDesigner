@@ -247,6 +247,8 @@ void set_pos_tab(void *w_, void *button_, void* user_data);
 
 void move_tab(void *w_, void *xmotion_, void* user_data);
 
+char *getUserName();
+
 #ifdef __cplusplus
 }
 #endif
