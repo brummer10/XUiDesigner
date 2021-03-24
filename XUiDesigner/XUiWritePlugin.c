@@ -47,7 +47,7 @@ void print_plugin(XUiDesigner *designer) {
         "#include <lv2/lv2plug.in/ns/ext/urid/urid.h>\n\n");
     }
 
-    printf (""///////////////////////// MACRO SUPPORT ////////////////////////////////\n\n"
+    printf ("///////////////////////// MACRO SUPPORT ////////////////////////////////\n\n"
     "#define PLUGIN_URI \"%s\"\n\n"
     "#ifndef max\n"
     "#define max(x, y) (((x) > (y)) ? (x) : (y))\n"
@@ -293,7 +293,7 @@ void print_plugin(XUiDesigner *designer) {
             if (!designer->controls[i].destignation_enabled) {
                 char* var = strdup(designer->controls[i].wid->label);
                 strtovar(var);
-                printf ("#define  %s_ (*(%s));\n", var, var);
+                printf ("#define  %s_ (*(%s))\n", var, var);
                 free(var);
                 var = NULL;
             }
@@ -341,7 +341,7 @@ void print_plugin(XUiDesigner *designer) {
 
     i = 0;
     for (;i<designer->lv2c.audio_input;i++) {
-        if (i <=designer->lv2c.audio_output) {
+        if (i < designer->lv2c.audio_output) {
             printf ("\n    // do inplace processing on default\n"
             "    if(output%i != input%i)\n"
             "        memcpy(output%i, input%i, n_samples*sizeof(float));\n\n", i,i,i,i);

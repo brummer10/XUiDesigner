@@ -19,6 +19,7 @@
  */
 
 #include "XUiWriteTurtle.h"
+#include "XUiGenerator.h"
 
 
 /*---------------------------------------------------------------------
@@ -162,6 +163,9 @@ void print_ttl(XUiDesigner *designer) {
                 designer->controls[i].is_type == IS_TABBOX) {
                 continue;
             } else {
+                char *xldl = NULL;
+                asprintf(&xldl, "%s", designer->controls[i].wid->label);
+                strtovar(xldl);
                 if (designer->controls[i].have_adjustment) {
                     if (designer->controls[i].is_type == IS_COMBOBOX) {
                         Widget_t *menu = wid->childlist->childs[1];
@@ -178,8 +182,8 @@ void print_ttl(XUiDesigner *designer) {
                             "      lv2:maximum %.1f ;\n"
                             "      lv2:portProperty lv2:integer ;\n"
                             "      lv2:portProperty lv2:enumeration ;\n"
-                                , designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
-                                designer->controls[i].wid->label, wid->adj->std_value,
+                                , designer->is_project ? p : designer->controls[i].port_index, xldl,
+                                xldl, wid->adj->std_value,
                                 wid->adj->min_value, wid->adj->max_value);
                         unsigned int k = 0;
                         int l = (int)wid->adj->min_value;
@@ -199,8 +203,8 @@ void print_ttl(XUiDesigner *designer) {
                             "      lv2:default %f ;\n"
                             "      lv2:minimum %f ;\n"
                             "      lv2:maximum %f ;\n"
-                            "   ]", designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
-                                designer->controls[i].wid->label, wid->adj->std_value,
+                            "   ]", designer->is_project ? p : designer->controls[i].port_index, xldl,
+                                xldl, wid->adj->std_value,
                                 wid->adj->min_value, wid->adj->max_value);
                     } else {
                         printf (", [\n"
@@ -212,8 +216,8 @@ void print_ttl(XUiDesigner *designer) {
                             "      lv2:default %f ;\n"
                             "      lv2:minimum %f ;\n"
                             "      lv2:maximum %f ;\n"
-                            "   ]", designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
-                                designer->controls[i].wid->label, wid->adj->std_value,
+                            "   ]", designer->is_project ? p : designer->controls[i].port_index, xldl,
+                                xldl, wid->adj->std_value,
                                 wid->adj->min_value, wid->adj->max_value);
                     }
                 } else if (designer->controls[i].is_type == IS_TOGGLE_BUTTON ||
@@ -231,7 +235,7 @@ void print_ttl(XUiDesigner *designer) {
                         "      lv2:maximum 1 ;\n"
                         "   ]", designer->is_project ? p : designer->controls[i].port_index,
                             designer->controls[i].destignation_enabled ? "      lv2:designation lv2:enabled;\n" : "",
-                            designer->controls[i].wid->label, designer->controls[i].wid->label,
+                            xldl, xldl,
                             designer->controls[i].destignation_enabled ? 1 : 0);
                 } else if (designer->controls[i].is_type == IS_BUTTON) {
                     printf (", [\n"
@@ -245,8 +249,9 @@ void print_ttl(XUiDesigner *designer) {
                         "      lv2:minimum 0 ;\n"
                         "      lv2:maximum 1 ;\n"
                         "   ]", designer->is_project ? p : designer->controls[i].port_index,
-                             designer->controls[i].wid->label, designer->controls[i].wid->label);
+                             xldl, xldl);
                 }
+                
             }
         }
         p++;
