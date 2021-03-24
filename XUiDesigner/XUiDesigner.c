@@ -887,9 +887,9 @@ int main (int argc, char ** argv) {
     designer->icon = NULL;
     designer->run_test = false;
     designer->lv2c.ui_uri = NULL;
-    asprintf(&designer->lv2c.ui_uri, "%s", "urn:test_ui");
+    asprintf(&designer->lv2c.ui_uri, "urn:%s:%s", getUserName(), "test_ui");
     designer->lv2c.uri = NULL;
-    asprintf(&designer->lv2c.uri, "%s", "urn:test");
+    asprintf(&designer->lv2c.uri, "urn:%s:%s", getUserName(), "test");
     designer->lv2c.author = NULL;
     asprintf(&designer->lv2c.author, "%s", getUserName());
     designer->lv2c.plugintype = NULL;
