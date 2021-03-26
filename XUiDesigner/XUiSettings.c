@@ -29,9 +29,7 @@ static void set_project_title(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     if (strlen(text_box->input_label)>1) {
-        text_box->input_label[strlen(text_box->input_label)-1] = 0;
         widget_set_title(designer->ui,text_box->input_label);
-        strcat(text_box->input_label, "|");
         expose_widget(designer->ui);
     }
 }
@@ -41,11 +39,9 @@ static void set_project_author(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     if (strlen(text_box->input_label)>1) {
-        text_box->input_label[strlen(text_box->input_label)-1] = 0;
         free(designer->lv2c.author);
         designer->lv2c.author = NULL;
         asprintf(&designer->lv2c.author, "%s", text_box->input_label);
-        strcat(text_box->input_label, "|");
     }
 }
 
@@ -54,11 +50,9 @@ static void set_project_uri(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     if (strlen(text_box->input_label)>1) {
-        text_box->input_label[strlen(text_box->input_label)-1] = 0;
         free(designer->lv2c.uri);
         designer->lv2c.uri = NULL;
         asprintf(&designer->lv2c.uri, "%s", text_box->input_label);
-        strcat(text_box->input_label, "|");
     }
 }
 
@@ -67,11 +61,9 @@ static void set_project_ui_uri(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     if (strlen(text_box->input_label)>1) {
-        text_box->input_label[strlen(text_box->input_label)-1] = 0;
         free(designer->lv2c.ui_uri);
         designer->lv2c.ui_uri = NULL;
         asprintf(&designer->lv2c.ui_uri, "%s", text_box->input_label);
-        strcat(text_box->input_label, "|");
     }
 }
 

@@ -195,13 +195,59 @@ void entry_get_text(void *w_, void *key_, void *user_data) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+void strreplace(char *target, size_t pos, size_t size, const char *replacement) {
+    char buffer[1024] = { 0 };
+    char *insert_point = &buffer[0];
+    const char *tmp = target;
+    size_t target_len = strlen(target);
+    size_t repl_len = strlen(replacement);
+
+    memcpy(insert_point, tmp, pos);
+    insert_point += pos;
+    if (repl_len) {
+        memcpy(insert_point, replacement, repl_len);
+        insert_point += repl_len;
+    }
+    tmp += pos+size;
+    memcpy(insert_point, tmp, target_len-pos);
+        
+    strcpy(target, buffer);
+}
+
+// check for UTF 8 char code point
+static size_t findpos(const char* src, size_t sizeDest ) {
+    size_t sizeSrc = strlen(src);
+    while( sizeSrc > sizeDest ){
+        const char* lastByte = src + sizeSrc;
+        while( lastByte-- > src )
+            if((*lastByte & 0xC0) != 0x80)
+                break;
+        sizeSrc = lastByte - src;
+    }
+    return sizeSrc;
+}
+
+static void box_entry_set_curser_pos(Widget_t *w, int s) {
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    text_box->curser_size = findpos(text_box->input_label, text_box->curser_size + s);
+    char* cs = (char*)malloc(256*sizeof(char*));
+    memcpy(cs,text_box->input_label , text_box->curser_size);
+    cs[text_box->curser_size] = '\0';
+    cairo_set_font_size (w->cr, 12.0);
+    cairo_text_extents_t extents;
+    cairo_text_extents(w->cr, cs , &extents);
+    text_box->curser_pos = extents.width-1;
+    free(cs);
+    expose_widget(w);
+}
+
 void box_entry_set_value(Widget_t *w, float value) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
     char buffer[30];
     snprintf(buffer, sizeof buffer, "%.3f", value);
     strcat(text_box->input_label, buffer);
-    strcat(text_box->input_label, "|");
+    box_entry_set_curser_pos(w, strlen(text_box->input_label));
     expose_widget(w);
 }
 
@@ -209,13 +255,14 @@ void box_entry_set_text(Widget_t *w, const char* label) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
     strncat(text_box->input_label, label, 254);
-    strcat(text_box->input_label, "|");
+    box_entry_set_curser_pos(w, strlen(text_box->input_label));
     expose_widget(w);
 }
 
 static void draw_box_entry(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
     XWindowAttributes attrs;
     XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
     int width = attrs.width;
@@ -233,6 +280,12 @@ static void draw_box_entry(void *w_, void* user_data) {
 
     cairo_move_to (w->cr, 2, 9);
     cairo_show_text(w->cr, " ");
+    if (text_box->set_selection) {
+        use_light_color_scheme(w, ACTIVE_);
+        cairo_rectangle(w->cr,2+text_box->curser_mark, 2, 
+            text_box->curser_mark2-text_box->curser_mark, height-4);
+        cairo_fill (w->cr);
+    }
 }
 
 static void box_entry_add_text(void  *w_, void *label_) {
@@ -247,20 +300,41 @@ static void box_entry_add_text(void  *w_, void *label_) {
     cairo_text_extents_t extents;
     use_text_color_scheme(w, NORMAL_);
     cairo_set_font_size (w->cr, 11.0);
-    if (strlen( text_box->input_label))
-         text_box->input_label[strlen( text_box->input_label)-1] = 0;
     if (strlen( text_box->input_label)<254) {
-        if (strlen(label))
-        strcat( text_box->input_label, label);
+        if (strlen(label)) {
+            size_t p = 0;
+            if (text_box->set_selection) {
+                if (text_box->curser_mark < text_box->curser_mark2) {
+                    p = (text_box->mark2_pos - text_box->mark_pos)-1;
+                } else {
+                    p = (text_box->mark_pos - text_box->mark2_pos);
+                }
+            }
+            size_t j = findpos(text_box->input_label, text_box->curser_size-1);
+            if (text_box->set_selection && (text_box->curser_mark > text_box->curser_mark2)) {
+                strreplace(text_box->input_label, text_box->curser_size, p, label);
+            } else if (text_box->set_selection && (text_box->curser_mark < text_box->curser_mark2)) {
+                strreplace(text_box->input_label, j-p, text_box->curser_size-j+p, label);
+            } else {
+                strreplace(text_box->input_label, text_box->curser_size, 0, label);
+            }
+            text_box->set_selection = 0;
+            text_box->mark_pos = 0;
+            text_box->mark2_pos = 0;
+            text_box->curser_mark = 0;
+            text_box->curser_mark2 = 0;
+            box_entry_set_curser_pos(w, strlen(label));
+        }
     }
     w->label = text_box->input_label;
-    strcat( text_box->input_label, "|");
     cairo_set_font_size (w->cr, 12.0);
     cairo_text_extents(w->cr, text_box->input_label , &extents);
 
     cairo_move_to (w->cr, 2, 12.0+extents.height);
     cairo_show_text(w->cr,  text_box->input_label);
 
+    cairo_move_to (w->cr, 2+text_box->curser_pos, 12.0+extents.height);
+    cairo_show_text(w->cr,  w->input_label);
 }
 
 static void box_entry_clip(Widget_t *w) {
@@ -270,26 +344,30 @@ static void box_entry_clip(Widget_t *w) {
     use_text_color_scheme(w, NORMAL_);
     cairo_set_font_size (w->cr, 11.0);
 
-    // check for UTF 8 char
-    if (strlen( text_box->input_label)>=2) {
-        int i = strlen( text_box->input_label)-1;
-        int j = 0;
-        int u = 0;
-        for(;i>0;i--) {
-            if(IS_UTF8(text_box->input_label[i])) {
-                 u++;
+    if (strlen( text_box->input_label)>=1) {
+        size_t p = 0;
+        if (text_box->set_selection) {
+            if (text_box->curser_mark < text_box->curser_mark2) {
+                p = (text_box->mark2_pos - text_box->mark_pos)-1;
+            } else {
+                p = (text_box->mark_pos - text_box->mark2_pos);
             }
-            j++;
-            if (u == 1) break;
-            if (j>2) break;
         }
-        if (!u) j =2;
-
-        if (IS_UTF8(text_box->input_label[0]) && (strlen( text_box->input_label)-(sizeof(char)*(j)) == 1)) 
-            memset(&text_box->input_label[0],0,sizeof(char)*(j));
-        else
-            memset(&text_box->input_label[strlen( text_box->input_label)-(sizeof(char)*(j))],0,sizeof(char)*(j));
-        strcat( text_box->input_label, "|");
+        size_t j = findpos(text_box->input_label, text_box->curser_size-1);
+        int m = (IS_UTF8(text_box->input_label[j])) ? -2:-1;
+        if (text_box->set_selection && (text_box->curser_mark > text_box->curser_mark2)) {
+            strreplace(text_box->input_label, text_box->curser_size, p, "");
+            m = 0;
+        } else {
+            strreplace(text_box->input_label, j-p, text_box->curser_size-j+p, "");
+        }
+        box_entry_set_curser_pos(w, m);
+        text_box->set_selection = 0;
+        text_box->mark_pos = 0;
+        text_box->mark2_pos = 0;
+        text_box->curser_mark = 0;
+        text_box->curser_mark2 = 0;
+        
     }
     cairo_set_font_size (w->cr, 12.0);
     cairo_text_extents(w->cr, text_box->input_label , &extents);
@@ -297,6 +375,8 @@ static void box_entry_clip(Widget_t *w) {
     cairo_move_to (w->cr, 2, 12.0+extents.height);
     cairo_show_text(w->cr, text_box->input_label);
 
+    cairo_move_to (w->cr, 2+text_box->curser_pos, 12.0+extents.height);
+    cairo_show_text(w->cr,  w->input_label);
 }
 
 static void box_entry_get_text(void *w_, void *key_, void *user_data) {
@@ -308,6 +388,13 @@ static void box_entry_get_text(void *w_, void *key_, void *user_data) {
     int nk = key_mapping(w->app->dpy, key);
     if (nk == 11) {
         box_entry_clip(w);
+    } else if (nk == 6) {
+        box_entry_set_curser_pos(w, -1);
+    } else if (nk == 4) {
+        if(IS_UTF8(text_box->input_label[text_box->curser_size])) 
+            box_entry_set_curser_pos(w, 2);
+        else
+            box_entry_set_curser_pos(w, 1);
     } else {
         Status status;
         KeySym keysym;
@@ -341,7 +428,128 @@ static void box_entry_get_text(void *w_, void *key_, void *user_data) {
     }
 }
 
-void text_box_mem_free(void *w_, void* user_data) {
+void text_box_button_pressed(void *w_, void* button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    text_box->set_selection = 0;
+    text_box->curser_mark = 0;
+    text_box->curser_mark2 = 0;
+    XButtonEvent *xbutton = (XButtonEvent*)button_;
+    cairo_text_extents_t extents;
+    cairo_text_extents(w->cr, text_box->input_label , &extents);
+    cairo_set_font_size (w->cr, 12.0);
+    if (w->flags & HAS_POINTER) {
+        if(xbutton->button == Button1) {
+            int x = xbutton->x;
+            int i = 0;
+            int j = 0;
+            for (;i<=strlen(text_box->input_label);i++) {
+                j = findpos(text_box->input_label, i);
+                char* cs = (char*)malloc(256*sizeof(char*));
+                memcpy(cs,text_box->input_label , j);
+                cs[j] = '\0';
+                cairo_set_font_size (w->cr, 12.0);
+                cairo_text_extents(w->cr, cs , &extents);
+                free(cs);
+                if ((int)extents.width >= x) {
+                    text_box->mark_pos = j;
+                    text_box->curser_mark = (int)extents.width;
+                    text_box->curser_mark2 = (int)extents.width;
+                    break;
+                }
+            }
+            if (x<6) {
+                text_box->mark_pos = 0;
+                text_box->mark2_pos = 0;
+                text_box->curser_mark = 0;
+                text_box->curser_mark2 = 0;
+            }
+        }
+       
+    }
+}
+
+void text_box_button_released(void *w_, void* button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    XButtonEvent *xbutton = (XButtonEvent*)button_;
+    cairo_text_extents_t extents;
+    cairo_text_extents(w->cr, text_box->input_label , &extents);
+    cairo_set_font_size (w->cr, 12.0);
+    if (w->flags & HAS_POINTER) {
+        if(xbutton->button == Button1) {
+            int x = xbutton->x;
+            int i = 0;
+            int j = 0;
+            for (;i<=strlen(text_box->input_label);i++) {
+                j = findpos(text_box->input_label, i);
+                char* cs = (char*)malloc(256*sizeof(char*));
+                memcpy(cs,text_box->input_label , j);
+                cs[j] = '\0';
+                cairo_set_font_size (w->cr, 12.0);
+                cairo_text_extents(w->cr, cs , &extents);
+                free(cs);
+                if ((int)extents.width >= x) {
+                    break;
+                }
+            }
+            if (x<6) j = 0;
+            box_entry_set_curser_pos(w, -(text_box->curser_size-j));
+            expose_widget(w);
+        }
+       
+    }
+}
+
+void text_box_double_click(void *w_, void* button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    text_box->set_selection = 1;
+    text_box->mark_pos = 0;
+    text_box->curser_mark = 0;
+    text_box->mark2_pos = findpos(text_box->input_label,strlen(text_box->input_label));
+    
+    cairo_text_extents_t extents;
+    cairo_text_extents(w->cr, text_box->input_label , &extents);
+    text_box->curser_mark2 = (int)extents.width;
+    box_entry_set_curser_pos(w, strlen(text_box->input_label));
+    expose_widget(w);
+}
+
+static void text_box_button_motion(void *w_, void *xmotion_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    text_box->set_selection = 1;
+    XMotionEvent *xmotion = (XMotionEvent*)xmotion_;
+    cairo_text_extents_t extents;
+    cairo_text_extents(w->cr, text_box->input_label , &extents);
+    cairo_set_font_size (w->cr, 12.0);
+    if (w->flags & HAS_POINTER) {
+        if(xmotion->state == Button1Mask) {
+            int x = xmotion->x;
+            int i = 0;
+            int j = 0;
+            for (;i<=strlen(text_box->input_label);i++) {
+                j = findpos(text_box->input_label, i);
+                char* cs = (char*)malloc(256*sizeof(char*));
+                memcpy(cs,text_box->input_label , j);
+                cs[j] = '\0';
+                cairo_set_font_size (w->cr, 12.0);
+                cairo_text_extents(w->cr, cs , &extents);
+                free(cs);
+                if ((int)extents.width >= x) {
+                    text_box->mark2_pos = j;
+                    text_box->curser_mark2 = (int)extents.width;
+                    break;
+                }
+            }
+            expose_widget(w);
+        }
+       
+    }
+}
+
+static void text_box_mem_free(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     free(text_box);
@@ -352,12 +560,24 @@ Widget_t *add_input_box(Widget_t *parent, int data, int x, int y, int width, int
     Widget_t *wid = create_widget(parent->app, parent, x, y, width, height);
     TextBox_t* text_box = (TextBox_t*)malloc(sizeof(TextBox_t));
     wid->private_struct = text_box;
-    memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]) );
+    memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
+    text_box->curser_pos = 0;
+    text_box->curser_mark = 0;
+    text_box->mark_pos = 0;
+    text_box->curser_mark2 = 0;
+    text_box->mark2_pos = 0;
+    text_box->set_selection = 0;
+    text_box->curser_size = 0;
+    strcat(wid->input_label, "|");
     wid->flags |= HAS_MEM;
     wid->data = data;
     wid->func.expose_callback = box_entry_add_text;
     wid->func.key_press_callback = box_entry_get_text;
     wid->func.mem_free_callback = text_box_mem_free;
+    wid->func.button_press_callback = text_box_button_pressed;
+    wid->func.button_release_callback = text_box_button_released;
+    wid->func.motion_callback = text_box_button_motion;
+    wid->func.double_click_callback = text_box_double_click;
     wid->flags &= ~USE_TRANSPARENCY;
     //wid->scale.gravity = EASTWEST;
     Cursor c = XCreateFontCursor(parent->app->dpy, XC_xterm);

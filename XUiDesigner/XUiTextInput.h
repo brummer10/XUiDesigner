@@ -35,6 +35,13 @@ extern "C" {
 
 typedef struct {
     char input_label[256];
+    int curser_pos;
+    int curser_mark;
+    size_t mark_pos;
+    int curser_mark2;
+    size_t mark2_pos;
+    int set_selection;
+    size_t curser_size;
 } TextBox_t;
 
 
