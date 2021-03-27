@@ -195,6 +195,7 @@ void entry_get_text(void *w_, void *key_, void *user_data) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+// replace or insert a string at position pos. size is the size of string to be removed, could be zero.
 void strreplace(char *target, size_t pos, size_t size, const char *replacement) {
     char buffer[1024] = { 0 };
     char *insert_point = &buffer[0];
@@ -227,6 +228,7 @@ static size_t findpos(const char* src, size_t sizeDest ) {
     return sizeSrc;
 }
 
+// set the curser to a code point in the string
 static void box_entry_set_curser_pos(Widget_t *w, int s) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     text_box->curser_size = findpos(text_box->input_label, text_box->curser_size + s);
@@ -241,6 +243,7 @@ static void box_entry_set_curser_pos(Widget_t *w, int s) {
     expose_widget(w);
 }
 
+// public function, insert a value when used as numbox
 void box_entry_set_value(Widget_t *w, float value) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
@@ -251,6 +254,7 @@ void box_entry_set_value(Widget_t *w, float value) {
     expose_widget(w);
 }
 
+// public function, insert a string when used as textbox
 void box_entry_set_text(Widget_t *w, const char* label) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
@@ -259,6 +263,121 @@ void box_entry_set_text(Widget_t *w, const char* label) {
     expose_widget(w);
 }
 
+// get the code point and string width on display for a mouse position
+static void get_pos_for_x(Widget_t *w, int x, int *width, int *pos) {
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    cairo_text_extents_t extents;
+    cairo_text_extents(w->cr, text_box->input_label , &extents);
+    cairo_set_font_size (w->cr, 12.0);
+    int i = 0;
+    int j = 0;
+    for (;i<=strlen(text_box->input_label);i++) {
+        j = findpos(text_box->input_label, i);
+        char* cs = (char*)malloc(256*sizeof(char*));
+        memcpy(cs,text_box->input_label , j);
+        cs[j] = '\0';
+        cairo_set_font_size (w->cr, 12.0);
+        cairo_text_extents(w->cr, cs , &extents);
+        free(cs);
+        if ((int)extents.width >= x) {
+            (*pos) = j;
+            (*width) = (int)extents.width;
+            return;
+        }
+    }
+    if (x > (int)extents.width) {
+        (*pos) = j;
+        (*width) = (int)extents.width;
+    }
+}
+
+// set the curser mark position to the mouse pointer
+static void text_box_button_pressed(void *w_, void* button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    text_box->set_selection = 0;
+    text_box->curser_mark = 0;
+    text_box->curser_mark2 = 0;
+    XButtonEvent *xbutton = (XButtonEvent*)button_;
+    if (w->flags & HAS_POINTER) {
+        if(xbutton->button == Button1) {
+            int x = xbutton->x;
+            int j = 0;
+            if (x>6) {
+                int width = 0;
+                get_pos_for_x(w, x, &width, &j);
+                text_box->mark_pos = j;
+                text_box->curser_mark = width;
+                text_box->curser_mark2 = width;
+            } else {
+                text_box->mark_pos = 0;
+                text_box->mark2_pos = 0;
+                text_box->curser_mark = 0;
+                text_box->curser_mark2 = 0;
+            }
+        }
+    }
+}
+
+// set the curser to the mouse pointer
+static void text_box_button_released(void *w_, void* button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    XButtonEvent *xbutton = (XButtonEvent*)button_;
+    if (w->flags & HAS_POINTER) {
+        if(xbutton->button == Button1) {
+            int x = xbutton->x;
+            int j = 0;
+            if (x>6) {
+                int width = 0;
+                get_pos_for_x(w, x, &width, &j);
+            } 
+            box_entry_set_curser_pos(w, -(text_box->curser_size-j));
+            expose_widget(w);
+        }
+       
+    }
+}
+
+// maark the complete string on double click and set curser to end position
+static void text_box_double_click(void *w_, void* button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    text_box->set_selection = 1;
+    text_box->mark_pos = 0;
+    text_box->curser_mark = 0;
+    text_box->mark2_pos = findpos(text_box->input_label,strlen(text_box->input_label));
+    
+    cairo_text_extents_t extents;
+    cairo_text_extents(w->cr, text_box->input_label , &extents);
+    text_box->curser_mark2 = (int)extents.width;
+    box_entry_set_curser_pos(w, strlen(text_box->input_label));
+    expose_widget(w);
+}
+
+// mark the part of string were the mouse pointer hover over while pressed
+static void text_box_button_motion(void *w_, void *xmotion_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    text_box->set_selection = 1;
+    XMotionEvent *xmotion = (XMotionEvent*)xmotion_;
+    cairo_text_extents_t extents;
+    cairo_text_extents(w->cr, text_box->input_label , &extents);
+    cairo_set_font_size (w->cr, 12.0);
+    if (w->flags & HAS_POINTER) {
+        if(xmotion->state == Button1Mask) {
+            int x = xmotion->x;
+            int width = 0;
+            int j = 0;
+            get_pos_for_x(w, x, &width, &j);
+            text_box->mark2_pos = j;
+            text_box->curser_mark2 = width;
+            expose_widget(w);
+        }
+    }
+}
+
+// draw the background of the textbox
 static void draw_box_entry(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
@@ -288,6 +407,7 @@ static void draw_box_entry(void *w_, void* user_data) {
     }
 }
 
+// add text to the textbox at curser position, or if text is marked, replace it with the input
 static void box_entry_add_text(void  *w_, void *label_) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
@@ -337,6 +457,7 @@ static void box_entry_add_text(void  *w_, void *label_) {
     cairo_show_text(w->cr,  w->input_label);
 }
 
+// clip the marked part of the text, or one char at curser position
 static void box_entry_clip(Widget_t *w) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     draw_entry(w,NULL);
@@ -379,6 +500,7 @@ static void box_entry_clip(Widget_t *w) {
     cairo_show_text(w->cr,  w->input_label);
 }
 
+// textbox receive a keypress
 static void box_entry_get_text(void *w_, void *key_, void *user_data) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
@@ -428,127 +550,7 @@ static void box_entry_get_text(void *w_, void *key_, void *user_data) {
     }
 }
 
-void text_box_button_pressed(void *w_, void* button_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    TextBox_t *text_box = (TextBox_t*)w->private_struct;
-    text_box->set_selection = 0;
-    text_box->curser_mark = 0;
-    text_box->curser_mark2 = 0;
-    XButtonEvent *xbutton = (XButtonEvent*)button_;
-    cairo_text_extents_t extents;
-    cairo_text_extents(w->cr, text_box->input_label , &extents);
-    cairo_set_font_size (w->cr, 12.0);
-    if (w->flags & HAS_POINTER) {
-        if(xbutton->button == Button1) {
-            int x = xbutton->x;
-            int i = 0;
-            int j = 0;
-            for (;i<=strlen(text_box->input_label);i++) {
-                j = findpos(text_box->input_label, i);
-                char* cs = (char*)malloc(256*sizeof(char*));
-                memcpy(cs,text_box->input_label , j);
-                cs[j] = '\0';
-                cairo_set_font_size (w->cr, 12.0);
-                cairo_text_extents(w->cr, cs , &extents);
-                free(cs);
-                if ((int)extents.width >= x) {
-                    text_box->mark_pos = j;
-                    text_box->curser_mark = (int)extents.width;
-                    text_box->curser_mark2 = (int)extents.width;
-                    break;
-                }
-            }
-            if (x<6) {
-                text_box->mark_pos = 0;
-                text_box->mark2_pos = 0;
-                text_box->curser_mark = 0;
-                text_box->curser_mark2 = 0;
-            }
-        }
-       
-    }
-}
-
-void text_box_button_released(void *w_, void* button_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    TextBox_t *text_box = (TextBox_t*)w->private_struct;
-    XButtonEvent *xbutton = (XButtonEvent*)button_;
-    cairo_text_extents_t extents;
-    cairo_text_extents(w->cr, text_box->input_label , &extents);
-    cairo_set_font_size (w->cr, 12.0);
-    if (w->flags & HAS_POINTER) {
-        if(xbutton->button == Button1) {
-            int x = xbutton->x;
-            int i = 0;
-            int j = 0;
-            for (;i<=strlen(text_box->input_label);i++) {
-                j = findpos(text_box->input_label, i);
-                char* cs = (char*)malloc(256*sizeof(char*));
-                memcpy(cs,text_box->input_label , j);
-                cs[j] = '\0';
-                cairo_set_font_size (w->cr, 12.0);
-                cairo_text_extents(w->cr, cs , &extents);
-                free(cs);
-                if ((int)extents.width >= x) {
-                    break;
-                }
-            }
-            if (x<6) j = 0;
-            box_entry_set_curser_pos(w, -(text_box->curser_size-j));
-            expose_widget(w);
-        }
-       
-    }
-}
-
-void text_box_double_click(void *w_, void* button_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    TextBox_t *text_box = (TextBox_t*)w->private_struct;
-    text_box->set_selection = 1;
-    text_box->mark_pos = 0;
-    text_box->curser_mark = 0;
-    text_box->mark2_pos = findpos(text_box->input_label,strlen(text_box->input_label));
-    
-    cairo_text_extents_t extents;
-    cairo_text_extents(w->cr, text_box->input_label , &extents);
-    text_box->curser_mark2 = (int)extents.width;
-    box_entry_set_curser_pos(w, strlen(text_box->input_label));
-    expose_widget(w);
-}
-
-static void text_box_button_motion(void *w_, void *xmotion_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    TextBox_t *text_box = (TextBox_t*)w->private_struct;
-    text_box->set_selection = 1;
-    XMotionEvent *xmotion = (XMotionEvent*)xmotion_;
-    cairo_text_extents_t extents;
-    cairo_text_extents(w->cr, text_box->input_label , &extents);
-    cairo_set_font_size (w->cr, 12.0);
-    if (w->flags & HAS_POINTER) {
-        if(xmotion->state == Button1Mask) {
-            int x = xmotion->x;
-            int i = 0;
-            int j = 0;
-            for (;i<=strlen(text_box->input_label);i++) {
-                j = findpos(text_box->input_label, i);
-                char* cs = (char*)malloc(256*sizeof(char*));
-                memcpy(cs,text_box->input_label , j);
-                cs[j] = '\0';
-                cairo_set_font_size (w->cr, 12.0);
-                cairo_text_extents(w->cr, cs , &extents);
-                free(cs);
-                if ((int)extents.width >= x) {
-                    text_box->mark2_pos = j;
-                    text_box->curser_mark2 = (int)extents.width;
-                    break;
-                }
-            }
-            expose_widget(w);
-        }
-       
-    }
-}
-
+// free the internal used memory of the textbox
 static void text_box_mem_free(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
