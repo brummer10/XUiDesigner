@@ -232,14 +232,13 @@ static size_t findpos(const char* src, size_t sizeDest ) {
 static void box_entry_set_curser_pos(Widget_t *w, int s) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     text_box->curser_size = findpos(text_box->input_label, text_box->curser_size + s);
-    char* cs = (char*)malloc(256*sizeof(char*));
-    memcpy(cs,text_box->input_label , text_box->curser_size);
-    cs[text_box->curser_size] = '\0';
+    memset(text_box->selection, 0, 256 * (sizeof text_box->selection[0]));
+    memcpy(text_box->selection,text_box->input_label , text_box->curser_size);
+    text_box->selection[text_box->curser_size] = '\0';
     cairo_set_font_size (w->cr, 12.0);
     cairo_text_extents_t extents;
-    cairo_text_extents(w->cr, cs , &extents);
+    cairo_text_extents(w->cr, text_box->selection , &extents);
     text_box->curser_pos = extents.width-1;
-    free(cs);
     expose_widget(w);
 }
 
@@ -273,12 +272,11 @@ static void get_pos_for_x(Widget_t *w, int x, int *width, int *pos) {
     int j = 0;
     for (;i<=strlen(text_box->input_label);i++) {
         j = findpos(text_box->input_label, i);
-        char* cs = (char*)malloc(256*sizeof(char*));
-        memcpy(cs,text_box->input_label , j);
-        cs[j] = '\0';
+        memset(text_box->selection, 0, 256 * (sizeof text_box->selection[0]));
+        memcpy(text_box->selection,text_box->input_label , j);
+        text_box->selection[j] = '\0';
         cairo_set_font_size (w->cr, 12.0);
-        cairo_text_extents(w->cr, cs , &extents);
-        free(cs);
+        cairo_text_extents(w->cr, text_box->selection , &extents);
         if ((int)extents.width >= x) {
             (*pos) = j;
             (*width) = (int)extents.width;
@@ -295,12 +293,12 @@ static void get_pos_for_x(Widget_t *w, int x, int *width, int *pos) {
 static void text_box_button_pressed(void *w_, void* button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
-    text_box->set_selection = 0;
-    text_box->curser_mark = 0;
-    text_box->curser_mark2 = 0;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     if (w->flags & HAS_POINTER) {
         if(xbutton->button == Button1) {
+            text_box->set_selection = 0;
+            text_box->curser_mark = 0;
+            text_box->curser_mark2 = 0;
             int x = xbutton->x;
             int j = 0;
             if (x>6) {
@@ -334,8 +332,13 @@ static void text_box_button_released(void *w_, void* button_, void* user_data) {
             } 
             box_entry_set_curser_pos(w, -(text_box->curser_size-j));
             expose_widget(w);
+        } else if(xbutton->button == Button3) {
+            if (!text_box->set_selection) text_box->item1->state = 4;
+            else text_box->item1->state = 0;
+            if (!have_paste(w)) text_box->item2->state = 4;
+            else text_box->item2->state = 0;
+            pop_menu_show(w, text_box->menu, 2, true);
         }
-       
     }
 }
 
@@ -353,7 +356,38 @@ static void text_box_double_click(void *w_, void* button_, void* user_data) {
     text_box->curser_mark2 = (int)extents.width;
     box_entry_set_curser_pos(w, strlen(text_box->input_label));
     expose_widget(w);
+    //copy_to_clipboard(w, text_box->input_label, (int)text_box->mark2_pos);
 }
+
+void text_box_pop_menu(void *w_, void* item_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t* p = (Widget_t*)w->parent;
+    TextBox_t *text_box = (TextBox_t*)w->parent_struct;
+    switch (*(int*)item_) {
+        case 0:
+        {
+            if (text_box->set_selection) {
+                memset(text_box->selection, 0, 256 * (sizeof text_box->selection[0]));
+                int a = (int)text_box->mark_pos;
+                int b = (int)text_box->mark2_pos;
+                if (text_box->mark_pos > text_box->mark2_pos) {
+                    a = (int)text_box->mark2_pos;
+                    b = (int)text_box->mark_pos;
+                }
+                char* pos = &text_box->input_label[a];
+                memcpy(text_box->selection, pos , b - a);
+                copy_to_clipboard(p, text_box->selection, (int)strlen(text_box->selection));
+            }
+        }
+        break;
+        case 1:
+            request_paste_from_clipboard(p);
+        break;
+        default:
+        break;
+    }
+}
+
 
 // mark the part of string were the mouse pointer hover over while pressed
 static void text_box_button_motion(void *w_, void *xmotion_, void* user_data) {
@@ -550,6 +584,15 @@ static void box_entry_get_text(void *w_, void *key_, void *user_data) {
     }
 }
 
+static void text_box_paste(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    //TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    if(user_data !=NULL) {
+        box_entry_add_text(w, *(char**)user_data);
+    }
+}
+
+
 // free the internal used memory of the textbox
 static void text_box_mem_free(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
@@ -563,6 +606,7 @@ Widget_t *add_input_box(Widget_t *parent, int data, int x, int y, int width, int
     TextBox_t* text_box = (TextBox_t*)malloc(sizeof(TextBox_t));
     wid->private_struct = text_box;
     memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
+    memset(text_box->selection, 0, 256 * (sizeof text_box->selection[0]));
     text_box->curser_pos = 0;
     text_box->curser_mark = 0;
     text_box->mark_pos = 0;
@@ -580,7 +624,16 @@ Widget_t *add_input_box(Widget_t *parent, int data, int x, int y, int width, int
     wid->func.button_release_callback = text_box_button_released;
     wid->func.motion_callback = text_box_button_motion;
     wid->func.double_click_callback = text_box_double_click;
+    wid->func.paste_notify_callback = text_box_paste;
     wid->flags &= ~USE_TRANSPARENCY;
+
+    text_box->menu = create_menu(wid, 25);
+    text_box->menu->parent = wid;
+    text_box->menu->parent_struct = text_box;
+    text_box->item1 = menu_add_item(text_box->menu, _("Copy"));
+    text_box->item2 = menu_add_item(text_box->menu, _("Paste"));
+    text_box->menu->func.button_release_callback = text_box_pop_menu;
+
     //wid->scale.gravity = EASTWEST;
     Cursor c = XCreateFontCursor(parent->app->dpy, XC_xterm);
     XDefineCursor (parent->app->dpy, wid->widget, c);

@@ -34,7 +34,11 @@ extern "C" {
 
 
 typedef struct {
+    Widget_t* menu;
+    Widget_t* item1;
+    Widget_t* item2;
     char input_label[256];
+    char selection[256];
     int curser_pos;
     int curser_mark;
     size_t mark_pos;
