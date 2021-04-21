@@ -624,7 +624,7 @@ Widget_t *add_input_box(Widget_t *parent, int data, int x, int y, int width, int
     wid->func.button_release_callback = text_box_button_released;
     wid->func.motion_callback = text_box_button_motion;
     wid->func.double_click_callback = text_box_double_click;
-    wid->func.paste_notify_callback = text_box_paste;
+    wid->xpaste_callback = text_box_paste;
     wid->flags &= ~USE_TRANSPARENCY;
 
     text_box->menu = create_menu(wid, 25);
