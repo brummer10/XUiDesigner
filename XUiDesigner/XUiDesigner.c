@@ -591,64 +591,76 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
     if(xbutton->button == Button1) {
         switch(designer->select_widget_num) {
             case 1:
-                wid = add_knob(w, "Knob", xbutton->x, xbutton->y, 60, 80);
+                asprintf(&designer->controls[designer->wid_counter].name, "Knob%i", designer->wid_counter);
+                wid = add_knob(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 60, 80);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
             break;
             case 2:
-                wid = add_hslider(w, "HSlider", xbutton->x, xbutton->y, 120, 30);
+                asprintf(&designer->controls[designer->wid_counter].name, "HSlider%i", designer->wid_counter);
+                wid = add_hslider(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 30);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_hslider", true, IS_HSLIDER);
             break;
             case 3:
-                wid = add_vslider(w, "VSlider", xbutton->x, xbutton->y, 30, 120);
+                asprintf(&designer->controls[designer->wid_counter].name, "VSlider%i", designer->wid_counter);
+                wid = add_vslider(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 30, 120);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_vslider", true, IS_VSLIDER);
             break;
             case 4:
-                wid = add_button(w, "Button", xbutton->x, xbutton->y, 60, 60);
+                asprintf(&designer->controls[designer->wid_counter].name, "Button%i", designer->wid_counter);
+                wid = add_button(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 60, 60);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
             break;
             case 5:
-                wid = add_toggle_button(w, "Switch", xbutton->x, xbutton->y, 60, 60);
+                asprintf(&designer->controls[designer->wid_counter].name, "Switch%i", designer->wid_counter);
+                wid = add_toggle_button(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 60, 60);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
             break;
             case 6:
-                wid = add_combobox(w, "Combobox", xbutton->x, xbutton->y, 120, 30);
+                asprintf(&designer->controls[designer->wid_counter].name, "Combobox%i", designer->wid_counter);
+                wid = add_combobox(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 30);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
             break;
             case 7:
-                wid = add_valuedisplay(w, "ValueDisplay", xbutton->x, xbutton->y, 40, 30);
+                asprintf(&designer->controls[designer->wid_counter].name, "ValueDisply%i", designer->wid_counter);
+                wid = add_valuedisplay(w, "designer->controls[designer->wid_counter].name", xbutton->x, xbutton->y, 40, 30);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
             break;
             case 8:
-                wid = add_label(w, "Label", xbutton->x, xbutton->y, 60, 30);
+                asprintf(&designer->controls[designer->wid_counter].name, "Label%i", designer->wid_counter);
+                wid = add_label(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 60, 30);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_label", false, IS_LABEL);
             break;
             case 9:
-                wid = add_vmeter(w, "VMeter", false, xbutton->x, xbutton->y, 10, 120);
+                asprintf(&designer->controls[designer->wid_counter].name, "VMeter%i", designer->wid_counter);
+                wid = add_vmeter(w, designer->controls[designer->wid_counter].name, false, xbutton->x, xbutton->y, 10, 120);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
             break;
             case 10:
-                wid = add_hmeter(w, "hMeter", false, xbutton->x, xbutton->y, 120, 10);
+                asprintf(&designer->controls[designer->wid_counter].name, "HMeter%i", designer->wid_counter);
+                wid = add_hmeter(w, designer->controls[designer->wid_counter].name, false, xbutton->x, xbutton->y, 120, 10);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
             break;
             case 11:
-                wid = add_waveview(w, "waveview", xbutton->x, xbutton->y, 120, 120);
+                asprintf(&designer->controls[designer->wid_counter].name, "WaveView%i", designer->wid_counter);
+                wid = add_waveview(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 120);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_waveview", false, IS_WAVEVIEW);
                 float v[9] = { 0.0,-0.5, 0.0, 0.5, 0.0, -0.5, 0.0, 0.5, 0.0};
                 update_waveview(wid, &v[0],9);
             break;
             case 12:
-                wid = add_frame(w, "Frame", xbutton->x, xbutton->y, 120, 120);
+                asprintf(&designer->controls[designer->wid_counter].name, "Frame%i", designer->wid_counter);
+                wid = add_frame(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 120);
                 set_controller_callbacks(designer, wid, true);
                 adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
                 designer->controls[designer->wid_counter-1].port_index = -1;
@@ -659,7 +671,8 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 XLowerWindow(w->app->dpy, wid->widget);
             break;
             case 13:
-                wid = add_tabbox(w, "Tab", xbutton->x, xbutton->y, 120, 120);
+                asprintf(&designer->controls[designer->wid_counter].name, "Tab%i", designer->wid_counter);
+                wid = add_tabbox(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 120);
                 set_controller_callbacks(designer, wid, true);
                 adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
                 designer->controls[designer->wid_counter-1].port_index = -1;
@@ -913,6 +926,7 @@ int main (int argc, char ** argv) {
         designer->controls[m].image = NULL;
         designer->controls[m].grid_snap_option = 0;
         designer->controls[m].destignation_enabled = false;
+        designer->controls[m].name = NULL;
     }
 
     //set_light_theme(&app);
@@ -1157,6 +1171,7 @@ int main (int argc, char ** argv) {
     create_project_settings_window(designer);
 
     widget_show_all(designer->ui);
+    widget_hide(designer->tabbox_settings);
     main_run(&app);
 
     //print_ttl(designer);
@@ -1174,6 +1189,10 @@ int main (int argc, char ** argv) {
     i = 0;
     for (;i<MAX_CONTROLS; i++) {
         free(designer->tab_label[i]);
+    }
+    m = 0;
+    for (;m<MAX_CONTROLS;m++) {
+        free(designer->controls[m].name);
     }
     free(designer->tab_label);
     free(designer->image_path);

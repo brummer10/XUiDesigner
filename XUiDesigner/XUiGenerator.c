@@ -566,9 +566,55 @@ void run_save(void *w_, void* user_data) {
             mkdir(filepath, 0700);
         }
 
+        char* cmd = NULL;
+        asprintf(&cmd, "cd %s && git init", filepath);
+        int ret = system(cmd);
+        free(cmd);
+        cmd = NULL;
+        asprintf(&cmd, "cd %s && git submodule add https://github.com/brummer10/libxputty.git", filepath);
+        ret = system(cmd);
+        free(cmd);
+        cmd = NULL;
+
+        asprintf(&cmd, "SUBDIR := %s\n\n"
+
+            ".PHONY: $(SUBDIR) libxputty  recurse\n\n"
+
+            "$(MAKECMDGOALS) recurse: $(SUBDIR)\n\n"
+
+            "clean:\n\n"
+
+            "libxputty:\n"
+            "	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS)\n\n"
+
+            "$(SUBDIR): libxputty\n"
+            "	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS)\n\n", name);
+
+        char* makefile = NULL;
+        asprintf(&makefile, "%s/makefile",filepath);
+        FILE *fpm;
+        if((fpm=freopen(makefile, "w" ,stdout))==NULL) {
+            printf("open failed\n");
+        }
+        printf(cmd);
+        fclose(fpm);
+        free(makefile);
+        free(cmd);
+        cmd = NULL;
+       
+
+        free(filepath);
+        filepath = NULL;
+        asprintf(&filepath, "%s%s_ui/%s",*(const char**)user_data, name, name);
+
+        if (stat(filepath, &st) == -1) {
+            mkdir(filepath, 0700);
+        }
+
         char* filename = NULL;
-        asprintf(&filename, "%s%s_ui/%s.c",*(const char**)user_data,name, name );
+        asprintf(&filename, "%s%s_ui/%s/%s.c",*(const char**)user_data,name,name, name );
         remove (filename);
+
         FILE *fp;
         if((fp=freopen(filename, "w" ,stdout))==NULL) {
             printf("open failed\n");
@@ -593,7 +639,7 @@ void run_save(void *w_, void* user_data) {
         fp = NULL;
         free(filename);
         filename = NULL;
-        asprintf(&filename, "%s%s_ui/manifest.ttl",*(const char**)user_data,name);
+        asprintf(&filename, "%s%s_ui/%s/manifest.ttl",*(const char**)user_data,name,name);
         if((fp=freopen(filename, "w" ,stdout))==NULL) {
             printf("open failed\n");
         }
@@ -603,9 +649,9 @@ void run_save(void *w_, void* user_data) {
         free(filename);
         filename = NULL;
         if (system(NULL)) {
-            char* cmd = NULL;
+            cmd = NULL;
             asprintf(&cmd, "cp /usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
-            int ret = system(cmd);
+            ret = system(cmd);
             if (!ret) {
                 free(cmd);
                 asprintf(&cmd,"\n\n	# check if user is root\n"
@@ -636,7 +682,7 @@ void run_save(void *w_, void* user_data) {
                     "	EXEC_NAME := $(subst $(space),_,$(NAME))\n"
                     "	BUNDLE = $(EXEC_NAME).lv2\n"
                     "	RESOURCES_DIR :=./resources/\n"
-                    "	LIB_DIR := ../../../libxputty/libxputty/\n"
+                    "	LIB_DIR := ../libxputty/libxputty/\n"
                     "	HEADER_DIR := $(LIB_DIR)include/\n"
                     "	UI_LIB:= $(LIB_DIR)libxputty.a\n"
                     "	STRIP ?= strip\n\n"
@@ -682,7 +728,7 @@ void run_save(void *w_, void* user_data) {
                     "endif\n\n"
                     "$(EXEC_NAME):$(RESOURCES_OBJ)\n"
                     "	@# use this line when you include libxputty as submodule\n"
-                    "	@#$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR)\n"
+                    "	@$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR)\n"
                     "	$(CXX) $(CXXFLAGS) $(EXEC_NAME).cpp $(LDFLAGS) -o $(EXEC_NAME).so\n"
                     "	$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./\n"
                     "	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(EXEC_NAME).so\n"
@@ -701,7 +747,7 @@ void run_save(void *w_, void* user_data) {
                     "clean:\n"
                     "	rm -f *.a *.o *.so xresources.h\n\n",
                     name, "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%");
-                char* makefile = NULL;
+                makefile = NULL;
                 asprintf(&makefile, "%s/makefile",filepath);
                 FILE *fpm;
                 if((fpm=freopen(makefile, "w" ,stdout))==NULL) {
@@ -722,7 +768,7 @@ void run_save(void *w_, void* user_data) {
         }
         free(filepath);
         
-        char* cmd = NULL;
+        cmd = NULL;
         if (have_image || designer->image != NULL) {
             filepath = NULL;
             asprintf(&filepath, "%s%s_ui/resources",*(const char**)user_data,name);

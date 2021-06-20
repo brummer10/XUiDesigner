@@ -117,6 +117,7 @@ typedef struct {
     int in_frame;
     int in_tab;
     int tab_box;
+    char* name;
 } Controller;
 
 /*---------------------------------------------------------------------
