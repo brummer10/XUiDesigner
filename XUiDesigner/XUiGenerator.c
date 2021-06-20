@@ -850,6 +850,14 @@ void run_save(void *w_, void* user_data) {
                 }
             }
             free(filepath);
+            filepath = NULL;
+            asprintf(&filepath, "%s%s_ui",*(const char**)user_data,name);
+            char* cmd = NULL;
+            asprintf(&cmd, "cd %s && git add .", filepath);
+            ret = system(cmd);
+            free(cmd);
+            cmd = NULL;
+            free(filepath);
             free(name);
         }
     }
