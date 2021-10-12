@@ -27,8 +27,8 @@ Most Control widgets could be replaced with images you could select from a inclu
 
 You could as well create a LV2 plugin from scratch and save it to a selected location.
 The project settings window allow to setup the specs (like Author name, URI, Audio/Midi ports, etc.) for your plugin 
-The saved bundle contain a working LV2 plugin with all needed resources 
-(ttl files, converted C files from used images, etc.) to build, install and run it.
+XUIDesigner save the bundle in a git repository format, contain a working LV2 plugin with all needed resources 
+(ttl files, converted C files from used images, etc.) and build files to build, install and run it.
 All you need to do to finish your plug is, implement your DSP part.
 
 XUIDesigner have a test-mode as well, which will build and run the created GUI, and give some useful information out in the terminal.
