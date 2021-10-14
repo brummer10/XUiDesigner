@@ -217,6 +217,7 @@ typedef struct {
     bool run_test;
     bool grid_view;
     bool is_project;
+    bool generate_ui_only;
     int active_widget_num;
     int pos_x;
     int pos_y;

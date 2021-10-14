@@ -34,13 +34,24 @@ void print_manifest(XUiDesigner *designer) {
     if (name == NULL) asprintf(&name, "%s", "noname");
     strdecode(name, " ", "_");
 
-    printf ("\n@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .\n"
-        "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n"
+    if (!designer->generate_ui_only) {
+        printf ("\n@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .\n"
+            "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n"
 
-        "<%s>\n"
-        "    a lv2:Plugin ;\n"
-        "    lv2:binary <%s.so> ;\n"
-        "    rdfs:seeAlso <%s.ttl> .\n", designer->lv2c.uri, name, name);
+            "<%s>\n"
+            "    a lv2:Plugin ;\n"
+            "    lv2:binary <%s.so> ;\n"
+            "    rdfs:seeAlso <%s.ttl> .\n", designer->lv2c.uri, name, name);
+    } else {
+        printf ("\n@prefix guiext: <http://lv2plug.in/ns/extensions/ui#>.\n"
+            "\n@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .\n"
+            "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n"
+
+            "<%s>\n"
+            "    a guiext:X11UI ;\n"
+            "    guiext:binary <%s_ui.so> ;\n"
+            "    rdfs:seeAlso <%s_ui.ttl> .\n", designer->lv2c.ui_uri, name, name);
+    }
     free(name);
 }
 
@@ -69,203 +80,212 @@ void print_ttl(XUiDesigner *designer) {
         "@prefix midi:  <http://lv2plug.in/ns/ext/midi#> .\n"
         "@prefix patch: <http://lv2plug.in/ns/ext/patch#> .\n\n\n");
 
+    if (!designer->generate_ui_only) {
+        printf ("<urn:name#me>\n"
+                "   a foaf:Person ;\n"
+                "   foaf:name \"%s\" .\n\n"
 
-    printf ("<urn:name#me>\n"
-            "   a foaf:Person ;\n"
-            "   foaf:name \"%s\" .\n\n"
+            "<%s>\n"
+                "   a lv2:Plugin ,\n"
+                "       lv2:%s ;\n"
+                "   doap:maintainer <urn:name#me> ;\n"
+                "   doap:name \"%s\" ;\n"
+                "   lv2:project <%s> ;\n"
+                "   lv2:requiredFeature urid:map ;\n"
+                "   lv2:optionalFeature lv2:hardRTCapable ;\n"
+                  
+                "   lv2:minorVersion 1 ;\n"
+                "   lv2:microVersion 0 ;\n\n"
 
-        "<%s>\n"
-            "   a lv2:Plugin ,\n"
-            "       lv2:%s ;\n"
-            "   doap:maintainer <urn:name#me> ;\n"
-            "   doap:name \"%s\" ;\n"
-            "   lv2:project <%s> ;\n"
-            "   lv2:requiredFeature urid:map ;\n"
-            "   lv2:optionalFeature lv2:hardRTCapable ;\n"
-              
-            "   lv2:minorVersion 1 ;\n"
-            "   lv2:microVersion 0 ;\n\n"
-
-        "guiext:ui <%s> ;\n\n"
-            
-        "rdfs:comment \"\"\"\n"
-
-        "...\n"
-
-        "\"\"\";\n\n", designer->lv2c.author, designer->lv2c.uri, designer->lv2c.plugintype,
-                name, designer->lv2c.uri, designer->lv2c.ui_uri );
-
-
-    int i = 0;
-    int p = 0;
-    bool add_comma = false;
-    printf ("   lv2:port ");
-    for (;i<designer->lv2c.audio_input;i++) {
-        printf ("%s [\n"
-        "       a lv2:AudioPort ,\n"
-        "          lv2:InputPort ;\n"
-        "      lv2:index %i ;\n"
-        "      lv2:symbol \"in%i\" ;\n"
-        "      lv2:name \"In%i\" ;\n"
-        "   ]", add_comma ? ",": "", p, i, i);
-        p++;
-        add_comma = true;
-    }
-    i = 0;
-    for (;i<designer->lv2c.audio_output;i++) {
-        printf ("%s [\n"
-        "      a lv2:AudioPort ,\n"
-        "           lv2:OutputPort ;\n"
-        "      lv2:index %i ;\n"
-        "      lv2:symbol \"out%i\" ;\n"
-        "      lv2:name \"Out%i\" ;\n"
-        "   ]", add_comma ? ",": "", p, i, i);
-        p++;
-        add_comma = true;
-    }
-    if (designer->lv2c.midi_input) {
-
-        printf ("%s [\n"
-        "      a lv2:InputPort ,\n"
-        "          atom:AtomPort ;\n"
-        "      atom:bufferType atom:Sequence ;\n"
-        "      atom:supports midi:MidiEvent ,\n"
-        "           patch:Message ;\n"
-        "      lv2:designation lv2:control ;\n"
-        "      lv2:index %i ;\n"
-        "      lv2:symbol \"MIDI_IN\" ;\n"
-        "      lv2:name \"MIDI_IN\" ;\n"
-        "   ]", add_comma ? ",": "", p);
-        p++;
-        add_comma = true;
-    }
-    if (designer->lv2c.midi_output) {
-
-        printf ("%s [\n"
-        "      a lv2:OutputPort ,\n"
-        "          atom:AtomPort ;\n"
-        "      atom:bufferType atom:Sequence ;\n"
-        "      atom:supports midi:MidiEvent ,\n"
-        "           patch:Message ;\n"
-        "      lv2:designation lv2:control ;\n"
-        "      lv2:index %i ;\n"
-        "      lv2:symbol \"MIDI_OUT\" ;\n"
-        "      lv2:name \"MIDI_OUT\" ;\n"
-        "   ]", add_comma ? ",": "", p);
-        p++;
-        add_comma = true;
-    }
-    i = 0;
-    for (;i<MAX_CONTROLS;i++) {
-        if (designer->controls[i].wid != NULL) {
-            Widget_t * wid = designer->controls[i].wid;
-            if (designer->controls[i].is_type == IS_FRAME ||
-                designer->controls[i].is_type == IS_TABBOX) {
-                continue;
-            } else {
-                char *xldl = NULL;
-                asprintf(&xldl, "%s", designer->controls[i].wid->label);
-                strtovar(xldl);
-                if (designer->controls[i].have_adjustment) {
-                    if (designer->controls[i].is_type == IS_COMBOBOX) {
-                        Widget_t *menu = wid->childlist->childs[1];
-                        Widget_t* view_port =  menu->childlist->childs[0];
-                        ComboBox_t *comboboxlist = (ComboBox_t*)view_port->parent_struct;
-                        printf (", [\n"
-                            "      a lv2:InputPort ,\n"
-                            "          lv2:ControlPort ;\n"
-                            "      lv2:index %i ;\n"
-                            "      lv2:symbol \"%s\" ;\n"
-                            "      lv2:name \"%s\" ;\n"
-                            "      lv2:default %.1f ;\n"
-                            "      lv2:minimum %.1f ;\n"
-                            "      lv2:maximum %.1f ;\n"
-                            "      lv2:portProperty lv2:integer ;\n"
-                            "      lv2:portProperty lv2:enumeration ;\n"
-                                , designer->is_project ? p : designer->controls[i].port_index, xldl,
-                                xldl, wid->adj->std_value,
-                                wid->adj->min_value, wid->adj->max_value);
-                        unsigned int k = 0;
-                        int l = (int)wid->adj->min_value;
-                        for(; k<comboboxlist->list_size;k++) {
-                            printf ("      lv2:scalePoint [rdfs:label \"%s\"; rdf:value %i];\n", comboboxlist->list_names[k],l);
-                            l++;
-                        }
-                        printf ("]");
-                    } else if (designer->controls[i].is_type == IS_VMETER ||
-                            designer->controls[i].is_type == IS_HMETER) {
-                        printf (", [\n"
-                            "      a lv2:OutputPort ,\n"
-                            "          lv2:ControlPort ;\n"
-                            "      lv2:index %i ;\n"
-                            "      lv2:symbol \"%s\" ;\n"
-                            "      lv2:name \"%s\" ;\n"
-                            "      lv2:default %f ;\n"
-                            "      lv2:minimum %f ;\n"
-                            "      lv2:maximum %f ;\n"
-                            "   ]", designer->is_project ? p : designer->controls[i].port_index, xldl,
-                                xldl, wid->adj->std_value,
-                                wid->adj->min_value, wid->adj->max_value);
-                    } else {
-                        printf (", [\n"
-                            "      a lv2:InputPort ,\n"
-                            "          lv2:ControlPort ;\n"
-                            "      lv2:index %i ;\n"
-                            "      lv2:symbol \"%s\" ;\n"
-                            "      lv2:name \"%s\" ;\n"
-                            "      lv2:default %f ;\n"
-                            "      lv2:minimum %f ;\n"
-                            "      lv2:maximum %f ;\n"
-                            "   ]", designer->is_project ? p : designer->controls[i].port_index, xldl,
-                                xldl, wid->adj->std_value,
-                                wid->adj->min_value, wid->adj->max_value);
-                    }
-                } else if (designer->controls[i].is_type == IS_TOGGLE_BUTTON ||
-                        designer->controls[i].is_type == IS_IMAGE_TOGGLE) {
-                    printf (", [\n"
-                        "      a lv2:InputPort ,\n"
-                        "          lv2:ControlPort ;\n"
-                        "      lv2:index %i ;\n"
-                        "%s"
-                        "      lv2:portProperty lv2:toggled ;\n"
-                        "      lv2:symbol \"%s\" ;\n"
-                        "      lv2:name \"%s\" ;\n"
-                        "      lv2:default %i ;\n"
-                        "      lv2:minimum 0 ;\n"
-                        "      lv2:maximum 1 ;\n"
-                        "   ]", designer->is_project ? p : designer->controls[i].port_index,
-                            designer->controls[i].destignation_enabled ? "      lv2:designation lv2:enabled;\n" : "",
-                            xldl, xldl,
-                            designer->controls[i].destignation_enabled ? 1 : 0);
-                } else if (designer->controls[i].is_type == IS_BUTTON) {
-                    printf (", [\n"
-                        "      a lv2:InputPort ,\n"
-                        "          lv2:ControlPort ;\n"
-                        "      lv2:index %i ;\n"
-                        "      lv2:portProperty lv2:toggled, pprop:trigger ;\n"
-                        "      lv2:symbol \"%s\" ;\n"
-                        "      lv2:name \"%s\" ;\n"
-                        "      lv2:default 0 ;\n"
-                        "      lv2:minimum 0 ;\n"
-                        "      lv2:maximum 1 ;\n"
-                        "   ]", designer->is_project ? p : designer->controls[i].port_index,
-                             xldl, xldl);
-                }
+            "guiext:ui <%s> ;\n\n"
                 
-            }
-        }
-        p++;
-    }
-    printf (" .\n\n");
+            "rdfs:comment \"\"\"\n"
 
-    strdecode(name, " ", "_");
-    printf ("<%s>\n"
-        "   a guiext:X11UI;\n"
-        "   guiext:binary <%s_ui.so> ;\n"
-        "       lv2:extensionData guiext::idle ;\n"
-        "       lv2:extensionData guiext:resize ;\n"
-        "       lv2:extensionData guiext:idleInterface ;\n"
-        "       lv2:requiredFeature guiext:idleInterface ;\n"
-        "   .\n", designer->lv2c.ui_uri, name);
+            "...\n"
+
+            "\"\"\";\n\n", designer->lv2c.author, designer->lv2c.uri, designer->lv2c.plugintype,
+                    name, designer->lv2c.uri, designer->lv2c.ui_uri );
+
+
+        int i = 0;
+        int p = 0;
+        bool add_comma = false;
+        printf ("   lv2:port ");
+        for (;i<designer->lv2c.audio_input;i++) {
+            printf ("%s [\n"
+            "       a lv2:AudioPort ,\n"
+            "          lv2:InputPort ;\n"
+            "      lv2:index %i ;\n"
+            "      lv2:symbol \"in%i\" ;\n"
+            "      lv2:name \"In%i\" ;\n"
+            "   ]", add_comma ? ",": "", p, i, i);
+            p++;
+            add_comma = true;
+        }
+        i = 0;
+        for (;i<designer->lv2c.audio_output;i++) {
+            printf ("%s [\n"
+            "      a lv2:AudioPort ,\n"
+            "           lv2:OutputPort ;\n"
+            "      lv2:index %i ;\n"
+            "      lv2:symbol \"out%i\" ;\n"
+            "      lv2:name \"Out%i\" ;\n"
+            "   ]", add_comma ? ",": "", p, i, i);
+            p++;
+            add_comma = true;
+        }
+        if (designer->lv2c.midi_input) {
+
+            printf ("%s [\n"
+            "      a lv2:InputPort ,\n"
+            "          atom:AtomPort ;\n"
+            "      atom:bufferType atom:Sequence ;\n"
+            "      atom:supports midi:MidiEvent ,\n"
+            "           patch:Message ;\n"
+            "      lv2:designation lv2:control ;\n"
+            "      lv2:index %i ;\n"
+            "      lv2:symbol \"MIDI_IN\" ;\n"
+            "      lv2:name \"MIDI_IN\" ;\n"
+            "   ]", add_comma ? ",": "", p);
+            p++;
+            add_comma = true;
+        }
+        if (designer->lv2c.midi_output) {
+
+            printf ("%s [\n"
+            "      a lv2:OutputPort ,\n"
+            "          atom:AtomPort ;\n"
+            "      atom:bufferType atom:Sequence ;\n"
+            "      atom:supports midi:MidiEvent ,\n"
+            "           patch:Message ;\n"
+            "      lv2:designation lv2:control ;\n"
+            "      lv2:index %i ;\n"
+            "      lv2:symbol \"MIDI_OUT\" ;\n"
+            "      lv2:name \"MIDI_OUT\" ;\n"
+            "   ]", add_comma ? ",": "", p);
+            p++;
+            add_comma = true;
+        }
+        i = 0;
+        for (;i<MAX_CONTROLS;i++) {
+            if (designer->controls[i].wid != NULL) {
+                Widget_t * wid = designer->controls[i].wid;
+                if (designer->controls[i].is_type == IS_FRAME ||
+                    designer->controls[i].is_type == IS_TABBOX) {
+                    continue;
+                } else {
+                    char *xldl = NULL;
+                    asprintf(&xldl, "%s", designer->controls[i].wid->label);
+                    strtovar(xldl);
+                    if (designer->controls[i].have_adjustment) {
+                        if (designer->controls[i].is_type == IS_COMBOBOX) {
+                            Widget_t *menu = wid->childlist->childs[1];
+                            Widget_t* view_port =  menu->childlist->childs[0];
+                            ComboBox_t *comboboxlist = (ComboBox_t*)view_port->parent_struct;
+                            printf (", [\n"
+                                "      a lv2:InputPort ,\n"
+                                "          lv2:ControlPort ;\n"
+                                "      lv2:index %i ;\n"
+                                "      lv2:symbol \"%s\" ;\n"
+                                "      lv2:name \"%s\" ;\n"
+                                "      lv2:default %.1f ;\n"
+                                "      lv2:minimum %.1f ;\n"
+                                "      lv2:maximum %.1f ;\n"
+                                "      lv2:portProperty lv2:integer ;\n"
+                                "      lv2:portProperty lv2:enumeration ;\n"
+                                    , designer->is_project ? p : designer->controls[i].port_index, xldl,
+                                    xldl, wid->adj->std_value,
+                                    wid->adj->min_value, wid->adj->max_value);
+                            unsigned int k = 0;
+                            int l = (int)wid->adj->min_value;
+                            for(; k<comboboxlist->list_size;k++) {
+                                printf ("      lv2:scalePoint [rdfs:label \"%s\"; rdf:value %i];\n", comboboxlist->list_names[k],l);
+                                l++;
+                            }
+                            printf ("]");
+                        } else if (designer->controls[i].is_type == IS_VMETER ||
+                                designer->controls[i].is_type == IS_HMETER) {
+                            printf (", [\n"
+                                "      a lv2:OutputPort ,\n"
+                                "          lv2:ControlPort ;\n"
+                                "      lv2:index %i ;\n"
+                                "      lv2:symbol \"%s\" ;\n"
+                                "      lv2:name \"%s\" ;\n"
+                                "      lv2:default %f ;\n"
+                                "      lv2:minimum %f ;\n"
+                                "      lv2:maximum %f ;\n"
+                                "   ]", designer->is_project ? p : designer->controls[i].port_index, xldl,
+                                    xldl, wid->adj->std_value,
+                                    wid->adj->min_value, wid->adj->max_value);
+                        } else {
+                            printf (", [\n"
+                                "      a lv2:InputPort ,\n"
+                                "          lv2:ControlPort ;\n"
+                                "      lv2:index %i ;\n"
+                                "      lv2:symbol \"%s\" ;\n"
+                                "      lv2:name \"%s\" ;\n"
+                                "      lv2:default %f ;\n"
+                                "      lv2:minimum %f ;\n"
+                                "      lv2:maximum %f ;\n"
+                                "   ]", designer->is_project ? p : designer->controls[i].port_index, xldl,
+                                    xldl, wid->adj->std_value,
+                                    wid->adj->min_value, wid->adj->max_value);
+                        }
+                    } else if (designer->controls[i].is_type == IS_TOGGLE_BUTTON ||
+                            designer->controls[i].is_type == IS_IMAGE_TOGGLE) {
+                        printf (", [\n"
+                            "      a lv2:InputPort ,\n"
+                            "          lv2:ControlPort ;\n"
+                            "      lv2:index %i ;\n"
+                            "%s"
+                            "      lv2:portProperty lv2:toggled ;\n"
+                            "      lv2:symbol \"%s\" ;\n"
+                            "      lv2:name \"%s\" ;\n"
+                            "      lv2:default %i ;\n"
+                            "      lv2:minimum 0 ;\n"
+                            "      lv2:maximum 1 ;\n"
+                            "   ]", designer->is_project ? p : designer->controls[i].port_index,
+                                designer->controls[i].destignation_enabled ? "      lv2:designation lv2:enabled;\n" : "",
+                                xldl, xldl,
+                                designer->controls[i].destignation_enabled ? 1 : 0);
+                    } else if (designer->controls[i].is_type == IS_BUTTON) {
+                        printf (", [\n"
+                            "      a lv2:InputPort ,\n"
+                            "          lv2:ControlPort ;\n"
+                            "      lv2:index %i ;\n"
+                            "      lv2:portProperty lv2:toggled, pprop:trigger ;\n"
+                            "      lv2:symbol \"%s\" ;\n"
+                            "      lv2:name \"%s\" ;\n"
+                            "      lv2:default 0 ;\n"
+                            "      lv2:minimum 0 ;\n"
+                            "      lv2:maximum 1 ;\n"
+                            "   ]", designer->is_project ? p : designer->controls[i].port_index,
+                                 xldl, xldl);
+                    }
+                    
+                }
+            }
+            p++;
+        }
+        printf (" .\n\n");
+
+        strdecode(name, " ", "_");
+        printf ("<%s>\n"
+            "   a guiext:X11UI;\n"
+            "   guiext:binary <%s_ui.so> ;\n"
+            "       lv2:extensionData guiext::idle ;\n"
+            "       lv2:extensionData guiext:resize ;\n"
+            "       lv2:extensionData guiext:idleInterface ;\n"
+            "       lv2:requiredFeature guiext:idleInterface ;\n"
+            "   .\n", designer->lv2c.ui_uri, name);
+    } else {
+        printf ("<%s>\n"
+            "   lv2:extensionData guiext::idle ;\n"
+            "   lv2:extensionData guiext:resize ;\n"
+            "   lv2:extensionData guiext:idleInterface ;\n"
+            "   lv2:requiredFeature guiext:idleInterface ;\n"
+            "   .\n", designer->lv2c.ui_uri);
+        
+    }
     free(name);
 }
