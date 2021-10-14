@@ -15,6 +15,8 @@ so as LV2_ATOM__Path.
 XUiDesigner use the environment variable LV2_PATH to scan for plugins when no path is given with the
 -p command-line parameter.
 So you could easily create a GUI for a existing plugin.
+The created GUI could be saved as UI-Bundle, which then could be build (just make) and installed (just make install)
+to replace or provide a new GUI for the plugin. 
 
 Additional control widgets could be created and moved freely around in the top Window, or,
 a grid could be displayed and widgets could snap to grid (left, right, Center) to order them easily. 
@@ -25,7 +27,7 @@ You could set the range for a controller, and it's default value, You could crea
 
 Most Control widgets could be replaced with images you could select from a included file browser.
 
-You could as well create a LV2 plugin from scratch and save it to a selected location.
+You could as well create a LV2 plugin from scratch and save it as Full Plugin-Bundle to a selected location.
 The project settings window allow to setup the specs (like Author name, URI, Audio/Midi ports, etc.) for your plugin 
 XUIDesigner save the bundle in a git repository format, contain a working LV2 plugin with all needed resources 
 (ttl files, converted C files from used images, etc.) and build files to build, install and run it.
