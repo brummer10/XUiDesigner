@@ -47,10 +47,10 @@ void print_manifest(XUiDesigner *designer) {
             "\n@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .\n"
             "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n"
 
-            "<%s>\n"
-            "    a guiext:X11UI ;\n"
-            "    guiext:binary <%s_ui.so> ;\n"
-            "    rdfs:seeAlso <%s_ui.ttl> .\n", designer->lv2c.ui_uri, name, name);
+            "<%s> guiext:ui <%s> .\n"
+            "    <%s> a guiext:X11UI ;\n"
+            "    lv2:binary <%s_ui.so> ;\n"
+            "    rdfs:seeAlso <%s_ui.ttl> .\n", designer->lv2c.uri, designer->lv2c.ui_uri, designer->lv2c.ui_uri, name, name);
     }
     free(name);
 }
