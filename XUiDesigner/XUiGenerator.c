@@ -633,7 +633,7 @@ void run_save(void *w_, void* user_data) {
             fp = NULL;
             strdecode(filename, ".cpp", ".ttl");
         } else {
-            strdecode(filename, ".c", "_ui.ttl");
+            asprintf(&filename, "%s%s_ui/%s/%s_ui.ttl",*(const char**)user_data,name,name,name);
         }
         
         if((fp=freopen(filename, "w" ,stdout))==NULL) {
