@@ -135,6 +135,8 @@ typedef struct {
     int audio_output;
     int midi_input;
     int midi_output;
+    int atom_output_port;
+    int atom_input_port;
     int bypass;
     bool is_input_port;
     bool is_output_port;

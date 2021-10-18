@@ -193,6 +193,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 x1 += 80;
             }
             wid = add_file_button(designer->ui, x, y, 60, 60, "", "");
+            wid->label = designer->new_label[designer->active_widget_num];
             set_controller_callbacks(designer, wid, false);
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_file_button", false, IS_FILE_BUTTON);
@@ -401,9 +402,9 @@ void load_plugin_ui(void* w_, void* user_data) {
                     designer->lv2c.is_atom_patch = true;
                     designer->lv2c.is_patch_path = true;
                     designer->lv2c.Port_Index = -4;
-                    asprintf (&designer->new_label[designer->active_widget_num], "%s",lilv_node_as_uri(property));
-                    create_controller(designer, plugin, NULL, &x, &y, &x1, &y1);
-                   // wid->parent_struct = (void*)lilv_node_as_uri(property);
+                    asprintf (&designer->new_label[designer->active_widget_num], "%s",label);
+                    Widget_t * wid = create_controller(designer, plugin, NULL, &x, &y, &x1, &y1);
+                    wid->parent_struct = (void*)lilv_node_as_uri(property);
                     //fprintf(stderr, "%s is path\n", label);
                 } else if (lilv_node_equals(range, is_a_int)) {
                     designer->lv2c.is_input_port = true;
@@ -450,6 +451,11 @@ void load_plugin_ui(void* w_, void* user_data) {
                     n_cv++;
                     continue;
                 } else if (lilv_port_is_a(plugin, port, lv2_AtomPort)) {
+                    if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
+                        designer->lv2c.atom_input_port = n;
+                    } else if (lilv_port_is_a(plugin, port, lv2_OutputPort)) {
+                        designer->lv2c.atom_output_port = n;
+                    }
                     n_atoms++;
                     continue;
                 } else if (lilv_port_has_property(plugin, port, notOnGui)) {
@@ -553,6 +559,7 @@ void load_plugin_ui(void* w_, void* user_data) {
         lilv_node_free(patch_readable);
         lilv_node_free(patch_writable);
     }
+    //print_list(designer);
     widget_show_all(designer->ui);
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
 }

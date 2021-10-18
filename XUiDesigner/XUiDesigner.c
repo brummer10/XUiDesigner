@@ -921,6 +921,8 @@ int main (int argc, char ** argv) {
     designer->lv2c.audio_output = 1;
     designer->lv2c.midi_input = 0;
     designer->lv2c.midi_output = 0;
+    designer->lv2c.atom_output_port = -1;
+    designer->lv2c.atom_input_port = -1;
     designer->lv2c.bypass = 0;
     designer->grid_width = 30;
     designer->grid_height = 15;

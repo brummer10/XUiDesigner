@@ -248,6 +248,13 @@ Widget_t* add_lv2_tab(Widget_t *w, Widget_t *p, PortIndex index, const char * la
     return w;
 }
 
+Widget_t* add_lv2_file_button(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_file_button(p, x, y, width, height, "", "");
+    w->data = index;
+    return w;
+}
+
 void load_bg_image(X11_UI* ui, const char* image) {
     cairo_surface_t *getpng = cairo_image_surface_create_from_png (image);
     int width = cairo_image_surface_get_width(getpng);
@@ -315,6 +322,10 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
             ui->parentXwindow = features[i]->data;
         } else if (!strcmp(features[i]->URI, LV2_UI__resize)) {
             ui->resize = (LV2UI_Resize*)features[i]->data;
+#ifdef USE_ATOM
+        } else if (!strcmp(features[i]->URI, LV2_URID_URI "#map")) {
+            ui->map = (LV2_URID_Map*)features[i]->data;
+#endif
         }
     }
 

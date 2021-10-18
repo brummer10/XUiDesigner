@@ -21,9 +21,20 @@
 
 #include "lv2/lv2plug.in/ns/lv2core/lv2.h"
 #include "lv2/lv2plug.in/ns/extensions/ui/ui.h"
-
+#include "lv2/lv2plug.in/ns/ext/state/state.h"
+#include "lv2/lv2plug.in/ns/ext/worker/worker.h"
+#ifdef USE_ATOM
+#include <lv2/lv2plug.in/ns/ext/atom/atom.h>
+#include <lv2/lv2plug.in/ns/ext/atom/util.h>
+#include "lv2/lv2plug.in/ns/ext/atom/forge.h"
+#include <lv2/lv2plug.in/ns/ext/midi/midi.h>
+#include <lv2/lv2plug.in/ns/ext/urid/urid.h>
+#include "lv2/lv2plug.in/ns/ext/patch/patch.h"
+#include "lv2/lv2plug.in/ns/ext/options/options.h"
+#endif
 // xwidgets.h includes xputty.h and all defined widgets from Xputty
 #include "xwidgets.h"
+#include "xfile-dialog.h"
 
 #pragma once
 
@@ -68,7 +79,9 @@ typedef struct {
     KnobColors *kp;
     void *private_ptr;
     int need_resize;
-
+#ifdef USE_ATOM
+    LV2_URID_Map* map;
+#endif
     void *controller;
     LV2UI_Write_Function write_function;
     LV2UI_Resize* resize;
@@ -130,6 +143,9 @@ Widget_t* add_lv2_tabbox(Widget_t *w, Widget_t *p, PortIndex index, const char *
                                 X11_UI* ui, int x, int y, int width, int height);
 
 Widget_t* add_lv2_tab(Widget_t *w, Widget_t *p, PortIndex index, const char * label, X11_UI* ui);
+
+Widget_t* add_lv2_file_button(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height);
 
 void load_bg_image(X11_UI* ui, const char* image);
 

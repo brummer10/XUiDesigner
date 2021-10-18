@@ -262,7 +262,7 @@ void print_ttl(XUiDesigner *designer) {
                             "   ]", designer->is_project ? p : designer->controls[i].port_index,
                                  xldl, xldl);
                     }
-                    
+                    free(xldl);
                 }
             }
             p++;
