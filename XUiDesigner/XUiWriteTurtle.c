@@ -106,65 +106,90 @@ void print_ttl(XUiDesigner *designer) {
             "\"\"\";\n\n", designer->lv2c.author, designer->lv2c.uri, designer->lv2c.plugintype,
                     name, designer->lv2c.uri, designer->lv2c.ui_uri );
 
-
         int i = 0;
+        for (;i<MAX_CONTROLS;i++) {
+            if (designer->controls[i].is_atom_patch) {
+                Widget_t * wid = designer->controls[i].wid;
+                const char* uri = (const char*) wid->parent_struct;
+                printf("\n<%s>\n"
+                       "    a lv2:Parameter ;\n"
+                       "        rdfs:label \"%s\" ;\n", uri, wid->label);
+                if (designer->controls[i].port_index == -1) printf("        rdfs:range atom:Float");
+                else if (designer->controls[i].port_index == -2) printf("        rdfs:range atom:Int");
+                else if (designer->controls[i].port_index == -3) printf("        rdfs:range atom:Bool");
+                else if (designer->controls[i].port_index == -4) printf("        rdfs:range atom:Path");
+                if (designer->controls[i].have_adjustment) {
+                    printf(" ;\n"
+                           "        lv2:default %f ;\n"
+                           "        lv2:minimum %f ;\n"
+                           "        lv2:maximum %f .\n", wid->adj->std_value,
+                                    wid->adj->min_value, wid->adj->max_value);
+                } else {
+                    printf(" .\n");
+                }
+            }
+        }
+        
+        i = 0;
         int p = 0;
         bool add_comma = false;
-        printf ("   lv2:port ");
-        for (;i<designer->lv2c.audio_input;i++) {
-            printf ("%s [\n"
-            "       a lv2:AudioPort ,\n"
-            "          lv2:InputPort ;\n"
-            "      lv2:index %i ;\n"
-            "      lv2:symbol \"in%i\" ;\n"
-            "      lv2:name \"In%i\" ;\n"
-            "   ]", add_comma ? ",": "", p, i, i);
-            p++;
-            add_comma = true;
-        }
-        i = 0;
-        for (;i<designer->lv2c.audio_output;i++) {
-            printf ("%s [\n"
-            "      a lv2:AudioPort ,\n"
-            "           lv2:OutputPort ;\n"
-            "      lv2:index %i ;\n"
-            "      lv2:symbol \"out%i\" ;\n"
-            "      lv2:name \"Out%i\" ;\n"
-            "   ]", add_comma ? ",": "", p, i, i);
-            p++;
-            add_comma = true;
-        }
-        if (designer->lv2c.midi_input) {
+        printf ("\n   lv2:port ");
+        if (designer->is_project) {
+            for (;i<designer->lv2c.audio_input;i++) {
+                printf ("%s [\n"
+                "       a lv2:AudioPort ,\n"
+                "          lv2:InputPort ;\n"
+                "      lv2:index %i ;\n"
+                "      lv2:symbol \"in%i\" ;\n"
+                "      lv2:name \"In%i\" ;\n"
+                "   ]", add_comma ? ",": "", p, i, i);
+                p++;
+                add_comma = true;
+            }
+            i = 0;
+            for (;i<designer->lv2c.audio_output;i++) {
+                printf ("%s [\n"
+                "      a lv2:AudioPort ,\n"
+                "           lv2:OutputPort ;\n"
+                "      lv2:index %i ;\n"
+                "      lv2:symbol \"out%i\" ;\n"
+                "      lv2:name \"Out%i\" ;\n"
+                "   ]", add_comma ? ",": "", p, i, i);
+                p++;
+                add_comma = true;
+            }
+            if (designer->lv2c.midi_input) {
 
-            printf ("%s [\n"
-            "      a lv2:InputPort ,\n"
-            "          atom:AtomPort ;\n"
-            "      atom:bufferType atom:Sequence ;\n"
-            "      atom:supports midi:MidiEvent ,\n"
-            "           patch:Message ;\n"
-            "      lv2:designation lv2:control ;\n"
-            "      lv2:index %i ;\n"
-            "      lv2:symbol \"MIDI_IN\" ;\n"
-            "      lv2:name \"MIDI_IN\" ;\n"
-            "   ]", add_comma ? ",": "", p);
-            p++;
-            add_comma = true;
-        }
-        if (designer->lv2c.midi_output) {
+                printf ("%s [\n"
+                "      a lv2:InputPort ,\n"
+                "          atom:AtomPort ;\n"
+                "      atom:bufferType atom:Sequence ;\n"
+                "      atom:supports midi:MidiEvent ,\n"
+                "           patch:Message ;\n"
+                "      lv2:designation lv2:control ;\n"
+                "      lv2:index %i ;\n"
+                "      lv2:symbol \"MIDI_IN\" ;\n"
+                "      lv2:name \"MIDI_IN\" ;\n"
+                "   ]", add_comma ? ",": "", p);
+                p++;
+                add_comma = true;
+            }
+            if (designer->lv2c.midi_output) {
 
-            printf ("%s [\n"
-            "      a lv2:OutputPort ,\n"
-            "          atom:AtomPort ;\n"
-            "      atom:bufferType atom:Sequence ;\n"
-            "      atom:supports midi:MidiEvent ,\n"
-            "           patch:Message ;\n"
-            "      lv2:designation lv2:control ;\n"
-            "      lv2:index %i ;\n"
-            "      lv2:symbol \"MIDI_OUT\" ;\n"
-            "      lv2:name \"MIDI_OUT\" ;\n"
-            "   ]", add_comma ? ",": "", p);
-            p++;
-            add_comma = true;
+                printf ("%s [\n"
+                "      a lv2:OutputPort ,\n"
+                "          atom:AtomPort ;\n"
+                "      atom:bufferType atom:Sequence ;\n"
+                "      atom:supports midi:MidiEvent ,\n"
+                "           patch:Message ;\n"
+                "      lv2:designation lv2:control ;\n"
+                "      lv2:index %i ;\n"
+                "      lv2:symbol \"MIDI_OUT\" ;\n"
+                "      lv2:name \"MIDI_OUT\" ;\n"
+                "   ]", add_comma ? ",": "", p);
+                p++;
+                add_comma = true;
+            }
         }
         i = 0;
         for (;i<MAX_CONTROLS;i++) {
@@ -174,6 +199,10 @@ void print_ttl(XUiDesigner *designer) {
                     designer->controls[i].is_type == IS_TABBOX) {
                     continue;
                 } else {
+                    if (designer->controls[i].is_atom_patch) {
+                        continue;
+                    }
+                    strtosym(designer->controls[i].symbol);
                     char *xldl = NULL;
                     asprintf(&xldl, "%s", designer->controls[i].wid->label);
                     strtovar(xldl);
@@ -182,7 +211,7 @@ void print_ttl(XUiDesigner *designer) {
                             Widget_t *menu = wid->childlist->childs[1];
                             Widget_t* view_port =  menu->childlist->childs[0];
                             ComboBox_t *comboboxlist = (ComboBox_t*)view_port->parent_struct;
-                            printf (", [\n"
+                            printf ("%s [\n"
                                 "      a lv2:InputPort ,\n"
                                 "          lv2:ControlPort ;\n"
                                 "      lv2:index %i ;\n"
@@ -193,9 +222,10 @@ void print_ttl(XUiDesigner *designer) {
                                 "      lv2:maximum %.1f ;\n"
                                 "      lv2:portProperty lv2:integer ;\n"
                                 "      lv2:portProperty lv2:enumeration ;\n"
-                                    , designer->is_project ? p : designer->controls[i].port_index, xldl,
-                                    xldl, wid->adj->std_value,
+                                    , add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
+                                    designer->controls[i].symbol, xldl, wid->adj->std_value,
                                     wid->adj->min_value, wid->adj->max_value);
+                                add_comma = true;
                             unsigned int k = 0;
                             int l = (int)wid->adj->min_value;
                             for(; k<comboboxlist->list_size;k++) {
@@ -205,7 +235,7 @@ void print_ttl(XUiDesigner *designer) {
                             printf ("]");
                         } else if (designer->controls[i].is_type == IS_VMETER ||
                                 designer->controls[i].is_type == IS_HMETER) {
-                            printf (", [\n"
+                            printf ("%s [\n"
                                 "      a lv2:OutputPort ,\n"
                                 "          lv2:ControlPort ;\n"
                                 "      lv2:index %i ;\n"
@@ -214,11 +244,12 @@ void print_ttl(XUiDesigner *designer) {
                                 "      lv2:default %f ;\n"
                                 "      lv2:minimum %f ;\n"
                                 "      lv2:maximum %f ;\n"
-                                "   ]", designer->is_project ? p : designer->controls[i].port_index, xldl,
-                                    xldl, wid->adj->std_value,
+                                "   ]", add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
+                                    designer->controls[i].symbol, xldl, wid->adj->std_value,
                                     wid->adj->min_value, wid->adj->max_value);
+                                add_comma = true;
                         } else {
-                            printf (", [\n"
+                            printf ("%s [\n"
                                 "      a lv2:InputPort ,\n"
                                 "          lv2:ControlPort ;\n"
                                 "      lv2:index %i ;\n"
@@ -227,13 +258,62 @@ void print_ttl(XUiDesigner *designer) {
                                 "      lv2:default %f ;\n"
                                 "      lv2:minimum %f ;\n"
                                 "      lv2:maximum %f ;\n"
-                                "   ]", designer->is_project ? p : designer->controls[i].port_index, xldl,
-                                    xldl, wid->adj->std_value,
+                                "   ]", add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
+                                    designer->controls[i].symbol, xldl, wid->adj->std_value,
                                     wid->adj->min_value, wid->adj->max_value);
+                                add_comma = true;
                         }
+                    } else if (designer->controls[i].is_audio_input) {
+                        printf ("%s [\n"
+                            "       a lv2:AudioPort ,\n"
+                            "          lv2:InputPort ;\n"
+                            "      lv2:index %i ;\n"
+                            "      lv2:symbol \"%s\" ;\n"
+                            "      lv2:name \"%s\" ;\n"
+                            "   ]", add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
+                                designer->controls[i].symbol, xldl);
+                            add_comma = true;
+                    } else if (designer->controls[i].is_audio_output) {
+                        printf ("%s [\n"
+                            "       a lv2:AudioPort ,\n"
+                            "          lv2:OutputPort ;\n"
+                            "      lv2:index %i ;\n"
+                            "      lv2:symbol \"%s\" ;\n"
+                            "      lv2:name \"%s\" ;\n"
+                            "   ]", add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
+                                designer->controls[i].symbol, xldl);                        
+                            add_comma = true;
+                    } else if (designer->controls[i].is_atom_output) {
+                        printf ("%s [\n"
+                            "      a lv2:OutputPort ,\n"
+                            "          atom:AtomPort ;\n"
+                            "      atom:bufferType atom:Sequence ;\n"
+                            "      atom:supports midi:MidiEvent ,\n"
+                            "           patch:Message ;\n"
+                            "      lv2:designation lv2:control ;\n"
+                            "      lv2:index %i ;\n"
+                            "      lv2:symbol \"%s\" ;\n"
+                            "      lv2:name \"%s\" ;\n"
+                            "   ]", add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
+                                designer->controls[i].symbol, xldl);
+                            add_comma = true;
+                    } else if (designer->controls[i].is_atom_input) {
+                        printf ("%s [\n"
+                            "      a lv2:InputPort ,\n"
+                            "          atom:AtomPort ;\n"
+                            "      atom:bufferType atom:Sequence ;\n"
+                            "      atom:supports midi:MidiEvent ,\n"
+                            "           patch:Message ;\n"
+                            "      lv2:designation lv2:control ;\n"
+                            "      lv2:index %i ;\n"
+                            "      lv2:symbol \"%s\" ;\n"
+                            "      lv2:name \"%s\" ;\n"
+                            "   ]", add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
+                                designer->controls[i].symbol, xldl);
+                            add_comma = true;
                     } else if (designer->controls[i].is_type == IS_TOGGLE_BUTTON ||
                             designer->controls[i].is_type == IS_IMAGE_TOGGLE) {
-                        printf (", [\n"
+                        printf ("%s [\n"
                             "      a lv2:InputPort ,\n"
                             "          lv2:ControlPort ;\n"
                             "      lv2:index %i ;\n"
@@ -244,12 +324,13 @@ void print_ttl(XUiDesigner *designer) {
                             "      lv2:default %i ;\n"
                             "      lv2:minimum 0 ;\n"
                             "      lv2:maximum 1 ;\n"
-                            "   ]", designer->is_project ? p : designer->controls[i].port_index,
+                            "   ]", add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
                                 designer->controls[i].destignation_enabled ? "      lv2:designation lv2:enabled;\n" : "",
-                                xldl, xldl,
+                                designer->controls[i].symbol, xldl,
                                 designer->controls[i].destignation_enabled ? 1 : 0);
+                            add_comma = true;
                     } else if (designer->controls[i].is_type == IS_BUTTON) {
-                        printf (", [\n"
+                        printf ("%s, [\n"
                             "      a lv2:InputPort ,\n"
                             "          lv2:ControlPort ;\n"
                             "      lv2:index %i ;\n"
@@ -259,32 +340,65 @@ void print_ttl(XUiDesigner *designer) {
                             "      lv2:default 0 ;\n"
                             "      lv2:minimum 0 ;\n"
                             "      lv2:maximum 1 ;\n"
-                            "   ]", designer->is_project ? p : designer->controls[i].port_index,
-                                 xldl, xldl);
+                            "   ]", add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
+                                 designer->controls[i].symbol, xldl);
+                            add_comma = true;
                     }
                     free(xldl);
                 }
             }
             p++;
         }
+        i = 0;
+        for (;i<MAX_CONTROLS;i++) {
+            if (designer->controls[i].is_atom_patch) {
+                Widget_t * wid = designer->controls[i].wid;
+                printf (" ;\npatch:writable <%s>", (const char*) wid->parent_struct);
+            }
+        }
         printf (" .\n\n");
-
         strdecode(name, " ", "_");
-        printf ("<%s>\n"
+        printf ("\n<%s>\n"
             "   a guiext:X11UI;\n"
             "   guiext:binary <%s_ui.so> ;\n"
             "       lv2:extensionData guiext::idle ;\n"
             "       lv2:extensionData guiext:resize ;\n"
             "       lv2:extensionData guiext:idleInterface ;\n"
-            "       lv2:requiredFeature guiext:idleInterface ;\n"
-            "   .\n", designer->lv2c.ui_uri, name);
+            "       lv2:requiredFeature guiext:idleInterface ;"
+            , designer->lv2c.ui_uri, name);
+        i = 0;
+        for (;i<MAX_CONTROLS;i++) {
+            if (designer->controls[i].wid != NULL) {
+                if (designer->controls[i].is_atom_output) {
+                    printf ("\n       guiext:portNotification [\n"
+                        "           guiext:plugin  <%s> ;\n"
+                        "           lv2:symbol \"%s\" ;\n"
+                        "           guiext:notifyType atom:Blank\n"
+                        "       ] " , designer->lv2c.uri, designer->controls[i].symbol);
+                }
+            }
+        }
+        printf (" .\n");
     } else {
+        int i = 0;
         printf ("<%s>\n"
             "   lv2:extensionData guiext::idle ;\n"
             "   lv2:extensionData guiext:resize ;\n"
             "   lv2:extensionData guiext:idleInterface ;\n"
-            "   lv2:requiredFeature guiext:idleInterface ;\n"
-            "   .\n", designer->lv2c.ui_uri);
+            "   lv2:requiredFeature guiext:idleInterface ;"
+            , designer->lv2c.ui_uri);
+        for (;i<MAX_CONTROLS;i++) {
+            if (designer->controls[i].wid != NULL) {
+                if (designer->controls[i].is_atom_output) {
+                    printf ("\n       guiext:portNotification [\n"
+                        "           guiext:plugin  <%s> ;\n"
+                        "           lv2:symbol \"%s\" ;\n"
+                        "           guiext:notifyType atom:Blank\n"
+                        "       ] " , designer->lv2c.uri, designer->controls[i].symbol);
+                }
+            }
+        }
+        printf (" .\n");
         
     }
     free(name);

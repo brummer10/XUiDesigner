@@ -25,33 +25,17 @@
 
 #pragma once
 
-#ifndef XUIGENERATOR_H_
-#define XUIGENERATOR_H_
+#ifndef XUIWRITEUI_H_
+#define XUIWRITEUI_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void strtovar(char* c);
-
-void strtosym(char* c);
-
-void strtoguard(char* c);
-
-void remove_from_list(XUiDesigner *designer, Widget_t *wid);
-
-void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
-                                    bool have_adjustment, WidgetType is_type);
-
 void print_list(XUiDesigner *designer);
-
-
-void run_test(void *w_, void* user_data);
-
-void run_save(void *w_, void* user_data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //XUIGENERATOR_H_
+#endif //XUIWRITEUI_H_

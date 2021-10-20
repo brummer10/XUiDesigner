@@ -566,6 +566,9 @@ void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_des
     adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)+1.0);
     designer->controls[designer->wid_counter].port_index = adj_get_value(designer->index->adj);
     designer->controls[designer->wid_counter].in_frame = 0;
+    free(designer->controls[designer->active_widget_num].symbol);
+    designer->controls[designer->active_widget_num].symbol = NULL;
+    asprintf (&designer->controls[designer->active_widget_num].symbol, "%s",wid->label);
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
     if (set_designer) {
         set_designer_callbacks(designer, wid);
@@ -917,6 +920,7 @@ int main (int argc, char ** argv) {
     asprintf(&designer->lv2c.author, "%s", getUserName());
     designer->lv2c.plugintype = NULL;
     asprintf(&designer->lv2c.plugintype, "%s", "MixerPlugin");
+    designer->lv2c.symbol = NULL;
     designer->lv2c.audio_input = 1;
     designer->lv2c.audio_output = 1;
     designer->lv2c.midi_input = 0;
@@ -952,6 +956,7 @@ int main (int argc, char ** argv) {
         designer->controls[m].grid_snap_option = 0;
         designer->controls[m].destignation_enabled = false;
         designer->controls[m].name = NULL;
+        designer->controls[m].symbol = NULL;
     }
 
     //set_light_theme(&app);
@@ -1218,12 +1223,16 @@ int main (int argc, char ** argv) {
     m = 0;
     for (;m<MAX_CONTROLS;m++) {
         free(designer->controls[m].name);
+        free(designer->controls[m].symbol);
     }
     free(designer->tab_label);
     free(designer->image_path);
     free(designer->image);
     free(designer->lv2c.ui_uri);
     free(designer->lv2c.uri);
+    free(designer->lv2c.author);
+    free(designer->lv2c.plugintype);
+    free(designer->lv2c.symbol);
     m = 0;
     for (;m<MAX_CONTROLS;m++) {
         free(designer->controls[m].image);

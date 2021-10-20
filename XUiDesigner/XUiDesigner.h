@@ -111,6 +111,10 @@ typedef struct {
     uint32_t port_index;
     bool destignation_enabled;
     bool is_atom_patch;
+    bool is_audio_output;
+    bool is_audio_input;
+    bool is_atom_output;
+    bool is_atom_input;
     bool have_adjustment;
     int grid_snap_option;
     const char* type;
@@ -118,6 +122,7 @@ typedef struct {
     int in_tab;
     int tab_box;
     char* name;
+    char* symbol;
 } Controller;
 
 /*---------------------------------------------------------------------
@@ -131,6 +136,7 @@ typedef struct {
     char* uri;
     char* author;
     char* plugintype;
+    char* symbol;
     int audio_input;
     int audio_output;
     int midi_input;
@@ -138,8 +144,10 @@ typedef struct {
     int atom_output_port;
     int atom_input_port;
     int bypass;
+    bool is_audio_port;
     bool is_input_port;
     bool is_output_port;
+    bool is_atom_port;
     bool is_atom_patch;
     bool is_patch_path;
     bool is_toggle_port;
