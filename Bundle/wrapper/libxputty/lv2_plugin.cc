@@ -98,6 +98,16 @@ static void draw_window(void *w_, void* user_data) {
         cairo_set_source_surface (w->crb, w->image, 0, 0);
         cairo_paint (w->crb);
     }
+#ifdef USE_ATOM
+    X11_UI* ui = (X11_UI*)w->parent_struct;
+    X11_UI_Private_t *ps = (X11_UI_Private_t*)ui->private_ptr;
+    if (strlen(ps->filename)) {
+        cairo_text_extents(w->crb, basename(ps->filename), &extents);
+        double twf = extents.width/2.0;
+        cairo_move_to (w->crb, max(5,(w->scale.init_width*0.5)-twf), w->scale.init_y+20 );
+        cairo_show_text(w->crb, basename(ps->filename));       
+    }
+#endif
     cairo_move_to (w->crb, (w->scale.init_width*0.5)-tw, w->scale.init_height-10 );
     cairo_show_text(w->crb, w->label);
     widget_reset_scale(w);
