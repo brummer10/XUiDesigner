@@ -36,6 +36,7 @@
 #include <lv2/lv2plug.in/ns/ext/uri-map/uri-map.h>
 #include <lv2/lv2plug.in/ns/ext/port-props/port-props.h>
 #include "lv2/lv2plug.in/ns/ext/patch/patch.h"
+#include "lv2/lv2plug.in/ns/extensions/ui/ui.h"
 
 #include "xwidgets.h"
 #include "xmessage-dialog.h"
@@ -135,6 +136,7 @@ typedef struct {
     char* ui_uri;
     char* uri;
     char* author;
+    char* name;
     char* plugintype;
     char* symbol;
     int audio_input;

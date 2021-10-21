@@ -139,7 +139,7 @@ static void set_project(void *w_, void* user_data) {
         designer->lv2c.midi_input = adj_get_value(designer->project_midi_input->adj);
         designer->lv2c.midi_output = adj_get_value(designer->project_midi_output->adj);
         widget_hide(designer->set_project);
-        designer->is_project = true;
+        //designer->is_project = true;
     }
 }
 

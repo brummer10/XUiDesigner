@@ -377,6 +377,7 @@ void load_plugin_ui(void* w_, void* user_data) {
         LilvNode* has_step = lilv_new_uri(designer->world, LV2_PORT_PROPS__rangeSteps);
         LilvNode* is_trigger = lilv_new_uri(designer->world, LV2_PORT_PROPS__trigger);
         LilvNode* is_ena = lilv_new_uri(designer->world, LV2_CORE__enabled);
+        LilvNode* ui_X11UI = lilv_new_uri(designer->world, LV2_UI__X11UI);
 
         LilvNode* patch_writable = lilv_new_uri(designer->world, LV2_PATCH__writable);
         LilvNode* patch_readable = lilv_new_uri(designer->world, LV2_PATCH__readable);
@@ -399,7 +400,7 @@ void load_plugin_ui(void* w_, void* user_data) {
             free(designer->lv2c.author);
             designer->lv2c.author = NULL;
             asprintf(&designer->lv2c.author, "%s", lilv_node_as_string(author));
-         
+
             LilvNode* nd = NULL;
             //const LilvNode* uri = lilv_plugin_get_uri(plugin);
             LilvUIs* uis = lilv_plugin_get_uis(plugin);
@@ -411,7 +412,11 @@ void load_plugin_ui(void* w_, void* user_data) {
                 if (ui_uri) {
                     free(designer->lv2c.ui_uri);
                     designer->lv2c.ui_uri = NULL;
-                    asprintf(&designer->lv2c.ui_uri, "%s", lilv_node_as_string(ui_uri));
+                    if (lilv_ui_is_a(ui, ui_X11UI)) {
+                        asprintf(&designer->lv2c.ui_uri, "%s", lilv_node_as_string(ui_uri));
+                    } else {
+                        asprintf(&designer->lv2c.ui_uri, "%s-x", lilv_node_as_string(ui_uri));
+                    }
                     break;
                 }
                 
@@ -419,7 +424,11 @@ void load_plugin_ui(void* w_, void* user_data) {
             lilv_uis_free(uis);
             nd = lilv_plugin_get_name(plugin);
             if (nd) {
-                widget_set_title(designer->ui, lilv_node_as_string(nd));
+                free(designer->lv2c.name);
+                asprintf(&designer->lv2c.name, "%s", lilv_node_as_string(nd));
+                strdecode(designer->lv2c.name, "(", "_");
+                strdecode(designer->lv2c.name, ")", "_");
+                widget_set_title(designer->ui, designer->lv2c.name);
             }
             int n_in = 0;
             int n_out = 0;
@@ -705,8 +714,11 @@ void load_plugin_ui(void* w_, void* user_data) {
         lilv_node_free(has_step);
         lilv_node_free(is_trigger);
         lilv_node_free(is_ena);
+        lilv_node_free(ui_X11UI);
         lilv_node_free(patch_readable);
         lilv_node_free(patch_writable);
+    } else {
+        designer->is_project = true;
     }
     //print_list(designer);
     //print_ttl(designer);

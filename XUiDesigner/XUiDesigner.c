@@ -921,6 +921,7 @@ int main (int argc, char ** argv) {
     designer->lv2c.plugintype = NULL;
     asprintf(&designer->lv2c.plugintype, "%s", "MixerPlugin");
     designer->lv2c.symbol = NULL;
+    designer->lv2c.name = NULL;
     designer->lv2c.audio_input = 1;
     designer->lv2c.audio_output = 1;
     designer->lv2c.midi_input = 0;
@@ -1231,6 +1232,7 @@ int main (int argc, char ** argv) {
     free(designer->lv2c.ui_uri);
     free(designer->lv2c.uri);
     free(designer->lv2c.author);
+    free(designer->lv2c.name);
     free(designer->lv2c.plugintype);
     free(designer->lv2c.symbol);
     m = 0;
