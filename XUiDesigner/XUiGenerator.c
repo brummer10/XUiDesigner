@@ -275,7 +275,7 @@ void run_save(void *w_, void* user_data) {
                         "	space := $(subst ,, )\n"
                         "	EXEC_NAME := $(subst $(space),_,$(NAME))\n"
                         "	BUNDLE = $(EXEC_NAME).lv2\n"
-                        "	RESOURCES_DIR :=./resources/\n"
+                        "	RESOURCES_DIR :=../resources/\n"
                         "	LIB_DIR := ../libxputty/libxputty/\n"
                         "	HEADER_DIR := $(LIB_DIR)include/\n"
                         "	UI_LIB:= $(LIB_DIR)libxputty.a\n"

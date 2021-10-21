@@ -98,6 +98,7 @@ static void draw_window(void *w_, void* user_data) {
         cairo_set_source_surface (w->crb, w->image, 0, 0);
         cairo_paint (w->crb);
     }
+    use_text_color_scheme(w, get_color_state(w));
 #ifdef USE_ATOM
     X11_UI* ui = (X11_UI*)w->parent_struct;
     X11_UI_Private_t *ps = (X11_UI_Private_t*)ui->private_ptr;
