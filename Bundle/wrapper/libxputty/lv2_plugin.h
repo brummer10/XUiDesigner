@@ -23,14 +23,14 @@
 #include "lv2/lv2plug.in/ns/extensions/ui/ui.h"
 #include "lv2/lv2plug.in/ns/ext/state/state.h"
 #include "lv2/lv2plug.in/ns/ext/worker/worker.h"
-#ifdef USE_ATOM
 #include <lv2/lv2plug.in/ns/ext/atom/atom.h>
+#include "lv2/lv2plug.in/ns/ext/options/options.h"
+#ifdef USE_ATOM
 #include <lv2/lv2plug.in/ns/ext/atom/util.h>
 #include "lv2/lv2plug.in/ns/ext/atom/forge.h"
 #include <lv2/lv2plug.in/ns/ext/midi/midi.h>
 #include <lv2/lv2plug.in/ns/ext/urid/urid.h>
 #include "lv2/lv2plug.in/ns/ext/patch/patch.h"
-#include "lv2/lv2plug.in/ns/ext/options/options.h"
 #endif
 // xwidgets.h includes xputty.h and all defined widgets from Xputty
 #include "xwidgets.h"
@@ -79,9 +79,7 @@ typedef struct {
     KnobColors *kp;
     void *private_ptr;
     int need_resize;
-#ifdef USE_ATOM
     LV2_URID_Map* map;
-#endif
     void *controller;
     LV2UI_Write_Function write_function;
     LV2UI_Resize* resize;
@@ -91,13 +89,13 @@ typedef struct {
 void plugin_value_changed(X11_UI *ui, Widget_t *w, PortIndex index);
 
 // set the plugin initial window size
-void plugin_set_window_size(int *w,int *h,const char * plugin_uri);
+void plugin_set_window_size(int *w,int *h,const char * plugin_uri, float scale);
 
 // set the plugin name
 const char* plugin_set_name();
 
 // create all needed controller 
-void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri);
+void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri, float scale);
 
 
 Widget_t* add_lv2_knob(Widget_t *w, Widget_t *p, PortIndex index, const char * label,

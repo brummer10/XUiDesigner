@@ -319,6 +319,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
 
     ui->parentXwindow = 0;
     ui->private_ptr = NULL;
+    LV2_Options_Option *opts = NULL;
 
     int i = 0;
     for(;i<CONTROLS;i++)
@@ -331,12 +332,12 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     for (; features[i]; ++i) {
         if (!strcmp(features[i]->URI, LV2_UI__parent)) {
             ui->parentXwindow = features[i]->data;
+        } else if(!strcmp(features[i]->URI, LV2_OPTIONS__options)) {
+            opts = features[i]->data;
         } else if (!strcmp(features[i]->URI, LV2_UI__resize)) {
             ui->resize = (LV2UI_Resize*)features[i]->data;
-#ifdef USE_ATOM
         } else if (!strcmp(features[i]->URI, LV2_URID_URI "#map")) {
             ui->map = (LV2_URID_Map*)features[i]->data;
-#endif
         }
     }
 
@@ -345,6 +346,21 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
         free(ui);
         return NULL;
     }
+
+    float scale = 1.0;
+    if (opts != NULL) {
+        const LV2_URID ui_scaleFactor = ui->map->map(ui->map->handle, LV2_UI__scaleFactor);
+        const LV2_URID atom_Float = ui->map->map(ui->map->handle, LV2_ATOM__Float);
+        for (const LV2_Options_Option* o = opts; o->key; ++o) {
+            if (o->context == LV2_OPTIONS_INSTANCE &&
+              o->key == ui_scaleFactor && o->type == atom_Float) {
+                scale = *(float*)o->value;
+                break;
+            }
+        }
+        if (scale <= 0) scale = 1.0;
+    }
+
     // init Xputty
     main_init(&ui->main);
     ui->kp = (KnobColors*)malloc(sizeof(KnobColors));
@@ -352,7 +368,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     set_default_theme(&ui->main);
     int w = 1;
     int h = 1;
-    plugin_set_window_size(&w,&h,plugin_uri);
+    plugin_set_window_size(&w,&h,plugin_uri, scale);
     // create the toplevel Window on the parentXwindow provided by the host
     ui->win = create_window(&ui->main, (Window)ui->parentXwindow, 0, 0, w, h);
     ui->win->parent_struct = ui;
@@ -360,7 +376,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     // connect the expose func
     ui->win->func.expose_callback = draw_window;
     // create controller widgets
-    plugin_create_controller_widgets(ui,plugin_uri);
+    plugin_create_controller_widgets(ui,plugin_uri, scale);
     // map all widgets into the toplevel Widget_t
     widget_show_all(ui->win);
     // set the widget pointer to the X11 Window from the toplevel Widget_t

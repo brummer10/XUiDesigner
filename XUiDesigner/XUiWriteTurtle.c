@@ -66,19 +66,20 @@ void print_ttl(XUiDesigner *designer) {
     char *name = NULL;
     XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
     if (name == NULL) asprintf(&name, "%s", "noname");
-    printf ("\n@prefix doap: <http://usefulinc.com/ns/doap#> .\n"
-        "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n"
-        "@prefix lv2: <http://lv2plug.in/ns/lv2core#> .\n"
-        "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
-        "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n"
+    printf ("\n@prefix doap:  <http://usefulinc.com/ns/doap#> .\n"
+        "@prefix foaf:   <http://xmlns.com/foaf/0.1/> .\n"
+        "@prefix lv2:    <http://lv2plug.in/ns/lv2core#> .\n"
+        "@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
+        "@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .\n"
         "@prefix guiext: <http://lv2plug.in/ns/extensions/ui#>.\n"
-        "@prefix time: <http://lv2plug.in/ns/ext/time#>.\n"
-        "@prefix units: <http://lv2plug.in/ns/extensions/units#> .\n"
-        "@prefix atom:  <http://lv2plug.in/ns/ext/atom#> .\n"
-        "@prefix urid:  <http://lv2plug.in/ns/ext/urid#> .\n"
-        "@prefix pprop: <http://lv2plug.in/ns/ext/port-props#> .\n"
-        "@prefix midi:  <http://lv2plug.in/ns/ext/midi#> .\n"
-        "@prefix patch: <http://lv2plug.in/ns/ext/patch#> .\n\n\n");
+        "@prefix opts:   <http://lv2plug.in/ns/ext/options#> .\n"
+        "@prefix time:   <http://lv2plug.in/ns/ext/time#>.\n"
+        "@prefix units:  <http://lv2plug.in/ns/extensions/units#> .\n"
+        "@prefix atom:   <http://lv2plug.in/ns/ext/atom#> .\n"
+        "@prefix urid:   <http://lv2plug.in/ns/ext/urid#> .\n"
+        "@prefix pprop:  <http://lv2plug.in/ns/ext/port-props#> .\n"
+        "@prefix midi:   <http://lv2plug.in/ns/ext/midi#> .\n"
+        "@prefix patch:  <http://lv2plug.in/ns/ext/patch#> .\n\n\n");
 
     if (!designer->generate_ui_only) {
         printf ("<urn:name#me>\n"
@@ -364,7 +365,9 @@ void print_ttl(XUiDesigner *designer) {
             "       lv2:extensionData guiext::idle ;\n"
             "       lv2:extensionData guiext:resize ;\n"
             "       lv2:extensionData guiext:idleInterface ;\n"
-            "       lv2:requiredFeature guiext:idleInterface ;"
+            "       lv2:requiredFeature guiext:idleInterface ;\n"
+            "       lv2:optionalFeature opts:options ;\n"
+            "       opts:supportedOption guiext:scaleFactor ;"
             , designer->lv2c.ui_uri, name);
         i = 0;
         for (;i<MAX_CONTROLS;i++) {
@@ -385,7 +388,9 @@ void print_ttl(XUiDesigner *designer) {
             "   lv2:extensionData guiext::idle ;\n"
             "   lv2:extensionData guiext:resize ;\n"
             "   lv2:extensionData guiext:idleInterface ;\n"
-            "   lv2:requiredFeature guiext:idleInterface ;"
+            "   lv2:requiredFeature guiext:idleInterface ;\n"
+            "   lv2:optionalFeature opts:options ;\n"
+            "   opts:supportedOption guiext:scaleFactor ;"
             , designer->lv2c.ui_uri);
         for (;i<MAX_CONTROLS;i++) {
             if (designer->controls[i].wid != NULL) {
