@@ -216,7 +216,7 @@ void strreplace(char *target, size_t pos, size_t size, const char *replacement) 
         insert_point += new_point;
     }
     tmp += pos+size;
-    utf8ncpy(insert_point, tmp, target_len-pos);
+    utf8ncpy(insert_point, tmp, target_len+1-pos);
         
     utf8ncpy(target, buffer, 1024);
 }
