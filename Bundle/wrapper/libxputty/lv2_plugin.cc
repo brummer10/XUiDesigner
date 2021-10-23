@@ -150,6 +150,7 @@ Widget_t* add_lv2_vmeter(Widget_t *w, Widget_t *p, PortIndex index, const char *
     w = add_vmeter(p, label, false, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
+    tooltip_set_text(w, label);
     w->func.value_changed_callback = value_changed;
     return w;
 }
@@ -159,6 +160,7 @@ Widget_t* add_lv2_hmeter(Widget_t *w, Widget_t *p, PortIndex index, const char *
     w = add_hmeter(p, label, false, x, y, width, height);
     w->parent_struct = ui;
     w->data = index;
+    tooltip_set_text(w, label);
     w->func.value_changed_callback = value_changed;
     return w;
 }
