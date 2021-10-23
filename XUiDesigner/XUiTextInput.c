@@ -27,7 +27,7 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-void utf8ncpy(char* dst, const char* src, size_t sizeDest ) {
+size_t utf8ncpy(char* dst, const char* src, size_t sizeDest ) {
     if( sizeDest ){
         size_t sizeSrc = strlen(src);
         while( sizeSrc >= sizeDest ){
@@ -39,7 +39,9 @@ void utf8ncpy(char* dst, const char* src, size_t sizeDest ) {
         }
         memcpy(dst, src, sizeSrc);
         dst[sizeSrc] = '\0';
+        return sizeSrc;
     }
+    return 0;
 }
 
 void entry_set_text(XUiDesigner *designer, const char* label) {
@@ -177,6 +179,7 @@ void entry_get_text(void *w_, void *key_, void *user_data) {
         Status status;
         KeySym keysym;
         char buf[32];
+        memset(buf, 0, 32 * sizeof(buf[0]));
         Xutf8LookupString(w->xic, key, buf, sizeof(buf) - 1, &keysym, &status);
         if (keysym == XK_Return) {
             update_label(designer, w);
@@ -203,16 +206,19 @@ void strreplace(char *target, size_t pos, size_t size, const char *replacement) 
     size_t target_len = strlen(target);
     size_t repl_len = strlen(replacement);
 
-    memcpy(insert_point, tmp, pos);
-    insert_point += pos;
+    size_t new_point = utf8ncpy(insert_point, tmp, pos+1);
+    if (new_point<pos && pos > 0){
+        new_point = utf8ncpy(insert_point, tmp, pos+2);
+    }
+    insert_point += new_point;
     if (repl_len) {
-        memcpy(insert_point, replacement, repl_len);
-        insert_point += repl_len;
+        new_point = utf8ncpy(insert_point, replacement, repl_len+1);
+        insert_point += new_point;
     }
     tmp += pos+size;
-    memcpy(insert_point, tmp, target_len-pos);
+    utf8ncpy(insert_point, tmp, target_len-pos);
         
-    strcpy(target, buffer);
+    utf8ncpy(target, buffer, 1024);
 }
 
 // check for UTF 8 char code point
@@ -468,7 +474,7 @@ static void box_entry_add_text(void  *w_, void *label_) {
             if (text_box->set_selection && (text_box->curser_mark > text_box->curser_mark2)) {
                 strreplace(text_box->input_label, text_box->curser_size, p, label);
             } else if (text_box->set_selection && (text_box->curser_mark < text_box->curser_mark2)) {
-                strreplace(text_box->input_label, j-p, text_box->curser_size-j+p, label);
+                strreplace(text_box->input_label, max(0,j-p), text_box->curser_size-j+p, label);
             } else {
                 strreplace(text_box->input_label, text_box->curser_size, 0, label);
             }
@@ -555,6 +561,7 @@ static void box_entry_get_text(void *w_, void *key_, void *user_data) {
         Status status;
         KeySym keysym;
         char buf[32];
+        memset(buf, 0, 32 * sizeof(buf[0]));
         Xutf8LookupString(w->xic, key, buf, sizeof(buf) - 1, &keysym, &status);
         if (keysym == XK_Return) {
             if (strlen(text_box->input_label)>1) {

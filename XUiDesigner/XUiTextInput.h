@@ -49,7 +49,7 @@ typedef struct {
 } TextBox_t;
 
 
-void utf8ncpy(char* dst, const char* src, size_t sizeDest );
+size_t utf8ncpy(char* dst, const char* src, size_t sizeDest );
 
 void entry_set_text(XUiDesigner *designer, const char* label);
 
