@@ -22,6 +22,7 @@
 #include "XUiGenerator.h"
 #include "XUiTextInput.h"
 #include "XUiWriteTurtle.h"
+#include "XUiWriteJson.h"
 
 
 /*---------------------------------------------------------------------
@@ -76,7 +77,7 @@ static void reset_plugin_ui(XUiDesigner *designer) {
     designer->lv2c.ui_uri = NULL;
     asprintf(&designer->lv2c.ui_uri, "%s", "urn:test_ui");    
 
-    entry_set_text(designer, "");
+    box_entry_set_text(designer->controller_label, "");
     adj_set_value(designer->x_axis->adj, 0.0);
     adj_set_value(designer->y_axis->adj, 0.0);
     adj_set_value(designer->w_axis->adj, 10.0);
@@ -722,8 +723,9 @@ void load_plugin_ui(void* w_, void* user_data) {
     }
     //print_list(designer);
     //print_ttl(designer);
-    widget_show_all(designer->ui);
+    //print_json(designer);
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
+    widget_show_all(designer->ui);
 }
 
 void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {

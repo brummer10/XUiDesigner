@@ -85,6 +85,7 @@ void print_plugin(XUiDesigner *designer) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME ||
+                designer->controls[i].is_type == IS_IMAGE ||
                 designer->controls[i].is_type == IS_TABBOX) {
                 continue;
             }
@@ -144,6 +145,7 @@ void print_plugin(XUiDesigner *designer) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME ||
+                designer->controls[i].is_type == IS_IMAGE ||
                 designer->controls[i].is_type == IS_TABBOX) {
                 continue;
             }
@@ -238,6 +240,7 @@ void print_plugin(XUiDesigner *designer) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME ||
+                designer->controls[i].is_type == IS_IMAGE ||
                 designer->controls[i].is_type == IS_TABBOX) {
                 continue;
             }
@@ -287,6 +290,7 @@ void print_plugin(XUiDesigner *designer) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME ||
+                designer->controls[i].is_type == IS_IMAGE ||
                 designer->controls[i].is_type == IS_TABBOX) {
                 continue;
             }
@@ -451,6 +455,7 @@ void print_plugin(XUiDesigner *designer) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME ||
+                designer->controls[i].is_type == IS_IMAGE ||
                 designer->controls[i].is_type == IS_TABBOX) {
                 continue;
             }

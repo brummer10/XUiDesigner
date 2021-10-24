@@ -109,7 +109,7 @@ static void set_project_bypass_switch(void *w_, void* user_data) {
                     remove_from_list(designer, designer->controls[m].wid);
                     designer->active_widget = NULL;
                     designer->prev_active_widget = NULL;
-                    entry_set_text(designer, "");
+                    box_entry_set_text(designer->controller_label, "");
                     adj_set_value(designer->x_axis->adj, 0.0);
                     adj_set_value(designer->y_axis->adj, 0.0);
                     adj_set_value(designer->w_axis->adj, 10.0);

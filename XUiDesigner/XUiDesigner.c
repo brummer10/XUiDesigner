@@ -39,7 +39,8 @@
 
 void draw_window(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    use_bg_color_scheme(w, NORMAL_);
+    //use_bg_color_scheme(w, NORMAL_);
+    cairo_set_source_rgba(w->crb,  0.1, 0.1, 0.1, 1.0);
     cairo_paint (w->crb);
 }
 
@@ -350,9 +351,9 @@ static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
     if (designer->controls[wid->data].is_type == IS_TABBOX) {
         int v = (int)adj_get_value(wid->adj);
         Widget_t *wi = designer->active_widget->childlist->childs[v];
-        entry_set_text(designer, wi->label);
+        box_entry_set_text(designer->controller_label, wi->label);
     } else {
-        entry_set_text(designer, wid->label);
+        box_entry_set_text(designer->controller_label, wid->label);
     }
     xevfunc store = designer->x_axis->func.value_changed_callback;
     designer->x_axis->func.value_changed_callback = null_callback;
@@ -393,6 +394,39 @@ static void draw_trans(void *w_, void* user_data) {
     draw_frame(w, NULL);
 }
 
+static void hide_show_as_needed(XUiDesigner *designer) {
+    if (designer->controls[designer->active_widget_num].have_adjustment  &&
+            designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
+        widget_hide(designer->tabbox_settings);
+        widget_show_all(designer->controller_settings);
+        box_entry_set_value(designer->controller_entry[0], designer->active_widget->adj->min_value);
+        box_entry_set_value(designer->controller_entry[1], designer->active_widget->adj->max_value);
+        box_entry_set_value(designer->controller_entry[2], designer->active_widget->adj->std_value);
+        box_entry_set_value(designer->controller_entry[3], designer->active_widget->adj->step);
+    } else if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
+        widget_hide(designer->controller_settings);
+        widget_show_all(designer->tabbox_settings);
+    } else {
+        widget_hide(designer->controller_settings);
+        widget_hide(designer->tabbox_settings);
+    }
+    if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX) {
+        widget_show_all(designer->combobox_settings);
+        widget_hide(designer->tabbox_settings);
+    } else {
+        widget_hide(designer->combobox_settings);
+    }
+    if (designer->grid_view) {
+        snap_to_grid(designer);
+        widget_show(designer->grid_size_x);
+        widget_show(designer->grid_size_y);
+    } else {
+        widget_hide(designer->grid_size_x);
+        widget_hide(designer->grid_size_y);
+    }
+
+}
+
 static void set_pos_wid(void *w_, void *button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
@@ -416,27 +450,7 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
                 (float)designer->controls[designer->active_widget_num].port_index);
         }
 
-        if (designer->controls[designer->active_widget_num].have_adjustment  &&
-                designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
-            widget_hide(designer->tabbox_settings);
-            widget_show_all(designer->controller_settings);
-            box_entry_set_value(designer->controller_entry[0], designer->active_widget->adj->min_value);
-            box_entry_set_value(designer->controller_entry[1], designer->active_widget->adj->max_value);
-            box_entry_set_value(designer->controller_entry[2], designer->active_widget->adj->std_value);
-            box_entry_set_value(designer->controller_entry[3], designer->active_widget->adj->step);
-        } else if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
-            widget_hide(designer->controller_settings);
-            widget_show_all(designer->tabbox_settings);
-        } else {
-            widget_hide(designer->controller_settings);
-            widget_hide(designer->tabbox_settings);
-        }
-        if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX) {
-            widget_show_all(designer->combobox_settings);
-            widget_hide(designer->tabbox_settings);
-        } else {
-            widget_hide(designer->combobox_settings);
-        }
+        hide_show_as_needed(designer);
     }
     if (xbutton->x > width-5 && xbutton->y > height-5) {
         designer->modify_mod = XUI_SIZE;
@@ -488,9 +502,10 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
             _tab_button_released(w, button_, NULL);
             int v = (int)adj_get_value(w->adj);
             Widget_t *wi = designer->active_widget->childlist->childs[v];
-            entry_set_text(designer, wi->label);
+            box_entry_set_text(designer->controller_label, wi->label);
         }
         if (designer->controls[designer->active_widget_num].is_type != IS_FRAME &&
+            designer->controls[designer->active_widget_num].is_type != IS_IMAGE &&
             designer->controls[designer->active_widget_num].is_type != IS_TABBOX)
             check_reparent(designer, xbutton, w);
     } else if(xbutton->button == Button3) {
@@ -521,10 +536,18 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
         int sel = designer->controls[designer->active_widget_num].is_type;
         if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_TOGGLE)
             sel = IS_TOGGLE_BUTTON;
-        store = designer->ctype_switch->func.value_changed_callback;
-        designer->ctype_switch->func.value_changed_callback = null_callback;
-        set_active_radio_entry_num(designer->ctype_switch, sel);
-        designer->ctype_switch->func.value_changed_callback = store;
+        if (designer->controls[designer->active_widget_num].is_type == IS_FRAME ||
+            designer->controls[designer->active_widget_num].is_type == IS_IMAGE ||
+            designer->controls[designer->active_widget_num].is_type == IS_TABBOX ||
+            designer->controls[designer->active_widget_num].is_type == IS_WAVEVIEW ) {
+            designer->ctype_switch->state = 4;
+        } else {
+            designer->ctype_switch->state = 0;
+            store = designer->ctype_switch->func.value_changed_callback;
+            designer->ctype_switch->func.value_changed_callback = null_callback;
+            set_active_radio_entry_num(designer->ctype_switch, sel);
+            designer->ctype_switch->func.value_changed_callback = store;
+        }
         pop_menu_show(w,designer->context_menu,5,true);
     }
     if(designer->active_widget != NULL)
@@ -690,6 +713,19 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 tab->func.button_release_callback = fix_pos_tab;
                 tab->func.motion_callback = move_tab;
             break;
+            case 14:
+                asprintf(&designer->controls[designer->wid_counter].name, "Image%i", designer->wid_counter);
+                wid = add_image(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 120);
+                wid->label = designer->controls[designer->wid_counter].name;
+                set_controller_callbacks(designer, wid, true);
+                adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
+                designer->controls[designer->wid_counter-1].port_index = -1;
+                add_to_list(designer, wid, "add_lv2_image", false, IS_IMAGE);
+                wid->parent_struct = designer;
+                wid->func.enter_callback = null_callback;
+                wid->func.leave_callback = null_callback;
+                XLowerWindow(w->app->dpy, wid->widget);
+            break;
             default:
             break;
         }
@@ -786,6 +822,7 @@ static void systray_released(void *w_, void* button_, void* user_data) {
             } else {
                 widget_show_all(designer->w);
                 widget_show_all(designer->ui);
+                hide_show_as_needed(designer);
             }
         } else if (xbutton->button == Button3) {
             pop_menu_show(w,designer->systray_menu,3,true);
@@ -865,6 +902,38 @@ char *getUserName() {
     }
     return "";
 }
+
+
+static void update_clabel(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    if (designer->active_widget == NULL) return;
+    if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
+        int v = (int)adj_get_value(designer->active_widget->adj);
+        if (designer->active_widget_num+v > MAX_CONTROLS) {
+            Widget_t *dia = open_message_dialog(w, INFO_BOX, _("INFO"),
+                _("MAX CONTROL COUNTER OVERFLOW | Sorry, cant edit the label anymore"),NULL);
+            XSetTransientForHint(w->app->dpy, dia->widget, w->widget);
+            return;
+        }
+        free(designer->tab_label[designer->active_widget_num+v]);
+        designer->tab_label[designer->active_widget_num+v] = NULL;
+        asprintf (&designer->tab_label[designer->active_widget_num+v], "%s", text_box->input_label);
+        //designer->tab_label[designer->active_widget_num+v][strlen( text_box->input_label)-1] = 0;
+        Widget_t *wi = designer->active_widget->childlist->childs[v];
+        wi->label = (const char*)designer->tab_label[designer->active_widget_num+v];
+    } else {
+        free(designer->new_label[designer->active_widget_num]);
+        designer->new_label[designer->active_widget_num] = NULL;
+        asprintf (&designer->new_label[designer->active_widget_num], "%s", text_box->input_label);
+        //designer->new_label[designer->active_widget_num][strlen( text_box->input_label)-1] = 0;
+        designer->active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
+    }
+    expose_widget(designer->active_widget);
+}
+
+
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 main
@@ -1015,6 +1084,7 @@ int main (int argc, char ** argv) {
     combobox_add_entry(designer->widgets,_("WaveView"));
     combobox_add_entry(designer->widgets,_("Frame"));
     combobox_add_entry(designer->widgets,_("Tab Box"));
+    combobox_add_entry(designer->widgets,_("Image"));
     combobox_set_active_entry(designer->widgets, 0);
     designer->widgets->func.value_changed_callback = set_widget_callback;
 
@@ -1066,17 +1136,10 @@ int main (int argc, char ** argv) {
     designer->exit->func.value_changed_callback = run_exit;
 
     add_label(designer->w, _("Label"), 1000, 10, 180, 30);
-
-    designer->controller_label = create_widget(&app, designer->w, 1000, 50, 180, 30);
-    memset(designer->controller_label->input_label, 0, 32 * (sizeof designer->controller_label->input_label[0]) );
-    designer->controller_label->func.expose_callback = entry_add_text;
-    designer->controller_label->func.key_press_callback = entry_get_text;
-    designer->controller_label->flags &= ~USE_TRANSPARENCY;
-    //designer->controller_label->scale.gravity = EASTWEST;
+    designer->controller_label = add_input_box(designer->w, 0, 1000, 50, 180, 30);
+    designer->controller_label->func.user_callback = update_clabel;
+    designer->controller_label->func.value_changed_callback = update_clabel;
     designer->controller_label->parent_struct = designer;
-    Cursor c = XCreateFontCursor(app.dpy, XC_xterm);
-    XDefineCursor (app.dpy, designer->controller_label->widget, c);
-    XFreeCursor(app.dpy, c);
 
     add_label(designer->w, _("Port Index"), 1000, 80, 180, 30);
     designer->index = add_combobox(designer->w, "", 1000, 120, 70, 30);
@@ -1110,7 +1173,6 @@ int main (int argc, char ** argv) {
     designer->h_axis->func.value_changed_callback = set_h_axis_callback;
 
 
-    widget_show_all(designer->w);
 
     designer->grid_size_x = add_valuedisplay(designer->w, _("Grid X"), 125, 135, 40, 20);
     designer->grid_size_x->parent_struct = designer;
@@ -1191,9 +1253,10 @@ int main (int argc, char ** argv) {
     menu_add_radio_entry(designer->ctype_switch,_("Label"));
     menu_add_radio_entry(designer->ctype_switch,_("VMeter"));
     menu_add_radio_entry(designer->ctype_switch,_("HMeter"));
-    menu_add_radio_entry(designer->ctype_switch,_("WaveView"));
-    menu_add_radio_entry(designer->ctype_switch,_("Frame"));
-    menu_add_radio_entry(designer->ctype_switch,_("Tab Box"));
+    //menu_add_radio_entry(designer->ctype_switch,_("WaveView"));
+    //menu_add_radio_entry(designer->ctype_switch,_("Frame"));
+    //menu_add_radio_entry(designer->ctype_switch,_("Tab Box"));
+    //menu_add_radio_entry(designer->ctype_switch,_("Image"));
     designer->ctype_switch->func.value_changed_callback = switch_controller_type;
 
     menu_add_item(designer->context_menu,_("Delete Controller"));
@@ -1201,8 +1264,9 @@ int main (int argc, char ** argv) {
 
     create_project_settings_window(designer);
 
+    widget_show_all(designer->w);
     widget_show_all(designer->ui);
-    widget_hide(designer->tabbox_settings);
+    hide_show_as_needed(designer);
     main_run(&app);
 
     //print_ttl(designer);

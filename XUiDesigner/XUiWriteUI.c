@@ -267,6 +267,7 @@ void print_list(XUiDesigner *designer) {
     bool have_atom_out = false;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && (designer->controls[i].is_type != IS_FRAME &&
+                                                designer->controls[i].is_type != IS_IMAGE &&
                                                 designer->controls[i].is_type != IS_TABBOX &&
                                                 !designer->controls[i].is_audio_input &&
                                                 !designer->controls[i].is_audio_output &&
@@ -274,6 +275,7 @@ void print_list(XUiDesigner *designer) {
                                                 !designer->controls[i].is_atom_output)) {
             j++;
         } else if (designer->controls[i].wid != NULL && (designer->controls[i].is_type == IS_FRAME ||
+                                                        designer->controls[i].is_type == IS_IMAGE ||
                                                         designer->controls[i].is_type == IS_TABBOX)) {
             k++;
             if (designer->controls[i].is_type == IS_TABBOX) {
@@ -542,12 +544,12 @@ void print_list(XUiDesigner *designer) {
     memset(ttb, 0, k*sizeof(int));
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
-            if (designer->controls[i].is_type == IS_FRAME) {
+            if (designer->controls[i].is_type == IS_FRAME || designer->controls[i].is_type == IS_IMAGE ) {
                 printf ("    ui->elem[%i] = %s (ui->elem[%i], ui->win, %i, \"%s\", ui, %i,  %i, %i * scale, %i * scale);\n", 
                     j, designer->controls[i].type, j,
                     designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
-                    designer->controls[i].wid-> width, designer->controls[i].wid->height);
+                    designer->controls[i].wid->width, designer->controls[i].wid->height);
                 if (designer->controls[i].image != NULL ) {
                     if (designer->run_test) {
                         printf ("    load_controller_image(ui->elem[%i], \"%s\");\n",
@@ -597,6 +599,7 @@ void print_list(XUiDesigner *designer) {
             }
             Widget_t * wid = designer->controls[i].wid;
             if (designer->controls[i].is_type == IS_FRAME ||
+                designer->controls[i].is_type == IS_IMAGE ||
                 designer->controls[i].is_type == IS_TABBOX) {
                 continue;
             } else {
@@ -674,8 +677,13 @@ void print_list(XUiDesigner *designer) {
                 }
             }
             printf ("\n");
-            if (designer->controls[i].is_type != IS_FRAME) j++;
-            if (designer->controls[i].is_type != IS_FRAME) p++;
+            if (designer->controls[i].is_type != IS_FRAME) {
+                j++;
+                p++;
+            } else if (designer->controls[i].is_type != IS_IMAGE) {
+                j++;
+                p++;
+            }
         }
     }
     printf ("}\n\n"

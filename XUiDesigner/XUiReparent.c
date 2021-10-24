@@ -242,7 +242,7 @@ void check_reparent(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t *w) {
     Widget_t *frame = NULL;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && (designer->controls[i].is_type == IS_FRAME ||
-            designer->controls[i].is_type == IS_TABBOX)) {
+            designer->controls[i].is_type == IS_TABBOX || designer->controls[i].is_type == IS_IMAGE )) {
             j++;
             frame = designer->controls[i].wid;
             XGetWindowAttributes(w->app->dpy, (Window)frame->widget, &attrs);

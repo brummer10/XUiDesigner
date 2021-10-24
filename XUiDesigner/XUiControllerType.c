@@ -30,7 +30,15 @@
 
 void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wid) {
     if (wid->adj != NULL) {
-        if (wid->adj->type == CL_LOGARITHMIC) {
+        if (designer->controls[wid->data].is_type == IS_COMBOBOX ) {
+            Widget_t *menu = wid->childlist->childs[1];
+            Widget_t* view_port =  menu->childlist->childs[0];
+            ComboBox_t *comboboxlist = (ComboBox_t*)view_port->parent_struct;
+            int i = 0;
+            for (;i<comboboxlist->list_size;i++) {
+                combobox_add_entry(new_wid, comboboxlist->list_names[i]);
+            }
+        } else if (wid->adj->type == CL_LOGARITHMIC) {
              set_adjustment(new_wid->adj, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value),
                 powf(10,wid->adj->min_value),powf(10,wid->adj->max_value), wid->adj->step, wid->adj->type);
         } else if (wid->adj->type == CL_LOGSCALE) {
@@ -56,6 +64,9 @@ void switch_controller_type(void *w_, void* user_data) {
     Widget_t *wid = designer->active_widget;
     designer->prev_active_widget = NULL;
     Widget_t *new_wid = NULL;
+    if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX ) {
+        designer->controls[designer->active_widget_num].is_type = -1;
+    }
     int v = (int) adj_get_value(w->adj);
     switch (v) {
         case 0:
@@ -124,6 +135,9 @@ void switch_controller_type(void *w_, void* user_data) {
             designer->active_widget = new_wid;
         break;
         case 5:
+            if (designer->controls[designer->active_widget_num].is_type == -1 ) {
+                designer->controls[designer->active_widget_num].is_type = IS_COMBOBOX;
+            }
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
             new_wid = add_combobox(designer->ui, designer->new_label[designer->active_widget_num],
                                                                         wid->x, wid->y, 120, 30);

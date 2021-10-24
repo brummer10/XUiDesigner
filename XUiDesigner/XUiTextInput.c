@@ -490,11 +490,12 @@ static void box_entry_add_text(void  *w_, void *label_) {
     cairo_set_font_size (w->cr, 12.0);
     cairo_text_extents(w->cr, text_box->input_label , &extents);
 
-    cairo_move_to (w->cr, 2, 12.0+extents.height);
+    cairo_move_to (w->cr, 2, 20);
     cairo_show_text(w->cr,  text_box->input_label);
 
-    cairo_move_to (w->cr, 2+text_box->curser_pos, 12.0+extents.height);
+    cairo_move_to (w->cr, 2+text_box->curser_pos, 20);
     cairo_show_text(w->cr,  w->input_label);
+    w->func.value_changed_callback(w, NULL);
 }
 
 // clip the marked part of the text, or one char at curser position
@@ -533,11 +534,12 @@ static void box_entry_clip(Widget_t *w) {
     cairo_set_font_size (w->cr, 12.0);
     cairo_text_extents(w->cr, text_box->input_label , &extents);
 
-    cairo_move_to (w->cr, 2, 12.0+extents.height);
+    cairo_move_to (w->cr, 2, 20);
     cairo_show_text(w->cr, text_box->input_label);
 
-    cairo_move_to (w->cr, 2+text_box->curser_pos, 12.0+extents.height);
+    cairo_move_to (w->cr, 2+text_box->curser_pos, 20);
     cairo_show_text(w->cr,  w->input_label);
+    w->func.value_changed_callback(w, NULL);
 }
 
 // textbox receive a keypress

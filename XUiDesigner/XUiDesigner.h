@@ -94,6 +94,7 @@ typedef enum {
     IS_WAVEVIEW       ,
     IS_FRAME          ,
     IS_TABBOX         ,
+    IS_IMAGE          ,
     // keep those below
     IS_FILE_BUTTON    ,
     IS_IMAGE_TOGGLE   ,

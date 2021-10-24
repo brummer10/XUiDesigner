@@ -194,6 +194,14 @@ Widget_t* add_lv2_frame(Widget_t *w, Widget_t *p, PortIndex index, const char * 
     return w;
 }
 
+Widget_t* add_lv2_image(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_image(p, label, x, y, width, height);
+    w->parent_struct = ui;
+    w->data = index;
+    return w;
+}
+
 Widget_t* add_lv2_waveview(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
     w = add_waveview(p, label, x, y, width, height);

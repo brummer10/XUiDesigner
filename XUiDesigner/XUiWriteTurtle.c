@@ -197,6 +197,7 @@ void print_ttl(XUiDesigner *designer) {
             if (designer->controls[i].wid != NULL) {
                 Widget_t * wid = designer->controls[i].wid;
                 if (designer->controls[i].is_type == IS_FRAME ||
+                    designer->controls[i].is_type == IS_IMAGE ||
                     designer->controls[i].is_type == IS_TABBOX) {
                     continue;
                 } else {
