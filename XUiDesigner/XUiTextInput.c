@@ -200,11 +200,14 @@ void entry_get_text(void *w_, void *key_, void *user_data) {
 
 // replace or insert a string at position pos. size is the size of string to be removed, could be zero.
 void strreplace(char *target, size_t pos, size_t size, const char *replacement) {
-    char buffer[1024] = { 0 };
+    char buffer[256] = { 0 };
     char *insert_point = &buffer[0];
     const char *tmp = target;
     size_t target_len = strlen(target);
     size_t repl_len = strlen(replacement);
+    if ((pos + repl_len +4) > 256) {
+        repl_len = 256 - pos - 4;
+    }
 
     size_t new_point = utf8ncpy(insert_point, tmp, pos+1);
     if (new_point<pos && pos > 0){
@@ -218,7 +221,7 @@ void strreplace(char *target, size_t pos, size_t size, const char *replacement) 
     tmp += pos+size;
     utf8ncpy(insert_point, tmp, target_len+1-pos);
         
-    utf8ncpy(target, buffer, 1024);
+    utf8ncpy(target, buffer, 256);
 }
 
 // check for UTF 8 char code point
@@ -252,7 +255,7 @@ static void box_entry_set_curser_pos(Widget_t *w, int s) {
 void box_entry_set_value(Widget_t *w, float value) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
-    char buffer[30];
+    char buffer[30] = { 0 };
     snprintf(buffer, sizeof buffer, "%.3f", value);
     strcat(text_box->input_label, buffer);
     box_entry_set_curser_pos(w, strlen(text_box->input_label));

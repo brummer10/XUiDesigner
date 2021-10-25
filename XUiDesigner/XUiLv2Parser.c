@@ -724,7 +724,7 @@ void load_plugin_ui(void* w_, void* user_data) {
     //print_list(designer);
     //print_ttl(designer);
     //print_json(designer);
-    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
+    //XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
     widget_show_all(designer->ui);
 }
 

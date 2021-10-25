@@ -167,6 +167,14 @@ typedef struct {
 } LV2_CONTROLLER;
 
 typedef struct {
+    int x;
+    int y;
+    int w;
+    int h;
+    bool is_active;
+} DragIcon;
+
+typedef struct {
     LilvWorld* world;
     const LilvPlugins* lv2_plugins;        
 
@@ -226,7 +234,9 @@ typedef struct {
     Widget_t *test;
     Widget_t *save;
     Widget_t *exit;
+    Cursor cursor;
     Colors *selected_scheme;
+    DragIcon drag_icon;
     bool run_test;
     bool grid_view;
     bool is_project;

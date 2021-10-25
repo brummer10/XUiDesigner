@@ -91,6 +91,24 @@ static void draw_ui(void *w_, void* user_data) {
         }
         cairo_stroke(w->crb);
     }
+    if (designer->drag_icon.is_active) {
+        use_shadow_color_scheme(w, SELECTED_);
+        cairo_rectangle(w->crb, designer->drag_icon.x, designer->drag_icon.y,
+                                designer->drag_icon.w, designer->drag_icon.h);
+        cairo_fill(w->crb);
+    }
+    if (designer->active_widget) {
+        XWindowAttributes attrs;
+        XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
+        int x = attrs.x -1;
+        int y = attrs.y -1;
+        int width = attrs.width +2;
+        int height = attrs.height +2;
+        cairo_set_line_width(w->crb, 1.0);
+        use_frame_color_scheme(w, ACTIVE_);
+        cairo_rectangle(w->crb, x, y, width, height);
+        cairo_stroke(w->crb);        
+    }
 }
 
 static void set_port_index(void *w_, void* user_data) {
@@ -201,7 +219,69 @@ static void set_widget_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     designer->select_widget_num = (int)adj_get_value(w->adj);
-}
+    switch(designer->select_widget_num) {
+        case 1:
+            designer->drag_icon.w = 60;
+            designer->drag_icon.h = 80;
+        break;
+        case 2:
+            designer->drag_icon.w = 120;
+            designer->drag_icon.h = 30;
+        break;
+        case 3:
+            designer->drag_icon.w = 30;
+            designer->drag_icon.h = 120;
+        break;
+        case 4:
+            designer->drag_icon.w = 60;
+            designer->drag_icon.h = 60;
+        break;
+        case 5:
+            designer->drag_icon.w = 60;
+            designer->drag_icon.h = 60;
+        break;
+        case 6:
+            designer->drag_icon.w = 120;
+            designer->drag_icon.h = 30;
+        break;
+        case 7:
+            designer->drag_icon.w = 40;
+            designer->drag_icon.h = 30;
+        break;
+        case 8:
+            designer->drag_icon.w = 60;
+            designer->drag_icon.h = 30;
+        break;
+        case 9:
+            designer->drag_icon.w = 10;
+            designer->drag_icon.h = 120;
+        break;
+        case 10:
+            designer->drag_icon.w = 120;
+            designer->drag_icon.h = 10;
+        break;
+        case 11:
+            designer->drag_icon.w = 120;
+            designer->drag_icon.h = 120;
+        break;
+        case 12:
+            designer->drag_icon.w = 120;
+            designer->drag_icon.h = 120;
+        break;
+        case 13:
+            designer->drag_icon.w = 120;
+            designer->drag_icon.h = 120;
+        break;
+        case 14:
+            designer->drag_icon.w = 120;
+            designer->drag_icon.h = 120;
+        break;
+        default:
+            designer->drag_icon.w = 1;
+            designer->drag_icon.h = 1;
+        break;
+    }
+ }
 
 static void set_x_axis_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
@@ -233,6 +313,23 @@ static void set_h_axis_callback(void *w_, void* user_data) {
     int v = (int)adj_get_value(w->adj);
     if (designer->active_widget != NULL)
         XResizeWindow(designer->active_widget->app->dpy,designer->active_widget->widget, (int)adj_get_value(designer->w_axis->adj), v);
+}
+
+static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (adj_get_value(designer->widgets->adj)) {
+        XMotionEvent *xmotion = (XMotionEvent*)xmotion_;
+        designer->drag_icon.x = w->x + xmotion->x - designer->drag_icon.w/2;
+        designer->drag_icon.y = w->y + xmotion->y - designer->drag_icon.h/2;
+        designer->drag_icon.is_active = true;
+        expose_widget(designer->ui);
+    } else {
+        if (designer->drag_icon.is_active) {
+            designer->drag_icon.is_active = false;
+            expose_widget(designer->ui);
+        }
+    }
 }
 
 static void move_wid(void *w_, void *xmotion_, void* user_data) {
@@ -298,6 +395,7 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
             }
             w->scale.ascale = 1.0;
             designer->pos_x = xmotion->x_root;
+            expose_widget(designer->ui);
         break;
         case XUI_HEIGHT:
             XResizeWindow(w->app->dpy, w->widget, w->width, max(10,w->height + (xmotion->y_root-designer->pos_y)));
@@ -312,24 +410,25 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
             }
             w->scale.ascale = 1.0;
             designer->pos_y = xmotion->y_root;
+            expose_widget(designer->ui);
         break;
         case XUI_NONE:
-            if (xmotion->x > w->width-5 && xmotion->y > w->height-5 && is_curser != 1) {
+            if (xmotion->x > w->width-10 && xmotion->y > w->height-10 && is_curser != 1) {
                 is_curser = 1;
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_bottom_right_corner);
                 XDefineCursor (w->app->dpy, w->widget, c);
                 XFreeCursor(w->app->dpy, c);
-            } else if ( xmotion->y > w->height-5 && is_curser != 4) {
+            } else if (xmotion->x < w->width-10 &&  xmotion->y > w->height-10 && is_curser != 4) {
                 is_curser = 4;
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_bottom_side);
                 XDefineCursor (w->app->dpy, w->widget, c);
                 XFreeCursor(w->app->dpy, c);
-            } else if (xmotion->x > w->width-5 && is_curser != 3) {
+            } else if (xmotion->x > w->width-10 && xmotion->y < w->height-10 && is_curser != 3) {
                 is_curser = 3;
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_right_side);
                 XDefineCursor (w->app->dpy, w->widget, c);
                 XFreeCursor(w->app->dpy, c);
-            } else if ((xmotion->x <= w->width-5 && xmotion->y <= w->height-5) && is_curser != 2) {
+            } else if ((xmotion->x < w->width-10 && xmotion->y < w->height-10) && is_curser != 2) {
                 is_curser = 2;
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_hand2);
                 XDefineCursor (w->app->dpy, w->widget, c);
@@ -373,25 +472,27 @@ static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
     designer->h_axis->func.value_changed_callback = store;
 }
 
-static void draw_frame(void *w_, void* user_data) {
+static void set_cursor(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
-    if (w->data == designer->active_widget_num) {
-        XWindowAttributes attrs;
-        XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
-        int width = attrs.width;
-        int height = attrs.height;
-        use_frame_color_scheme(w, ACTIVE_);
-        cairo_rectangle(w->cr, 0, 0, width, height);
-        cairo_stroke(w->cr);
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (adj_get_value(designer->widgets->adj)) {
+        designer->cursor = XCreateFontCursor(w->app->dpy, XC_diamond_cross);
+        XDefineCursor (w->app->dpy, w->widget, designer->cursor);
     }
 }
 
-static void draw_trans(void *w_, void* user_data) {
+static void unset_cursor(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    transparent_draw(w, NULL);
-    draw_frame(w, NULL);
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (designer->cursor) {
+        XUndefineCursor (w->app->dpy, w->widget);
+        XFreeCursor(designer->ui->app->dpy, designer->cursor);
+        designer->cursor = 0;
+    }
+    if (designer->drag_icon.is_active) {
+        designer->drag_icon.is_active = false;
+        expose_widget(designer->ui);
+    }
 }
 
 static void hide_show_as_needed(XUiDesigner *designer) {
@@ -436,8 +537,6 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
     int height = attrs.height;
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
     designer->active_widget_num = -1;
-    if (designer->prev_active_widget != NULL)
-        draw_trans(designer->prev_active_widget,NULL);
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     if(xbutton->button == Button1) {
         designer->active_widget = (Widget_t*)w_;
@@ -452,17 +551,15 @@ static void set_pos_wid(void *w_, void *button_, void* user_data) {
 
         hide_show_as_needed(designer);
     }
-    if (xbutton->x > width-5 && xbutton->y > height-5) {
+    if (xbutton->x > width-10 && xbutton->y > height-10) {
         designer->modify_mod = XUI_SIZE;
-    } else if (xbutton->y > height-5) {
+    } else if (xbutton->y > height-10) {
         designer->modify_mod = XUI_HEIGHT;
-    } else if (xbutton->x > width-5) {
+    } else if (xbutton->x > width-10) {
         designer->modify_mod = XUI_WIDTH;
     } else {
         designer->modify_mod = XUI_POSITION;
     }
-    if(designer->active_widget != NULL)
-        draw_frame(designer->active_widget, NULL);
     designer->prev_active_widget = w;
 }
 
@@ -550,8 +647,6 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
         }
         pop_menu_show(w,designer->context_menu,5,true);
     }
-    if(designer->active_widget != NULL)
-        draw_frame(designer->active_widget, NULL);
 }
 
 void fix_pos_tab(void *w_, void *button_, void* user_data) {
@@ -579,8 +674,6 @@ void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_des
     wid->data = designer->wid_counter;
     wid->scale.gravity = NONE;
     //wid->parent_struct = designer;
-    wid->func.enter_callback = draw_trans;
-    wid->func.leave_callback = draw_trans;
     wid->func.button_press_callback = set_pos_wid;
     wid->func.button_release_callback = fix_pos_wid;
     wid->func.motion_callback = move_wid;
@@ -618,67 +711,67 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         switch(designer->select_widget_num) {
             case 1:
                 asprintf(&designer->controls[designer->wid_counter].name, "Knob%i", designer->wid_counter);
-                wid = add_knob(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 60, 80);
+                wid = add_knob(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-40, 60, 80);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
             break;
             case 2:
                 asprintf(&designer->controls[designer->wid_counter].name, "HSlider%i", designer->wid_counter);
-                wid = add_hslider(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 30);
+                wid = add_hslider(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-15, 120, 30);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_hslider", true, IS_HSLIDER);
             break;
             case 3:
                 asprintf(&designer->controls[designer->wid_counter].name, "VSlider%i", designer->wid_counter);
-                wid = add_vslider(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 30, 120);
+                wid = add_vslider(w, designer->controls[designer->wid_counter].name, xbutton->x-15, xbutton->y-60, 30, 120);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_vslider", true, IS_VSLIDER);
             break;
             case 4:
                 asprintf(&designer->controls[designer->wid_counter].name, "Button%i", designer->wid_counter);
-                wid = add_button(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 60, 60);
+                wid = add_button(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-30, 60, 60);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
             break;
             case 5:
                 asprintf(&designer->controls[designer->wid_counter].name, "Switch%i", designer->wid_counter);
-                wid = add_toggle_button(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 60, 60);
+                wid = add_toggle_button(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-30, 60, 60);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
             break;
             case 6:
                 asprintf(&designer->controls[designer->wid_counter].name, "Combobox%i", designer->wid_counter);
-                wid = add_combobox(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 30);
+                wid = add_combobox(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-15, 120, 30);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
             break;
             case 7:
                 asprintf(&designer->controls[designer->wid_counter].name, "ValueDisply%i", designer->wid_counter);
-                wid = add_valuedisplay(w, "designer->controls[designer->wid_counter].name", xbutton->x, xbutton->y, 40, 30);
+                wid = add_valuedisplay(w, "designer->controls[designer->wid_counter].name", xbutton->x-20, xbutton->y-15, 40, 30);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
             break;
             case 8:
                 asprintf(&designer->controls[designer->wid_counter].name, "Label%i", designer->wid_counter);
-                wid = add_label(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 60, 30);
+                wid = add_label(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-15, 60, 30);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_label", false, IS_LABEL);
             break;
             case 9:
                 asprintf(&designer->controls[designer->wid_counter].name, "VMeter%i", designer->wid_counter);
-                wid = add_vmeter(w, designer->controls[designer->wid_counter].name, false, xbutton->x, xbutton->y, 10, 120);
+                wid = add_vmeter(w, designer->controls[designer->wid_counter].name, false, xbutton->x-5, xbutton->y-60, 10, 120);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
             break;
             case 10:
                 asprintf(&designer->controls[designer->wid_counter].name, "HMeter%i", designer->wid_counter);
-                wid = add_hmeter(w, designer->controls[designer->wid_counter].name, false, xbutton->x, xbutton->y, 120, 10);
+                wid = add_hmeter(w, designer->controls[designer->wid_counter].name, false, xbutton->x-60, xbutton->y-5, 120, 10);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
             break;
             case 11:
                 asprintf(&designer->controls[designer->wid_counter].name, "WaveView%i", designer->wid_counter);
-                wid = add_waveview(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 120);
+                wid = add_waveview(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_waveview", false, IS_WAVEVIEW);
                 float v[9] = { 0.0,-0.5, 0.0, 0.5, 0.0, -0.5, 0.0, 0.5, 0.0};
@@ -686,7 +779,7 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
             break;
             case 12:
                 asprintf(&designer->controls[designer->wid_counter].name, "Frame%i", designer->wid_counter);
-                wid = add_frame(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 120);
+                wid = add_frame(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
                 set_controller_callbacks(designer, wid, true);
                 adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
                 designer->controls[designer->wid_counter-1].port_index = -1;
@@ -698,7 +791,7 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
             break;
             case 13:
                 asprintf(&designer->controls[designer->wid_counter].name, "Tab%i", designer->wid_counter);
-                wid = add_tabbox(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 120);
+                wid = add_tabbox(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
                 set_controller_callbacks(designer, wid, true);
                 adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
                 designer->controls[designer->wid_counter-1].port_index = -1;
@@ -715,7 +808,7 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
             break;
             case 14:
                 asprintf(&designer->controls[designer->wid_counter].name, "Image%i", designer->wid_counter);
-                wid = add_image(w, designer->controls[designer->wid_counter].name, xbutton->x, xbutton->y, 120, 120);
+                wid = add_image(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
                 wid->label = designer->controls[designer->wid_counter].name;
                 set_controller_callbacks(designer, wid, true);
                 adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
@@ -745,23 +838,49 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         } else {
             widget_hide(designer->combobox_settings);
         }
-        if (designer->prev_active_widget != NULL)
-            draw_trans(designer->prev_active_widget,NULL);
         designer->prev_active_widget = wid;
         widget_hide(designer->set_project);
     } else if(xbutton->button == Button3) {
-        widget_show_all(designer->set_project);
-        char *name = NULL;
-        XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
-        if (name != NULL)
-            box_entry_set_text(designer->project_title, name);
-        if (designer->lv2c.uri != NULL)
-            box_entry_set_text(designer->project_uri, designer->lv2c.uri);
-        if (designer->lv2c.ui_uri != NULL)
-            box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
-        if (designer->lv2c.author != NULL)
-            box_entry_set_text(designer->project_author, designer->lv2c.author);
+        adj_set_value(designer->widgets->adj, 0);
+        if (designer->cursor) {
+            XUndefineCursor (w->app->dpy, w->widget);
+            XFreeCursor(designer->ui->app->dpy, designer->cursor);
+            designer->cursor = 0;
+        }
+        if (designer->drag_icon.is_active) {
+            designer->drag_icon.is_active = false;
+            expose_widget(designer->ui);
+        }
     }
+}
+
+static void update_clabel(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    if (designer->active_widget == NULL) return;
+    if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
+        int v = (int)adj_get_value(designer->active_widget->adj);
+        if (designer->active_widget_num+v > MAX_CONTROLS) {
+            Widget_t *dia = open_message_dialog(w, INFO_BOX, _("INFO"),
+                _("MAX CONTROL COUNTER OVERFLOW | Sorry, cant edit the label anymore"),NULL);
+            XSetTransientForHint(w->app->dpy, dia->widget, w->widget);
+            return;
+        }
+        free(designer->tab_label[designer->active_widget_num+v]);
+        designer->tab_label[designer->active_widget_num+v] = NULL;
+        asprintf (&designer->tab_label[designer->active_widget_num+v], "%s", text_box->input_label);
+        //designer->tab_label[designer->active_widget_num+v][strlen( text_box->input_label)-1] = 0;
+        Widget_t *wi = designer->active_widget->childlist->childs[v];
+        wi->label = (const char*)designer->tab_label[designer->active_widget_num+v];
+    } else {
+        free(designer->new_label[designer->active_widget_num]);
+        designer->new_label[designer->active_widget_num] = NULL;
+        asprintf (&designer->new_label[designer->active_widget_num], "%s", text_box->input_label);
+        //designer->new_label[designer->active_widget_num][strlen( text_box->input_label)-1] = 0;
+        designer->active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
+    }
+    expose_widget(designer->active_widget);
 }
 
 static void systray_menu_response(void *w_, void* item_, void* user_data) {
@@ -903,37 +1022,6 @@ char *getUserName() {
     return "";
 }
 
-
-static void update_clabel(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    TextBox_t *text_box = (TextBox_t*)w->private_struct;
-    if (designer->active_widget == NULL) return;
-    if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
-        int v = (int)adj_get_value(designer->active_widget->adj);
-        if (designer->active_widget_num+v > MAX_CONTROLS) {
-            Widget_t *dia = open_message_dialog(w, INFO_BOX, _("INFO"),
-                _("MAX CONTROL COUNTER OVERFLOW | Sorry, cant edit the label anymore"),NULL);
-            XSetTransientForHint(w->app->dpy, dia->widget, w->widget);
-            return;
-        }
-        free(designer->tab_label[designer->active_widget_num+v]);
-        designer->tab_label[designer->active_widget_num+v] = NULL;
-        asprintf (&designer->tab_label[designer->active_widget_num+v], "%s", text_box->input_label);
-        //designer->tab_label[designer->active_widget_num+v][strlen( text_box->input_label)-1] = 0;
-        Widget_t *wi = designer->active_widget->childlist->childs[v];
-        wi->label = (const char*)designer->tab_label[designer->active_widget_num+v];
-    } else {
-        free(designer->new_label[designer->active_widget_num]);
-        designer->new_label[designer->active_widget_num] = NULL;
-        asprintf (&designer->new_label[designer->active_widget_num], "%s", text_box->input_label);
-        //designer->new_label[designer->active_widget_num][strlen( text_box->input_label)-1] = 0;
-        designer->active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
-    }
-    expose_widget(designer->active_widget);
-}
-
-
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 main
@@ -1002,6 +1090,11 @@ int main (int argc, char ** argv) {
     designer->grid_height = 15;
     designer->is_project = false;
     designer->generate_ui_only = false;
+    designer->drag_icon.x = 0;
+    designer->drag_icon.w = 0;
+    designer->drag_icon.y = 0;
+    designer->drag_icon.h = 0;
+    designer->drag_icon.is_active = false;
 
     Xputty app;
     main_init(&app);
@@ -1056,6 +1149,9 @@ int main (int argc, char ** argv) {
     designer->lv2_uris->func.value_changed_callback = load_plugin_ui;
 
     designer->ui = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 600, 400);
+    XSelectInput(designer->ui->app->dpy, designer->ui->widget,StructureNotifyMask|ExposureMask|KeyPressMask 
+                    |EnterWindowMask|LeaveWindowMask|ButtonReleaseMask
+                    |ButtonPressMask|Button1MotionMask|PointerMotionMask);
     Atom wmStateAbove = XInternAtom(app.dpy, "_NET_WM_STATE_ABOVE", 1 );
     Atom wmNetWmState = XInternAtom(app.dpy, "_NET_WM_STATE", 1 );
     XChangeProperty(app.dpy, designer->ui->widget, wmNetWmState, XA_ATOM, 32, 
@@ -1065,6 +1161,9 @@ int main (int argc, char ** argv) {
     designer->ui->parent_struct = designer;
     designer->ui->func.expose_callback = draw_ui;
     designer->ui->func.button_release_callback = button_released_callback;
+    designer->ui->func.enter_callback = set_cursor;
+    designer->ui->func.leave_callback = unset_cursor;
+    designer->ui->func.motion_callback = set_drag_icon;
 
     designer->widgets = add_combobox(designer->w, "", 20, 25, 120, 30);
     designer->widgets->scale.gravity = CENTER;
