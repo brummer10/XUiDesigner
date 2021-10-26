@@ -33,7 +33,7 @@
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
-                designer function calls
+                designer drawing calls
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
@@ -97,7 +97,7 @@ static void draw_ui(void *w_, void* user_data) {
                                 designer->drag_icon.w, designer->drag_icon.h);
         cairo_fill(w->crb);
     }
-    if (designer->active_widget) {
+    if (designer->active_widget && designer->active_widget->parent == w) {
         XWindowAttributes attrs;
         XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
         int x = attrs.x -1;
@@ -110,6 +110,216 @@ static void draw_ui(void *w_, void* user_data) {
         cairo_stroke(w->crb);        
     }
 }
+
+static void rounded_frame(cairo_t *cr,float x, float y, float w, float h, float lsize) {
+    cairo_new_path (cr);
+    float r = 20.0;
+    cairo_move_to(cr, x+lsize+r,y);
+    cairo_line_to(cr, x+w-r,y);
+    cairo_curve_to(cr, x+w,y,x+w,y,x+w,y+r);
+    cairo_line_to(cr, x+w,y+h-r);
+    cairo_curve_to(cr, x+w,y+h,x+w,y+h,x+w-r,y+h);
+    cairo_line_to(cr, x+r,y+h);
+    cairo_curve_to(cr, x,y+h,x,y+h,x,y+h-r);
+    cairo_line_to(cr, x,y+r);
+    cairo_curve_to(cr, x,y,x,y,x+r,y);
+}
+
+static void draw_frame(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+    int width_t = attrs.width;
+    int height_t = attrs.height;
+
+    if (w->image) {
+        int width = cairo_xlib_surface_get_width(w->image);
+        int height = cairo_xlib_surface_get_height(w->image);
+        double x = (double)width_t/(double)(width);
+        double y = (double)height_t/(double)height;
+        double x1 = (double)(width)/(double)width_t;
+        double y1 = (double)height/(double)height_t;
+        cairo_scale(w->crb, x,y);
+        cairo_set_source_surface (w->crb, w->image, 0, 0);
+        rounded_frame(w->crb, 5/x, 5/y, (width_t-10)/x, (height_t-10)/y, 0);
+        cairo_close_path (w->crb);
+        cairo_fill (w->crb);
+        cairo_scale(w->crb, x1,y1);
+    }
+
+    cairo_text_extents_t extents;
+    use_text_color_scheme(w, get_color_state(w));
+    cairo_set_font_size (w->crb, w->app->normal_font/w->scale.ascale);
+    cairo_text_extents(w->crb,w->label , &extents);
+    cairo_move_to (w->crb, 30, extents.height);
+    cairo_show_text(w->crb, w->label);
+    cairo_new_path (w->crb);
+
+    cairo_set_line_width(w->crb,3);
+    use_frame_color_scheme(w, INSENSITIVE_);
+    rounded_frame(w->crb, 5, 5, width_t-10, height_t-10, extents.width+10);
+    cairo_stroke(w->crb);
+
+    if (designer->active_widget && designer->active_widget->parent == w) {
+        XWindowAttributes attrs;
+        XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
+        int x = attrs.x -1;
+        int y = attrs.y -1;
+        int width = attrs.width +2;
+        int height = attrs.height +2;
+        cairo_set_line_width(w->crb, 1.0);
+        use_frame_color_scheme(w, ACTIVE_);
+        cairo_rectangle(w->crb, x, y, width, height);
+        cairo_stroke(w->crb);        
+    }
+}
+
+static void draw_image(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+    int width_t = attrs.width;
+    int height_t = attrs.height;
+
+    if (!w->image) {
+        cairo_text_extents_t extents;
+        use_base_color_scheme(w, get_color_state(w));
+        cairo_set_font_size (w->crb, w->app->big_font/w->scale.ascale);
+        cairo_text_extents(w->crb,"Missing Image" , &extents);
+        cairo_move_to (w->crb, (w->width -extents.width)*0.5, (w->height - extents.height)*0.5);
+        cairo_show_text(w->crb, "Missing Image");
+        cairo_new_path (w->crb);
+
+        cairo_set_line_width(w->crb,3);
+        rounded_frame(w->crb, 5, 5, width_t-10, height_t-10, 0);
+        cairo_stroke(w->crb);
+    }
+
+    if (w->image) {
+        int width = cairo_xlib_surface_get_width(w->image);
+        int height = cairo_xlib_surface_get_height(w->image);
+        double x = (double)width_t/(double)(width);
+        double y = (double)height_t/(double)height;
+        double x1 = (double)(width)/(double)width_t;
+        double y1 = (double)height/(double)height_t;
+        cairo_scale(w->crb, x,y);
+        cairo_set_source_surface (w->crb, w->image, 0, 0);
+        cairo_paint (w->crb);
+        cairo_scale(w->crb, x1,y1);
+    } 
+
+    if (designer->active_widget && designer->active_widget->parent == w) {
+        XWindowAttributes attrs;
+        XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
+        int x = attrs.x -1;
+        int y = attrs.y -1;
+        int width = attrs.width +2;
+        int height = attrs.height +2;
+        cairo_set_line_width(w->crb, 1.0);
+        use_frame_color_scheme(w, ACTIVE_);
+        cairo_rectangle(w->crb, x, y, width, height);
+        cairo_stroke(w->crb);        
+    }
+}
+
+static void rounded_box(cairo_t *cr,float x, float y, float w, float h, float lsize) {
+    cairo_new_path (cr);
+    float r = 10.0;
+    cairo_move_to(cr, x+lsize,y);
+    cairo_line_to(cr, x+w,y);
+    cairo_curve_to(cr, x+w,y,x+w,y,x+w,y);
+    cairo_line_to(cr, x+w,y+h-r);
+    cairo_curve_to(cr, x+w,y+h,x+w,y+h,x+w-r,y+h);
+    cairo_line_to(cr, x+r,y+h);
+    cairo_curve_to(cr, x,y+h,x,y+h,x,y+h-r);
+    cairo_line_to(cr, x,y+r);
+    cairo_curve_to(cr, x,y,x,y,x,y);
+}
+
+static void draw_tabbox(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+    int width_t = attrs.width;
+    int height_t = attrs.height;
+
+    cairo_set_source_surface (w->crb, p->buffer, -attrs.x, -attrs.y);
+    cairo_paint (w->crb);
+
+    int tabsize = 1;
+    int elem = w->childlist->elem;
+    if (elem) tabsize = width_t/elem;
+    int v = (int)adj_get_value(w->adj);
+
+    cairo_new_path (w->crb);
+    cairo_set_line_width(w->crb,1);
+    use_frame_color_scheme(w, NORMAL_);
+    rounded_box(w->crb, 1, 21, width_t-2, height_t-22, (v+1)*tabsize);
+    cairo_stroke(w->crb);
+
+    cairo_text_extents_t extents;
+    use_text_color_scheme(w, get_color_state(w));
+    cairo_set_font_size (w->crb, w->app->normal_font/w->scale.ascale);
+    int i = 0;
+    int t = 0;
+    for(;i<elem;i++) {
+        Widget_t *wi = w->childlist->childs[i];
+        if(v == i) {
+            cairo_move_to (w->crb, t+1, 21);
+            cairo_line_to(w->crb, t+1, 1);
+            cairo_line_to(w->crb, t+tabsize-1, 1);
+            cairo_line_to(w->crb, t+tabsize-1, 21);
+            use_frame_color_scheme(w, NORMAL_);
+            cairo_stroke(w->crb);
+            if (designer->active_widget && designer->active_widget->parent == wi) {
+                XWindowAttributes attrs;
+                XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
+                int x = attrs.x +1;
+                int y = attrs.y +20;
+                int width = attrs.width +2;
+                int height = attrs.height +2;
+                cairo_set_line_width(w->crb, 1.0);
+                use_frame_color_scheme(w, ACTIVE_);
+                cairo_rectangle(w->crb, x, y, width, height);
+                cairo_stroke(w->crb);        
+            }
+            use_text_color_scheme(w, ACTIVE_);
+            widget_show_all(wi);
+        } else {
+            use_bg_color_scheme(w, ACTIVE_);
+            cairo_rectangle(w->crb, t+2, 1, tabsize-4, 20);
+            cairo_fill_preserve(w->crb);
+            use_frame_color_scheme(w, NORMAL_);
+            cairo_stroke(w->crb);
+            use_text_color_scheme(w, INSENSITIVE_);
+            widget_hide(wi);
+        }
+
+        cairo_text_extents(w->crb,"Äy" , &extents);
+        cairo_move_to (w->crb, 5+t, 2+extents.height);
+        cairo_show_text(w->crb, wi->label);
+        cairo_new_path (w->crb);
+        t += tabsize;
+    }
+}
+
+static void draw_tab(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    draw_tabbox(p, NULL);
+}
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                designer function callbacks
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
 
 static void set_port_index(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
@@ -191,6 +401,7 @@ static void add_tabbox_entry(void *w_, void* user_data) {
             tab->func.button_press_callback = set_pos_tab;
             tab->func.button_release_callback = fix_pos_tab;
             tab->func.motion_callback = move_tab;
+            tab->func.expose_callback = draw_tab;
             expose_widget(designer->active_widget);
         }
     }
@@ -446,6 +657,36 @@ static void null_callback(void *w_, void* user_data) {
     
 }
 
+static void set_cursor(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (adj_get_value(designer->widgets->adj)) {
+        designer->cursor = XCreateFontCursor(w->app->dpy, XC_diamond_cross);
+        XDefineCursor (w->app->dpy, w->widget, designer->cursor);
+    }
+}
+
+static void unset_cursor(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (designer->cursor) {
+        XUndefineCursor (w->app->dpy, w->widget);
+        XFreeCursor(designer->ui->app->dpy, designer->cursor);
+        designer->cursor = 0;
+    }
+    if (designer->drag_icon.is_active) {
+        designer->drag_icon.is_active = false;
+        expose_widget(designer->ui);
+    }
+}
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                designer functions
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+
 static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
     if (designer->controls[wid->data].is_type == IS_TABBOX) {
         int v = (int)adj_get_value(wid->adj);
@@ -472,29 +713,6 @@ static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
     designer->h_axis->func.value_changed_callback = store;
 }
 
-static void set_cursor(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (adj_get_value(designer->widgets->adj)) {
-        designer->cursor = XCreateFontCursor(w->app->dpy, XC_diamond_cross);
-        XDefineCursor (w->app->dpy, w->widget, designer->cursor);
-    }
-}
-
-static void unset_cursor(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (designer->cursor) {
-        XUndefineCursor (w->app->dpy, w->widget);
-        XFreeCursor(designer->ui->app->dpy, designer->cursor);
-        designer->cursor = 0;
-    }
-    if (designer->drag_icon.is_active) {
-        designer->drag_icon.is_active = false;
-        expose_widget(designer->ui);
-    }
-}
-
 static void hide_show_as_needed(XUiDesigner *designer) {
     if (designer->controls[designer->active_widget_num].have_adjustment  &&
             designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
@@ -518,7 +736,6 @@ static void hide_show_as_needed(XUiDesigner *designer) {
         widget_hide(designer->combobox_settings);
     }
     if (designer->grid_view) {
-        snap_to_grid(designer);
         widget_show(designer->grid_size_x);
         widget_show(designer->grid_size_y);
     } else {
@@ -605,6 +822,7 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
             designer->controls[designer->active_widget_num].is_type != IS_IMAGE &&
             designer->controls[designer->active_widget_num].is_type != IS_TABBOX)
             check_reparent(designer, xbutton, w);
+        expose_widget(designer->ui);
     } else if(xbutton->button == Button3) {
         designer->modify_mod = XUI_NONE;
         designer->active_widget = (Widget_t*)w_;
@@ -785,6 +1003,7 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 designer->controls[designer->wid_counter-1].port_index = -1;
                 add_to_list(designer, wid, "add_lv2_frame", false, IS_FRAME);
                 wid->parent_struct = designer;
+                wid->func.expose_callback = draw_frame;
                 wid->func.enter_callback = null_callback;
                 wid->func.leave_callback = null_callback;
                 XLowerWindow(w->app->dpy, wid->widget);
@@ -797,11 +1016,13 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 designer->controls[designer->wid_counter-1].port_index = -1;
                 add_to_list(designer, wid, "add_lv2_tabbox", false, IS_TABBOX);
                 wid->parent_struct = designer;
+                wid->func.expose_callback = draw_tabbox;
                 wid->func.enter_callback = null_callback;
                 wid->func.leave_callback = null_callback;
                 XLowerWindow(w->app->dpy, wid->widget);
                 Widget_t *tab = tabbox_add_tab(wid, "Tab 1");
                 tab->parent_struct = designer;
+                tab->func.expose_callback = draw_tab;
                 tab->func.button_press_callback = set_pos_tab;
                 tab->func.button_release_callback = fix_pos_tab;
                 tab->func.motion_callback = move_tab;
@@ -815,6 +1036,7 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 designer->controls[designer->wid_counter-1].port_index = -1;
                 add_to_list(designer, wid, "add_lv2_image", false, IS_IMAGE);
                 wid->parent_struct = designer;
+                wid->func.expose_callback = draw_image;
                 wid->func.enter_callback = null_callback;
                 wid->func.leave_callback = null_callback;
                 XLowerWindow(w->app->dpy, wid->widget);
