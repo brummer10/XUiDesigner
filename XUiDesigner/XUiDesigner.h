@@ -264,6 +264,10 @@ void draw_window(void *w_, void* user_data);
 
 void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer);
 
+void move_wid(void *w_, void *xmotion_, void* user_data);
+
+void set_pos_wid(void *w_, void *button_, void* user_data);
+
 void fix_pos_wid(void *w_, void *button_, void* user_data);
 
 void fix_pos_tab(void *w_, void *button_, void* user_data);

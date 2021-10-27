@@ -31,16 +31,18 @@
 #include "XUiWriteTurtle.h"
 #include "xtabbox_private.h"
 
+
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 designer drawing calls
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+
 void draw_window(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     //use_bg_color_scheme(w, NORMAL_);
-    cairo_set_source_rgba(w->crb,  0.1, 0.1, 0.1, 1.0);
+    cairo_set_source_rgba(w->crb,  0.13, 0.13, 0.13, 1.0);
     cairo_paint (w->crb);
 }
 
@@ -315,11 +317,129 @@ static void draw_tab(void *w_, void* user_data) {
     draw_tabbox(p, NULL);
 }
 
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                designer dummy callback
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+
+static void null_callback(void *w_, void* user_data) {
+    
+}
+
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                designer functions
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+
+static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
+    if (designer->controls[wid->data].is_type == IS_TABBOX) {
+        int v = (int)adj_get_value(wid->adj);
+        Widget_t *wi = designer->active_widget->childlist->childs[v];
+        box_entry_set_text(designer->controller_label, wi->label);
+    } else {
+        box_entry_set_text(designer->controller_label, wid->label);
+    }
+    xevfunc store = designer->x_axis->func.value_changed_callback;
+    designer->x_axis->func.value_changed_callback = null_callback;
+    adj_set_value(designer->x_axis->adj, (float)wid->x);
+    designer->x_axis->func.value_changed_callback = store;
+    store = designer->y_axis->func.value_changed_callback;
+    designer->y_axis->func.value_changed_callback = null_callback;
+    adj_set_value(designer->y_axis->adj, (float)wid->y);
+    designer->y_axis->func.value_changed_callback = store;
+    store = designer->w_axis->func.value_changed_callback;
+    designer->w_axis->func.value_changed_callback = null_callback;
+    adj_set_value(designer->w_axis->adj, (float)wid->width);
+    designer->w_axis->func.value_changed_callback = store;
+    store = designer->h_axis->func.value_changed_callback;
+    designer->h_axis->func.value_changed_callback = null_callback;
+    adj_set_value(designer->h_axis->adj, (float)wid->height);
+    designer->h_axis->func.value_changed_callback = store;
+}
+
+static void hide_show_as_needed(XUiDesigner *designer) {
+    if (designer->controls[designer->active_widget_num].have_adjustment  &&
+            designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
+        widget_hide(designer->tabbox_settings);
+        widget_show_all(designer->controller_settings);
+        box_entry_set_value(designer->controller_entry[0], designer->active_widget->adj->min_value);
+        box_entry_set_value(designer->controller_entry[1], designer->active_widget->adj->max_value);
+        box_entry_set_value(designer->controller_entry[2], designer->active_widget->adj->std_value);
+        box_entry_set_value(designer->controller_entry[3], designer->active_widget->adj->step);
+    } else if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
+        widget_hide(designer->controller_settings);
+        widget_show_all(designer->tabbox_settings);
+    } else {
+        widget_hide(designer->controller_settings);
+        widget_hide(designer->tabbox_settings);
+    }
+    if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX) {
+        widget_show_all(designer->combobox_settings);
+        widget_hide(designer->tabbox_settings);
+    } else {
+        widget_hide(designer->combobox_settings);
+    }
+    if (designer->grid_view) {
+        widget_show(designer->grid_size_x);
+        widget_show(designer->grid_size_y);
+    } else {
+        widget_hide(designer->grid_size_x);
+        widget_hide(designer->grid_size_y);
+    }
+
+}
+
+void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer) {
+    XSelectInput(wid->app->dpy, wid->widget,StructureNotifyMask|ExposureMask|KeyPressMask 
+                    |EnterWindowMask|LeaveWindowMask|ButtonReleaseMask
+                    |ButtonPressMask|Button1MotionMask|PointerMotionMask);
+    wid->data = designer->wid_counter;
+    wid->scale.gravity = NONE;
+    //wid->parent_struct = designer;
+    wid->func.button_press_callback = set_pos_wid;
+    wid->func.button_release_callback = fix_pos_wid;
+    wid->func.motion_callback = move_wid;
+    designer->active_widget_num = designer->wid_counter;
+    designer->active_widget = wid;
+    adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)+1.0);
+    designer->controls[designer->wid_counter].port_index = adj_get_value(designer->index->adj);
+    designer->controls[designer->wid_counter].in_frame = 0;
+    free(designer->controls[designer->active_widget_num].symbol);
+    designer->controls[designer->active_widget_num].symbol = NULL;
+    asprintf (&designer->controls[designer->active_widget_num].symbol, "%s",wid->label);
+    asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
+    if (set_designer) {
+        set_designer_callbacks(designer, wid);
+    }
+    designer->wid_counter++;
+    Cursor c = XCreateFontCursor(wid->app->dpy, XC_hand2);
+    XDefineCursor (wid->app->dpy, wid->widget, c);
+    XFreeCursor(wid->app->dpy, c);
+    widget_show_all(designer->ui);
+}
+
+char *getUserName() {
+    uid_t uid = geteuid();
+    struct passwd *pw = getpwuid(uid);
+    if (pw) {
+        return pw->pw_name;
+    }
+    return "";
+}
+
+
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 designer function callbacks
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
+
 
 static void set_port_index(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
@@ -499,7 +619,8 @@ static void set_x_axis_callback(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     int v = (int)adj_get_value(w->adj);
     if (designer->active_widget != NULL)
-        XMoveWindow(designer->active_widget->app->dpy,designer->active_widget->widget,v, (int)adj_get_value(designer->y_axis->adj));
+        XMoveWindow(designer->active_widget->app->dpy,
+            designer->active_widget->widget,v, (int)adj_get_value(designer->y_axis->adj));
 }
 
 static void set_y_axis_callback(void *w_, void* user_data) {
@@ -507,7 +628,8 @@ static void set_y_axis_callback(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     int v = (int)adj_get_value(w->adj);
     if (designer->active_widget != NULL)
-        XMoveWindow(designer->active_widget->app->dpy,designer->active_widget->widget, (int)adj_get_value(designer->x_axis->adj), v);
+        XMoveWindow(designer->active_widget->app->dpy,
+            designer->active_widget->widget, (int)adj_get_value(designer->x_axis->adj), v);
 }
 
 static void set_w_axis_callback(void *w_, void* user_data) {
@@ -515,7 +637,8 @@ static void set_w_axis_callback(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     int v = (int)adj_get_value(w->adj);
     if (designer->active_widget != NULL)
-        XResizeWindow(designer->active_widget->app->dpy,designer->active_widget->widget, v, (int)adj_get_value(designer->h_axis->adj));
+        XResizeWindow(designer->active_widget->app->dpy,
+            designer->active_widget->widget, v, (int)adj_get_value(designer->h_axis->adj));
 }
 
 static void set_h_axis_callback(void *w_, void* user_data) {
@@ -523,7 +646,8 @@ static void set_h_axis_callback(void *w_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     int v = (int)adj_get_value(w->adj);
     if (designer->active_widget != NULL)
-        XResizeWindow(designer->active_widget->app->dpy,designer->active_widget->widget, (int)adj_get_value(designer->w_axis->adj), v);
+        XResizeWindow(designer->active_widget->app->dpy,
+            designer->active_widget->widget, (int)adj_get_value(designer->w_axis->adj), v);
 }
 
 static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
@@ -543,7 +667,7 @@ static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
     }
 }
 
-static void move_wid(void *w_, void *xmotion_, void* user_data) {
+void move_wid(void *w_, void *xmotion_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
@@ -579,7 +703,8 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
         }
         break;
         case XUI_SIZE:
-            XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), max(10,w->height+ (xmotion->x_root-designer->pos_x)));
+            XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)),
+                                                  max(10,w->height+ (xmotion->x_root-designer->pos_x)));
             adj_set_value(designer->w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
             adj_set_value(designer->h_axis->adj, w->height+ ((xmotion->x_root-designer->pos_x)));
             if (designer->controls[w->data].is_type == IS_TABBOX) {
@@ -587,7 +712,8 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
                 int i = 0;
                 for(;i<elem;i++) {
                     Widget_t *wi = w->childlist->childs[i];
-                    XResizeWindow(w->app->dpy, wi->widget, max(10,wi->width + (xmotion->x_root-designer->pos_x)), max(10,wi->height+ (xmotion->x_root-designer->pos_x)));
+                    XResizeWindow(w->app->dpy, wi->widget, max(10,wi->width + (xmotion->x_root-designer->pos_x)),
+                                                           max(10,wi->height+ (xmotion->x_root-designer->pos_x)));
                 }
             }
             w->scale.ascale = 1.0;
@@ -601,7 +727,8 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
                 int i = 0;
                 for(;i<elem;i++) {
                     Widget_t *wi = w->childlist->childs[i];
-                    XResizeWindow(w->app->dpy, wi->widget, max(10,wi->width + (xmotion->x_root-designer->pos_x)), wi->height);
+                    XResizeWindow(w->app->dpy, wi->widget,
+                        max(10,wi->width + (xmotion->x_root-designer->pos_x)), wi->height);
                 }
             }
             w->scale.ascale = 1.0;
@@ -616,7 +743,8 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
                 int i = 0;
                 for(;i<elem;i++) {
                     Widget_t *wi = w->childlist->childs[i];
-                    XResizeWindow(w->app->dpy, wi->widget, wi->width, max(10,wi->height+ (xmotion->x_root-designer->pos_x)));
+                    XResizeWindow(w->app->dpy, wi->widget, wi->width,
+                        max(10,wi->height+ (xmotion->x_root-designer->pos_x)));
                 }
             }
             w->scale.ascale = 1.0;
@@ -639,7 +767,7 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_right_side);
                 XDefineCursor (w->app->dpy, w->widget, c);
                 XFreeCursor(w->app->dpy, c);
-            } else if ((xmotion->x < w->width-10 && xmotion->y < w->height-10) && is_curser != 2) {
+            } else if ((xmotion->x <= w->width-10 && xmotion->y <= w->height-10) && is_curser != 2) {
                 is_curser = 2;
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_hand2);
                 XDefineCursor (w->app->dpy, w->widget, c);
@@ -651,10 +779,6 @@ static void move_wid(void *w_, void *xmotion_, void* user_data) {
         default:
         break;
     }
-}
-
-static void null_callback(void *w_, void* user_data) {
-    
 }
 
 static void set_cursor(void *w_, void* user_data) {
@@ -680,72 +804,7 @@ static void unset_cursor(void *w_, void* user_data) {
     }
 }
 
-/*---------------------------------------------------------------------
------------------------------------------------------------------------    
-                designer functions
------------------------------------------------------------------------
-----------------------------------------------------------------------*/
-
-
-static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
-    if (designer->controls[wid->data].is_type == IS_TABBOX) {
-        int v = (int)adj_get_value(wid->adj);
-        Widget_t *wi = designer->active_widget->childlist->childs[v];
-        box_entry_set_text(designer->controller_label, wi->label);
-    } else {
-        box_entry_set_text(designer->controller_label, wid->label);
-    }
-    xevfunc store = designer->x_axis->func.value_changed_callback;
-    designer->x_axis->func.value_changed_callback = null_callback;
-    adj_set_value(designer->x_axis->adj, (float)wid->x);
-    designer->x_axis->func.value_changed_callback = store;
-    store = designer->y_axis->func.value_changed_callback;
-    designer->y_axis->func.value_changed_callback = null_callback;
-    adj_set_value(designer->y_axis->adj, (float)wid->y);
-    designer->y_axis->func.value_changed_callback = store;
-    store = designer->w_axis->func.value_changed_callback;
-    designer->w_axis->func.value_changed_callback = null_callback;
-    adj_set_value(designer->w_axis->adj, (float)wid->width);
-    designer->w_axis->func.value_changed_callback = store;
-    store = designer->h_axis->func.value_changed_callback;
-    designer->h_axis->func.value_changed_callback = null_callback;
-    adj_set_value(designer->h_axis->adj, (float)wid->height);
-    designer->h_axis->func.value_changed_callback = store;
-}
-
-static void hide_show_as_needed(XUiDesigner *designer) {
-    if (designer->controls[designer->active_widget_num].have_adjustment  &&
-            designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
-        widget_hide(designer->tabbox_settings);
-        widget_show_all(designer->controller_settings);
-        box_entry_set_value(designer->controller_entry[0], designer->active_widget->adj->min_value);
-        box_entry_set_value(designer->controller_entry[1], designer->active_widget->adj->max_value);
-        box_entry_set_value(designer->controller_entry[2], designer->active_widget->adj->std_value);
-        box_entry_set_value(designer->controller_entry[3], designer->active_widget->adj->step);
-    } else if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
-        widget_hide(designer->controller_settings);
-        widget_show_all(designer->tabbox_settings);
-    } else {
-        widget_hide(designer->controller_settings);
-        widget_hide(designer->tabbox_settings);
-    }
-    if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX) {
-        widget_show_all(designer->combobox_settings);
-        widget_hide(designer->tabbox_settings);
-    } else {
-        widget_hide(designer->combobox_settings);
-    }
-    if (designer->grid_view) {
-        widget_show(designer->grid_size_x);
-        widget_show(designer->grid_size_y);
-    } else {
-        widget_hide(designer->grid_size_x);
-        widget_hide(designer->grid_size_y);
-    }
-
-}
-
-static void set_pos_wid(void *w_, void *button_, void* user_data) {
+void set_pos_wid(void *w_, void *button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XWindowAttributes attrs;
@@ -883,35 +942,6 @@ void move_tab(void *w_, void *xmotion_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     move_wid(p, xmotion_, user_data);
-}
-
-void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer) {
-    XSelectInput(wid->app->dpy, wid->widget,StructureNotifyMask|ExposureMask|KeyPressMask 
-                    |EnterWindowMask|LeaveWindowMask|ButtonReleaseMask
-                    |ButtonPressMask|Button1MotionMask|PointerMotionMask);
-    wid->data = designer->wid_counter;
-    wid->scale.gravity = NONE;
-    //wid->parent_struct = designer;
-    wid->func.button_press_callback = set_pos_wid;
-    wid->func.button_release_callback = fix_pos_wid;
-    wid->func.motion_callback = move_wid;
-    designer->active_widget_num = designer->wid_counter;
-    designer->active_widget = wid;
-    adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)+1.0);
-    designer->controls[designer->wid_counter].port_index = adj_get_value(designer->index->adj);
-    designer->controls[designer->wid_counter].in_frame = 0;
-    free(designer->controls[designer->active_widget_num].symbol);
-    designer->controls[designer->active_widget_num].symbol = NULL;
-    asprintf (&designer->controls[designer->active_widget_num].symbol, "%s",wid->label);
-    asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-    if (set_designer) {
-        set_designer_callbacks(designer, wid);
-    }
-    designer->wid_counter++;
-    Cursor c = XCreateFontCursor(wid->app->dpy, XC_hand2);
-    XDefineCursor (wid->app->dpy, wid->widget, c);
-    XFreeCursor(wid->app->dpy, c);
-    widget_show_all(designer->ui);
 }
 
 static void button_released_callback(void *w_, void *button_, void* user_data) {
@@ -1105,6 +1135,79 @@ static void update_clabel(void *w_, void* user_data) {
     expose_widget(designer->active_widget);
 }
 
+static void run_settings(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        XWindowAttributes attrs;
+        XGetWindowAttributes(w->app->dpy, (Window)designer->set_project->widget, &attrs);
+        if (attrs.map_state != IsViewable) {
+            widget_show_all(designer->set_project);
+            char *name = NULL;
+            XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
+            if (name != NULL)
+                box_entry_set_text(designer->project_title, name);
+            if (designer->lv2c.uri != NULL)
+                box_entry_set_text(designer->project_uri, designer->lv2c.uri);
+            if (designer->lv2c.ui_uri != NULL)
+                box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
+            if (designer->lv2c.author != NULL)
+                box_entry_set_text(designer->project_author, designer->lv2c.author);
+        } else {
+            widget_hide(designer->set_project);
+        }
+    }
+}
+
+static void run_exit(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        quit(designer->w);
+    }
+}
+
+static void run_save_as(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    const char* home = getenv("HOME");
+    Widget_t *dia = open_directory_dialog(designer->ui, home);
+    XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+    designer->ui->func.dialog_callback = run_save;
+}
+
+static void save_response(void *w_, void* user_data) {
+    if(user_data !=NULL) {
+        Widget_t *w = (Widget_t*)w_;
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        int response = *(int*)user_data;
+        if(response == 1)
+            designer->generate_ui_only = true;
+        else
+            designer->generate_ui_only = false;
+        run_save_as(w_, user_data);
+    }
+}
+
+static void ask_save_as(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        Widget_t *dia = open_message_dialog(designer->ui, SELECTION_BOX,
+            "Save as:",  "Save as:", "Only UI-Bundle       |Full Plugin-Bundle       ");
+        XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+        designer->ui->func.dialog_callback = save_response;
+    }
+}
+
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                systray responses
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+
 static void systray_menu_response(void *w_, void* item_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -1171,84 +1274,13 @@ static void systray_released(void *w_, void* button_, void* user_data) {
     }
 }
 
-static void run_settings(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-        XWindowAttributes attrs;
-        XGetWindowAttributes(w->app->dpy, (Window)designer->set_project->widget, &attrs);
-        if (attrs.map_state != IsViewable) {
-            widget_show_all(designer->set_project);
-            char *name = NULL;
-            XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
-            if (name != NULL)
-                box_entry_set_text(designer->project_title, name);
-            if (designer->lv2c.uri != NULL)
-                box_entry_set_text(designer->project_uri, designer->lv2c.uri);
-            if (designer->lv2c.ui_uri != NULL)
-                box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
-            if (designer->lv2c.author != NULL)
-                box_entry_set_text(designer->project_author, designer->lv2c.author);
-        } else {
-            widget_hide(designer->set_project);
-        }
-    }
-}
-
-static void run_exit(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-        quit(designer->w);
-    }
-}
-
-static void run_save_as(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    const char* home = getenv("HOME");
-    Widget_t *dia = open_directory_dialog(designer->ui, home);
-    XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
-    designer->ui->func.dialog_callback = run_save;
-}
-
-static void save_response(void *w_, void* user_data) {
-    if(user_data !=NULL) {
-        Widget_t *w = (Widget_t*)w_;
-        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-        int response = *(int*)user_data;
-        if(response == 1)
-            designer->generate_ui_only = true;
-        else
-            designer->generate_ui_only = false;
-        run_save_as(w_, user_data);
-    }
-}
-
-static void ask_save_as(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-        Widget_t *dia = open_message_dialog(designer->ui, SELECTION_BOX, "Save as:",  "Save as:", "Only UI-Bundle       |Full Plugin-Bundle       ");
-        XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
-        designer->ui->func.dialog_callback = save_response;
-    }
-}
-
-char *getUserName() {
-    uid_t uid = geteuid();
-    struct passwd *pw = getpwuid(uid);
-    if (pw) {
-        return pw->pw_name;
-    }
-    return "";
-}
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 main
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
+
 
 int main (int argc, char ** argv) {
 
