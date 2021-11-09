@@ -1350,8 +1350,6 @@ int main (int argc, char ** argv) {
     designer->drag_icon.h = 0;
     designer->drag_icon.is_active = false;
 
-    Xputty app;
-    main_init(&app);
     designer->new_label = NULL;
     designer->new_label = (char **)malloc(MAX_CONTROLS * sizeof(char *));
     int m = 0;
@@ -1376,6 +1374,8 @@ int main (int argc, char ** argv) {
         designer->controls[m].symbol = NULL;
     }
 
+    Xputty app;
+    main_init(&app);
     //set_light_theme(&app);
     designer->w = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 1200, 800);
     designer->w->parent_struct = designer;
@@ -1441,8 +1441,8 @@ int main (int argc, char ** argv) {
     combobox_set_active_entry(designer->widgets, 0);
     designer->widgets->func.value_changed_callback = set_widget_callback;
 
-    designer->image_loader = add_image_button(designer->w,20,75,40,40, "", ".png");
-    tooltip_set_text(designer->image_loader,_("Load Background Image (*.png)"));
+    designer->image_loader = add_image_button(designer->w,20,75,40,40, "", "image");
+    tooltip_set_text(designer->image_loader,_("Load Background Image (*.png | *.svg)"));
     designer->image_loader->func.user_callback = image_load_response;
     
     designer->unload_image = add_button(designer->w, "", 80, 75, 40, 40);

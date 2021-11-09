@@ -560,8 +560,12 @@ void print_list(XUiDesigner *designer) {
                         strdecode(xldl, "-", "_");
                         strdecode(xldl, " ", "_");
                         strtovar(xldl);
-                        printf ("    widget_get_scaled_png(ui->elem[%i], LDVAR(%s));\n",
-                                j, xldl);
+                        if (strstr(designer->controls[i].image, ".png")) {
+                            printf ("    widget_get_scaled_png(ui->elem[%i], LDVAR(%s));\n",
+                                    j, xldl);
+                        } else if (strstr(designer->controls[i].image, ".svg")) {
+                            printf ("    widget_get_scaled_svg(ui->widget[%i], %s);\n", j, xldl);
+                        }
                         free(xldl);
                        // printf ("    load_controller_image(ui->elem[%i], \"./resources/%s\");\n",
                        //                         j, basename(designer->controls[i].image));
@@ -643,9 +647,11 @@ void print_list(XUiDesigner *designer) {
                     strdecode(xldl, "-", "_");
                     strdecode(xldl, " ", "_");
                     strtovar(xldl);
-                    printf ("    widget_get_png(ui->widget[%i], LDVAR(%s));\n",
-                    //printf ("    load_controller_image(ui->widget[%i], \"./resources/%s\");\n",
-                            j, xldl);
+                    if (strstr(designer->controls[i].image, ".png")) {
+                        printf ("    widget_get_png(ui->widget[%i], LDVAR(%s));\n", j, xldl);
+                    } else if (strstr(designer->controls[i].image, ".svg")) {
+                        printf ("    widget_get_svg(ui->widget[%i], %s);\n", j, xldl);
+                    }
                     free(xldl);
                 }
             }
