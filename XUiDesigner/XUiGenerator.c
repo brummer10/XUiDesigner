@@ -527,13 +527,14 @@ void run_save(void *w_, void* user_data) {
                 char* fxldl = NULL;
                 asprintf(&fxldl, "%s/%s", filepath, xldl);
                 asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
+                        fprintf(stderr, "%s  %s\n", cmd,xldl);
                 int ret = system(cmd);
                 if (!ret) {
                     char* xldc =  strdup(xldl);
                     strdecode(xldc, ".svg", ".c");
                     free(cmd);
                     cmd = NULL;
-                    asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s", filepath, xldv, xldl, xldl, xldc);
+                    asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s && echo '\";' >> %s", filepath, xldv, xldc, xldl, xldc);
                     ret = system(cmd);
                     free(xldc);
                     free(cmd);
@@ -591,7 +592,7 @@ void run_save(void *w_, void* user_data) {
                             strdecode(xldc, ".svg", ".c");
                             free(cmd);
                             cmd = NULL;
-                            asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s", filepath, xldv, xldl, xldl, xldc);
+                            asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s && echo '\";' >> %s", filepath, xldv, xldc, xldl, xldc);
                             ret = system(cmd);
                             free(xldc);
                             free(cmd);
