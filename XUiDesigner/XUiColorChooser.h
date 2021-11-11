@@ -32,6 +32,18 @@
 extern "C" {
 #endif
 
+typedef struct {
+    double red;
+    double green;
+    double blue;
+    double alpha;
+    double lum;
+    double focus_x;
+    double focus_y;
+    Widget_t* al;
+    Widget_t* lu;
+} ColorChooser_t;
+
 void create_color_chooser (XUiDesigner *designer);
 
 void show_color_chooser(void *w_, void* user_data);
