@@ -380,10 +380,10 @@ void run_save(void *w_, void* user_data) {
                         "	RESOURCE_EXTLD := $(notdir $(patsubst %s.png,%s_png,$(RESOURCES)))\n"
                         "	RESOURCEHEADER := xresources.h\n"
                         "	SVGRESOURCES := $(wildcard $(RESOURCES_DIR)*.svg)\n"
-                        "	SVGRESOURCES_LIB := $(notdir $(patsubst %s.png,%s.a,$(SVGRESOURCES)))\n"
-                        "	SVGRESOURCES_OBJ := $(notdir $(patsubst %.svg,%.o,$(SVGRESOURCES)))\n"
-                        "	SVGRESOURCES_C := $(notdir $(patsubst %.svg,%.c,$(SVGRESOURCES)))\n"
-                        "	SVGRESOURCE_EXTLD := $(notdir $(patsubst %.svg,%_svg,$(SVGRESOURCES)))\n"
+                        "	SVGRESOURCES_LIB := $(notdir $(patsubst %s.svg,%s.a,$(SVGRESOURCES)))\n"
+                        "	SVGRESOURCES_OBJ := $(notdir $(patsubst %s.svg,%s.o,$(SVGRESOURCES)))\n"
+                        "	SVGRESOURCES_C := $(notdir $(patsubst %s.svg,%s.c,$(SVGRESOURCES)))\n"
+                        "	SVGRESOURCE_EXTLD := $(notdir $(patsubst %s.svg,%s_svg,$(SVGRESOURCES)))\n"
                         "	LDFLAGS += -fvisibility=hidden -Wl,-Bstatic `pkg-config --cflags --libs xputty` \\\n"
                         "	-Wl,-Bdynamic `pkg-config --cflags --libs cairo x11 lilv-0` \\\n"
                         "	-shared -lm -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -Wl,--gc-sections\n"
@@ -423,11 +423,11 @@ void run_save(void *w_, void* user_data) {
                         "	LDFLAGS += -DUSE_LD=1\n"
                         "endif\n\n"
                         "$(SVGRESOURCES_OBJ): $(SVGRESOURCES)\n"
-                        "	@cd $(RESOURCES_DIR) && echo 'const char* $(patsubst %.o,%_svg,$@) = \"'| tr -d '\r\n' > $(patsubst %.o,%.c,$@)\n"
-                        "	@cd $(RESOURCES_DIR) && base64  $(patsubst %.o,%.svg,$@) | tr -d '\r\n' >> $(patsubst %.o,%.c,$@)\n"
-                        "	@cd $(RESOURCES_DIR) && echo '\";' >> $(patsubst %.o,%.c,$@)\n"
-                        "	$(CC) -c $(RESOURCES_DIR)$(patsubst %.o,%.c,$@) -o $@\n"
-                        "	$(AR) rcs $(patsubst %s.o,%s.a,$@) $@\nn"
+                        "	@cd $(RESOURCES_DIR) && echo 'const char* $(patsubst %s.o,%s_svg,$@) = \"'| tr -d '%s' > $(patsubst %s.o,%s.c,$@)\n"
+                        "	@cd $(RESOURCES_DIR) && base64  $(patsubst %s.o,%s.svg,$@) | tr -d '%s' >> $(patsubst %s.o,%s.c,$@)\n"
+                        "	@cd $(RESOURCES_DIR) && echo '\";' >> $(patsubst %s.o,%s.c,$@)\n"
+                        "	$(CC) -c $(RESOURCES_DIR)$(patsubst %s.o,%s.c,$@) -o $@\n"
+                        "	$(AR) rcs $(patsubst %s.o,%s.a,$@) $@\n\n"
                         "$(EXEC_NAME):$(RESOURCES_OBJ) $(SVGRESOURCES_OBJ)\n"
                         "	@# use this line when you include libxputty as submodule\n"
                         "	@$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) -L. $(SVGRESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR)\n"
@@ -446,7 +446,11 @@ void run_save(void *w_, void* user_data) {
                         "	@echo \". ., done\"\n\n"
                         "clean:\n"
                         "	rm -f *.a *.o *.so xresources.h\n\n",
-                        name, "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%", use_atom ? "-DUSE_ATOM" : "");                    
+                        name, "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%",
+                            "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%",
+                            "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%",
+                            "%%","%%","\\r\\n","%%","%%",
+                            "%%","%%","\\r\\n","%%","%%","%%","%%","%%","%%","%%","%%", use_atom ? "-DUSE_ATOM" : "");                    
                 }
                 makefile = NULL;
                 asprintf(&makefile, "%s/makefile",filepath);
@@ -495,28 +499,54 @@ void run_save(void *w_, void* user_data) {
             strdecode(xldl, "-", "_");
             strdecode(xldl, " ", "_");
             strtovar(xldl);
-            strdecode(xldl, "_png", ".png");
-            char* fxldl = NULL;
-            asprintf(&fxldl, "%s/%s", filepath, xldl);
-            asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
-            int ret = system(cmd);
-            if (!ret) {
-                char* xldc =  strdup(xldl);
-                strdecode(xldc, ".png", ".c");
-                free(cmd);
-                cmd = NULL;
-                asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
-                ret = system(cmd);
-                free(xldc);
-                free(cmd);
-                cmd = NULL;
-            } else {
-                free(cmd);
-                cmd = NULL;
-                fprintf(stderr, "Fail to copy image\n");
+            if (strstr(designer->image, ".png")) {
+                strdecode(xldl, "_png", ".png");
+                char* fxldl = NULL;
+                asprintf(&fxldl, "%s/%s", filepath, xldl);
+                asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
+                int ret = system(cmd);
+                if (!ret) {
+                    char* xldc =  strdup(xldl);
+                    strdecode(xldc, ".png", ".c");
+                    free(cmd);
+                    cmd = NULL;
+                    asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
+                    ret = system(cmd);
+                    free(xldc);
+                    free(cmd);
+                    cmd = NULL;
+                } else {
+                    free(cmd);
+                    cmd = NULL;
+                    fprintf(stderr, "Fail to copy image\n");
+                }
+                free(fxldl);
+            } else if (strstr(designer->image, ".svg")) {
+                char* xldv = strdup(xldl);
+                strdecode(xldl, "_svg", ".svg");
+                char* fxldl = NULL;
+                asprintf(&fxldl, "%s/%s", filepath, xldl);
+                asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
+                int ret = system(cmd);
+                if (!ret) {
+                    char* xldc =  strdup(xldl);
+                    strdecode(xldc, ".svg", ".c");
+                    free(cmd);
+                    cmd = NULL;
+                    asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s", filepath, xldv, xldl, xldl, xldc);
+                    ret = system(cmd);
+                    free(xldc);
+                    free(cmd);
+                    cmd = NULL;
+                } else {
+                    free(cmd);
+                    cmd = NULL;
+                    fprintf(stderr, "Fail to copy image\n");
+                }
+                free(fxldl);
+                free(xldv);
             }
             free(xldl);
-            free(fxldl);
         }
         if (have_image) {
             i = 0;
@@ -527,28 +557,55 @@ void run_save(void *w_, void* user_data) {
                     strdecode(xldl, "-", "_");
                     strdecode(xldl, " ", "_");
                     strtovar(xldl);
-                    strdecode(xldl, "_png", ".png");
-                    char* fxldl = NULL;
-                    asprintf(&fxldl, "%s/%s", filepath, xldl);
-                    asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,fxldl);
-                    int ret = system(cmd);
-                    if (!ret) {
-                        char* xldc = strdup(xldl);
-                        strdecode(xldc, ".png", ".c");
-                        free(cmd);
-                        cmd = NULL;
-                        asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
-                        ret = system(cmd);
-                        free(xldc);
-                        free(cmd);
-                        cmd = NULL;
-                    } else {
-                        free(cmd);
-                        cmd = NULL;
-                        fprintf(stderr, "Fail to copy image\n");
+                    if (strstr(designer->controls[i].image, ".png")) {
+                        strdecode(xldl, "_png", ".png");
+                        char* fxldl = NULL;
+                        asprintf(&fxldl, "%s/%s", filepath, xldl);
+                        asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,fxldl);
+                        int ret = system(cmd);
+                        if (!ret) {
+                            char* xldc = strdup(xldl);
+                            strdecode(xldc, ".png", ".c");
+                            free(cmd);
+                            cmd = NULL;
+                            asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
+                            ret = system(cmd);
+                            free(xldc);
+                            free(cmd);
+                            cmd = NULL;
+                        } else {
+                            free(cmd);
+                            cmd = NULL;
+                            fprintf(stderr, "Fail to copy image\n");
+                        }
+                        free(fxldl);
+                    } else if (strstr(designer->controls[i].image, ".svg")) {
+                        char* xldv = strdup(xldl);
+                        strdecode(xldl, "_svg", ".svg");
+                        char* fxldl = NULL;
+                        asprintf(&fxldl, "%s/%s", filepath, xldl);
+                        asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
+                        int ret = system(cmd);
+                        if (!ret) {
+                            char* xldc =  strdup(xldl);
+                            strdecode(xldc, ".svg", ".c");
+                            free(cmd);
+                            cmd = NULL;
+                            asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s", filepath, xldv, xldl, xldl, xldc);
+                            ret = system(cmd);
+                            free(xldc);
+                            free(cmd);
+                            cmd = NULL;
+                        } else {
+                            free(cmd);
+                            cmd = NULL;
+                            fprintf(stderr, "Fail to copy image\n");
+                        }
+                        free(fxldl);
+                        free(xldv);
                     }
                     free(xldl);
-                    free(fxldl);
+                    
                 }
             }
             free(filepath);

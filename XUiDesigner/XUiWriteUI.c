@@ -517,7 +517,11 @@ void print_list(XUiDesigner *designer) {
                 strdecode(xldl, "-", "_");
                 strdecode(xldl, " ", "_");
                 strtovar(xldl);
-                printf ("    widget_get_scaled_png(ui->win, LDVAR(%s));\n", xldl);
+                if (strstr(designer->image, ".png")) {
+                    printf ("    widget_get_scaled_png(ui->win, LDVAR(%s));\n", xldl);
+                } else if (strstr(designer->image, ".svg")) {
+                    printf ("    widget_get_scaled_svg(ui->win, %s);\n", xldl);
+                }
                 free(xldl);
                 //printf ("    load_bg_image(ui,\"./resources/%s\");\n", basename(designer->image));
             }
