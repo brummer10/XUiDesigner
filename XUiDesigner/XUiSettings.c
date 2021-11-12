@@ -143,6 +143,21 @@ static void set_project(void *w_, void* user_data) {
     }
 }
 
+
+void set_project_type_by_name (Widget_t *w, const char* name) {
+    Widget_t* menu =  w->childlist->childs[1];
+    Widget_t* view_port =  menu->childlist->childs[0];
+    ComboBox_t *comboboxlist = (ComboBox_t*)view_port->parent_struct;
+    unsigned int j = 0;
+    for(; j<comboboxlist->list_size;j++) {
+        if (strstr(comboboxlist->list_names[j], name)) {
+            adj_set_value(w->adj, (int)j);
+            break;
+        }
+    }
+}
+
+
 void create_project_settings_window(XUiDesigner *designer) {
     Atom wmStateAbove = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE_ABOVE", 1 );
     Atom wmNetWmState = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE", 1 );

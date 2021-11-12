@@ -1491,7 +1491,7 @@ int main (int argc, char ** argv) {
     add_label(designer->w, _("Label"), 1000, 10, 180, 30);
     designer->controller_label = add_input_box(designer->w, 0, 1000, 50, 180, 30);
     designer->controller_label->func.user_callback = update_clabel;
-    designer->controller_label->func.value_changed_callback = update_clabel;
+    //designer->controller_label->func.value_changed_callback = update_clabel;
     designer->controller_label->parent_struct = designer;
 
     add_label(designer->w, _("Port Index"), 1000, 80, 180, 30);
