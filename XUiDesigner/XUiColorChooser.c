@@ -27,6 +27,81 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+static void draw_lum_slider(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+    int width = attrs.width-2;
+    int height = attrs.height-2;
+    float center = (float)height/2;
+    float upcenter = (float)height;
+    
+    if (attrs.map_state != IsViewable) return;
+
+    float sliderstate = adj_get_state(w->adj_x);
+
+    cairo_pattern_t* pat = cairo_pattern_create_linear ( 10, 0, width-10, 0);
+    cairo_pattern_add_color_stop_rgba (pat, 0, 0,0,0,1);
+    cairo_pattern_add_color_stop_rgba (pat, 1, 1,1,1,1);
+    cairo_set_source (w->crb, pat);
+
+    cairo_move_to (w->crb, center, center);
+    cairo_line_to(w->crb,width-center-10,center);
+    cairo_set_line_cap (w->crb,CAIRO_LINE_CAP_ROUND);
+    cairo_set_line_width(w->crb,center);
+    cairo_stroke(w->crb);
+
+    use_shadow_color_scheme(w, get_color_state(w));
+    cairo_move_to (w->crb, center, center);
+    cairo_line_to(w->crb,width-center-10,center);
+    cairo_set_line_width(w->crb,center/10);
+    cairo_stroke(w->crb);
+
+    use_shadow_color_scheme(w, get_color_state(w));
+    cairo_arc(w->crb, (center) +
+        ((width-10-upcenter) * sliderstate),center, center/2, 0, 2 * M_PI );
+    cairo_fill_preserve(w->crb);
+    cairo_set_line_width(w->crb,1);
+    cairo_stroke(w->crb);
+
+    use_bg_color_scheme(w, get_color_state(w));
+    cairo_arc(w->crb, (center) +
+        ((width-10-upcenter) * sliderstate),center, center/3, 0, 2 * M_PI );
+    cairo_fill_preserve(w->crb);
+    use_fg_color_scheme(w, NORMAL_);
+    cairo_set_line_width(w->crb,center/15);
+    cairo_stroke(w->crb);
+    cairo_new_path (w->crb);
+
+    cairo_text_extents_t extents;
+
+
+    use_text_color_scheme(w, get_color_state(w));
+    cairo_set_font_size (w->crb, w->app->normal_font/w->scale.ascale);
+    cairo_text_extents(w->crb,w->label , &extents);
+
+    cairo_move_to (w->crb, width/2-extents.width/2, height );
+    cairo_show_text(w->crb, w->label);
+    cairo_new_path (w->crb);
+
+    cairo_set_font_size (w->crb, w->app->small_font/w->scale.ascale);
+    char s[64];
+    const char* format[] = {"%.1f", "%.2f", "%.3f"};
+    float value = adj_get_value(w->adj);
+        if (fabs(w->adj->step)>0.99) {
+            snprintf(s, 63,"%d",  (int) value);
+        } else if (fabs(w->adj->step)>0.09) {
+            snprintf(s, 63, format[1-1], value);
+        } else {
+            snprintf(s, 63, format[2-1], value);
+        }
+    cairo_text_extents(w->crb,s , &extents);
+    cairo_move_to (w->crb, width/2-extents.width/2, extents.height );
+    cairo_show_text(w->crb, s);
+    cairo_new_path (w->crb);
+    cairo_pattern_destroy (pat);
+}
+
 static void draw_color_widget(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -422,6 +497,7 @@ void create_color_chooser (XUiDesigner *designer) {
     adj_set_value(color_chooser->lu->adj,1.0);
     color_chooser->lu->scale.gravity = SOUTHEAST;
     color_chooser->lu->parent_struct = designer;
+    color_chooser->lu->func.expose_callback = draw_lum_slider;
     color_chooser->lu->func.value_changed_callback = lum_callback;
 
     designer->color_scheme_select = add_combobox(designer->color_widget, _("Scheme"), 20, 260, 120,30);
