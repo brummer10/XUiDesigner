@@ -328,7 +328,7 @@ void pop_menu_response(void *w_, void* item_, void* user_data) {
             designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
             designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
             designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) break;
-            Widget_t *dia = open_file_dialog(designer->ui, designer->image_path, ".png");
+            Widget_t *dia = open_file_dialog(designer->ui, designer->image_path, "image");
             XSetTransientForHint(designer->ui->app->dpy, dia->widget, designer->ui->widget);
             if (designer->controls[designer->active_widget_num].is_type == IS_FRAME ||
                 designer->controls[designer->active_widget_num].is_type == IS_IMAGE) {
