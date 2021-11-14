@@ -733,6 +733,26 @@ void load_plugin_ui(void* w_, void* user_data) {
     widget_show_all(designer->ui);
 }
 
+
+void filter_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
+    combobox_delete_entrys(lv2_uris);
+    combobox_add_entry(lv2_uris,_("--"));
+    for (LilvIter* it = lilv_plugins_begin(lv2_plugins);
+      !lilv_plugins_is_end(lv2_plugins, it);
+      it = lilv_plugins_next(lv2_plugins, it)) {
+        const LilvPlugin* plugin = lilv_plugins_get(lv2_plugins, it);
+        if (plugin) {
+            LilvUIs* uis = lilv_plugin_get_uis(plugin);
+            if (!uis) {
+                const LilvNode* uri = lilv_plugin_get_uri(plugin);
+                combobox_add_entry(lv2_uris,lilv_node_as_string(uri));
+            }
+            lilv_uis_free(uis);
+        }
+    }
+    combobox_set_active_entry(lv2_uris, 0);
+}
+
 void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
     for (LilvIter* it = lilv_plugins_begin(lv2_plugins);
       !lilv_plugins_is_end(lv2_plugins, it);

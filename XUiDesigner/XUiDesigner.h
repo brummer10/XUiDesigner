@@ -214,6 +214,7 @@ typedef struct {
     Widget_t *tabbox_entry[2];
     Widget_t *set_adjust;
     Widget_t *lv2_uris;
+    Widget_t *filter_lv2_uris;
     Widget_t *image_loader;
     Widget_t *unload_image;
     Widget_t *context_menu;

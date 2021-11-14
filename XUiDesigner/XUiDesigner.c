@@ -1200,6 +1200,19 @@ static void ask_save_as(void *w_, void* user_data) {
     }
 }
 
+static void filter_plugin_ui(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (w->flags & HAS_POINTER && adj_get_value(w->adj_y)) {
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        filter_uris(designer->lv2_uris, designer->lv2_plugins);
+    } else if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        combobox_delete_entrys(designer->lv2_uris);
+        combobox_add_entry(designer->lv2_uris,_("--"));
+        load_uris(designer->lv2_uris, designer->lv2_plugins);
+        combobox_set_active_entry(designer->lv2_uris, 0);
+    }
+}
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -1401,6 +1414,11 @@ int main (int argc, char ** argv) {
     load_uris(designer->lv2_uris, designer->lv2_plugins);
     combobox_set_active_entry(designer->lv2_uris, 0);
     designer->lv2_uris->func.value_changed_callback = load_plugin_ui;
+
+    designer->filter_lv2_uris = add_toggle_button(designer->w, "Filter", 250, 25, 40, 30);
+    tooltip_set_text(designer->filter_lv2_uris,_("Show only UI-less plugins"));
+    designer->filter_lv2_uris->parent_struct = designer;
+    designer->filter_lv2_uris->func.value_changed_callback = filter_plugin_ui;
 
     designer->ui = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 600, 400);
     XSelectInput(designer->ui->app->dpy, designer->ui->widget,StructureNotifyMask|ExposureMask|KeyPressMask 

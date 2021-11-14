@@ -34,6 +34,8 @@ extern "C" {
 
 void load_plugin_ui(void* w_, void* user_data);
 
+void filter_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins);
+
 void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins);
 
 void set_path(LilvWorld* world, const char* workdir);

@@ -174,6 +174,8 @@ void print_json(XUiDesigner *designer) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME) {
                 json_add_key ("Frame Box");
+                json_start_array();
+                json_start_value_pair();
                 json_add_string(designer->controls[i].wid->label);
                 json_add_key ("Size");
                 json_start_array();
@@ -188,8 +190,12 @@ void print_json(XUiDesigner *designer) {
                 } else {
                     json_add_string("");
                 }
+                json_close_value_pair();
+                json_close_array();
             } else if (designer->controls[i].is_type == IS_TABBOX) {
                 json_add_key ("TAB Box");
+                json_start_array();
+                json_start_value_pair();
                 json_add_string(designer->controls[i].wid->label);
                 json_add_key ("Size");
                 json_start_array();
@@ -211,6 +217,8 @@ void print_json(XUiDesigner *designer) {
                 int t = 0;
                 for(;t<elem;t++) {
                     Widget_t *wi = designer->controls[i].wid->childlist->childs[t];
+                    json_start_array();
+                    json_start_value_pair();
                     json_add_string(designer->controls[i].wid->label);
                     json_add_key ("Size");
                     json_start_array();
@@ -219,7 +227,11 @@ void print_json(XUiDesigner *designer) {
                     json_add_int(wi->width);
                     json_add_int(wi->height);
                     json_close_array();
+                    json_close_value_pair();
+                    json_close_array();
                 }
+                json_close_value_pair();
+                json_close_array();
             } else if (!designer->controls[i].is_audio_output && !designer->controls[i].is_audio_input &&
                 !designer->controls[i].is_atom_output && !designer->controls[i].is_atom_input) {
                 json_add_key (parse_type(designer->controls[i].is_type));
