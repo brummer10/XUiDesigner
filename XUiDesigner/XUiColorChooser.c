@@ -429,11 +429,13 @@ void set_focus_by_color(Widget_t* wid, const double r, const double g, const dou
     xevfunc store = color_chooser->lu->func.value_changed_callback;
     color_chooser->lu->func.value_changed_callback = null_callback;
     adj_set_value(color_chooser->lu->adj, color_chooser->lum);
+    float alpha = color_chooser->alpha;
     color_chooser->alpha = 1.0;
     color_chooser->focus_x = -10.0;
     color_chooser->focus_y = -10.0;
     transparent_draw(designer->color_widget, NULL);
     color_chooser->lu->func.value_changed_callback = store;
+    color_chooser->alpha = alpha;
     // convert cairo color to true color
     unsigned long _R = r*255;
     unsigned long _G = g*255;
