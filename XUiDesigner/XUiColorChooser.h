@@ -48,6 +48,8 @@ void create_color_chooser (XUiDesigner *designer);
 
 void show_color_chooser(void *w_, void* user_data);
 
+void set_focus_by_color(Widget_t* wid, const double r, const double g, const double b);
+
 #ifdef __cplusplus
 }
 #endif

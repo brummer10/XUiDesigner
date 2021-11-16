@@ -140,7 +140,7 @@ static void draw_color_widget(void *w_, void* user_data) {
         double radius_y = (cwheely+radius+pointer_off/2);
         cairo_pattern_t* pat = cairo_pattern_create_linear ( radius_x, radius_y, lengh_x,lengh_y);
         cairo_pattern_add_color_stop_rgba (pat, 0, l,l,l,a);
-        cairo_pattern_add_color_stop_rgba (pat, 1, r,g,b,a);
+        cairo_pattern_add_color_stop_rgba (pat, 1, min(1.0,r+l),min(1.0,g+l),min(1.0,b+l),a);
         cairo_set_source (w->crb, pat);
         cairo_set_line_join(w->crb, CAIRO_LINE_JOIN_BEVEL);
         cairo_move_to(w->crb, radius_x, radius_y);
@@ -300,9 +300,43 @@ static void set_selected_color(void *w_, void* user_data) {
         default:
         break;
     }
-    expose_widget(designer->color_widget);
     if (use) {
-        adj_set_value(color_chooser->al->adj, use[3]);
+        color_chooser->alpha = use[3];
+        adj_set_value(color_chooser->al->adj, color_chooser->alpha);
+        expose_widget(designer->color_widget);
+        set_focus_by_color(designer->color_widget, use[0], use[1], use[2]);
+    }
+}
+
+static void set_selected_color_on_map(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
+    int s = (int)adj_get_value(designer->color_sel->adj);
+    double *use = NULL;
+    switch (s) {
+        case 0: use = designer->selected_scheme->bg;
+        break;
+        case 1: use = designer->selected_scheme->fg;
+        break;
+        case 2: use = designer->selected_scheme->base;
+        break;
+        case 3: use = designer->selected_scheme->text;
+        break;
+        case 4: use = designer->selected_scheme->shadow;
+        break;
+        case 5: use = designer->selected_scheme->frame;
+        break;
+        case 6: use = designer->selected_scheme->light;
+        break;
+        default:
+        break;
+    }
+    if (use) {
+        color_chooser->alpha = use[3];
+        adj_set_value(color_chooser->al->adj, color_chooser->alpha);
+        expose_widget(designer->color_widget);
+        set_focus_by_color(designer->color_widget, use[0], use[1], use[2]);
     }
 }
 
@@ -329,11 +363,11 @@ static void set_selected_scheme(void *w_, void* user_data) {
 }
 
 static void get_pixel(Widget_t *w, int x, int y, XColor *color) {
-  XImage *image;
-  image = XGetImage (w->app->dpy, w->widget, x, y, 1, 1, AllPlanes, XYPixmap);
-  color->pixel = XGetPixel(image, 0, 0);
-  XFree (image);
-  XQueryColor (w->app->dpy, DefaultColormap(w->app->dpy, DefaultScreen (w->app->dpy)), color);
+    XImage *image;
+    image = XGetImage (w->app->dpy, w->widget, x, y, 1, 1, AllPlanes, ZPixmap);
+    color->pixel = XGetPixel(image, 0, 0);
+    XFree (image);
+    XQueryColor (w->app->dpy, DefaultColormap(w->app->dpy, DefaultScreen (w->app->dpy)), color);
 }
 
 static void get_color(void *w_, void* button_, void* user_data) {
@@ -380,6 +414,61 @@ static void lum_callback(void *w_, void* user_data) {
     expose_widget(designer->ui);
 }
 
+static void null_callback(void *w_, void* user_data) {
+    
+}
+
+void set_focus_by_color(Widget_t* wid, const double r, const double g, const double b) {
+    XWindowAttributes attrs;
+    XGetWindowAttributes(wid->app->dpy, (Window)wid->widget, &attrs);    
+    if (attrs.map_state != IsViewable) return;
+
+    XUiDesigner *designer = (XUiDesigner*)wid->parent_struct;
+    ColorChooser_t *color_chooser = (ColorChooser_t*)wid->private_struct;
+    color_chooser->lum =  min(min(r,g),b);
+    xevfunc store = color_chooser->lu->func.value_changed_callback;
+    color_chooser->lu->func.value_changed_callback = null_callback;
+    adj_set_value(color_chooser->lu->adj, color_chooser->lum);
+    color_chooser->alpha = 1.0;
+    color_chooser->focus_x = -10.0;
+    color_chooser->focus_y = -10.0;
+    transparent_draw(designer->color_widget, NULL);
+    color_chooser->lu->func.value_changed_callback = store;
+    // convert cairo color to true color
+    unsigned long _R = r*255;
+    unsigned long _G = g*255;
+    unsigned long _B = b*255;
+    //fprintf(stderr, "RGB = %ld %ld %ld \n", _R,_G,_B);
+    XImage *image;
+    image = XGetImage (wid->app->dpy, wid->widget, 0, 0, wid->width-60, wid->height-120, AllPlanes, ZPixmap);
+    int i = 10;
+    int j = 10;
+    unsigned long pixel = 0;
+    
+    for (;j<wid->height-141;j++) {
+        for (;i<wid->width-61;i++) {
+            pixel = XGetPixel(image, i, j);
+            //fprintf(stderr, "%lu ,",pixel);
+            if (abs(((pixel >> 0x10) & 0xFF) - _R) < 2 &&
+                abs(((pixel >> 0x08) & 0xFF) - _G) < 2 && 
+                abs((pixel & 0xFF) - _B) < 2 ) {
+                color_chooser->focus_x = (double)i;
+                color_chooser->focus_y = (double)j;
+                set_costum_color(designer, 0, r);
+                set_costum_color(designer, 1, g);
+                set_costum_color(designer, 2, b);
+                expose_widget(designer->color_widget);
+                expose_widget(designer->ui);
+                //fprintf(stderr,"found %ld,%ld,%ld ", (pixel >> 0x10) & 0xFF, (pixel >> 0x08) & 0xFF, pixel & 0xFF);
+                j = wid->height-121;
+                break;
+            }
+        }
+        i = 10;
+    }
+    XFree (image);
+}
+
 static void set_focus_motion(void *w_, void *xmotion_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -389,6 +478,7 @@ static void set_focus_motion(void *w_, void *xmotion_, void* user_data) {
                                     && xmotion->y < w->height-10 ) {
         color_chooser->focus_x = xmotion->x;
         color_chooser->focus_y = xmotion->y;
+        fprintf(stderr, "%f %f \n", color_chooser->focus_x, color_chooser->focus_y);
         XColor c;
         get_pixel(w, xmotion->x, xmotion->y, &c);
         double r = (double)c.red/65535.0;
@@ -464,7 +554,7 @@ void create_color_chooser (XUiDesigner *designer) {
     designer->selected_scheme = &main->color_scheme->normal;
     ColorChooser_t *color_chooser = (ColorChooser_t*)malloc(sizeof(ColorChooser_t));
     color_chooser->alpha = 1.0;
-    color_chooser->lum = 1.0;
+    color_chooser->lum = 0.0;
     color_chooser->focus_x = 10.0;
     color_chooser->focus_y = 10.0;
 
@@ -481,6 +571,8 @@ void create_color_chooser (XUiDesigner *designer) {
     designer->color_widget->func.motion_callback = set_focus_motion;
     designer->color_widget->func.key_press_callback = set_focus_on_key;
     designer->color_widget->func.mem_free_callback = color_chooser_mem_free;
+    designer->color_widget->func.configure_notify_callback = set_selected_color_on_map;
+    designer->color_widget->func.visibiliy_change_callback = set_selected_color_on_map;
     designer->color_widget->parent_struct = designer;
     designer->color_widget->private_struct = color_chooser;
 
@@ -493,8 +585,8 @@ void create_color_chooser (XUiDesigner *designer) {
     color_chooser->al->func.value_changed_callback = a_callback;
 
     color_chooser->lu = add_hslider(designer->color_widget, _("luminescent"), 10, 210, 200, 40);
-    set_adjustment(color_chooser->lu->adj, 1.0, 1.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
-    adj_set_value(color_chooser->lu->adj,1.0);
+    set_adjustment(color_chooser->lu->adj, 0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
+    adj_set_value(color_chooser->lu->adj, color_chooser->lum);
     color_chooser->lu->scale.gravity = SOUTHEAST;
     color_chooser->lu->parent_struct = designer;
     color_chooser->lu->func.expose_callback = draw_lum_slider;
