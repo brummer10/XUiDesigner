@@ -1355,7 +1355,7 @@ int main (int argc, char ** argv) {
     designer->lv2c.bypass = 0;
     designer->grid_width = 30;
     designer->grid_height = 15;
-    designer->is_project = false;
+    designer->is_project = true;
     designer->generate_ui_only = false;
     designer->drag_icon.x = 0;
     designer->drag_icon.w = 0;

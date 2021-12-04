@@ -29,6 +29,10 @@
 ----------------------------------------------------------------------*/
 
 void print_plugin(XUiDesigner *designer) {
+    const char * a_inputs[16];
+    int a = 0;
+    const char * a_outputs[16];
+    int o = 0;
     char *name = NULL;
     XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
     if (name == NULL) asprintf(&name, "%s", "noname");
@@ -68,20 +72,26 @@ void print_plugin(XUiDesigner *designer) {
     }
 
     int i = 0;
-    for (;i<designer->lv2c.audio_input;i++) {
-        printf ("    float* input%i;\n", i);
+    if (designer->is_project) {
+        for (;i<designer->lv2c.audio_input;i++) {
+            printf ("    float* input%i;\n", i);
+            asprintf((char**)&a_inputs[a],"input%i", i);
+            a++;
+        }
+        i = 0;
+        for (;i<designer->lv2c.audio_output;i++) {
+            printf ("    float* output%i;\n", i);
+            asprintf((char**)&a_outputs[o],"output%i", i);
+            o++;
+        }
+        if (designer->lv2c.midi_input) {
+            printf ("    const LV2_Atom_Sequence* midi_in;\n");
+        }
+        if (designer->lv2c.midi_output) {
+            printf ("    LV2_Atom_Sequence* midi_out;\n");
+        }
+        i = 0;
     }
-    i = 0;
-    for (;i<designer->lv2c.audio_output;i++) {
-        printf ("    float* output%i;\n", i);
-    }
-    if (designer->lv2c.midi_input) {
-        printf ("    const LV2_Atom_Sequence* midi_in;\n");
-    }
-    if (designer->lv2c.midi_output) {
-        printf ("    LV2_Atom_Sequence* midi_out;\n");
-    }
-    i = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME ||
@@ -91,12 +101,23 @@ void print_plugin(XUiDesigner *designer) {
             }
             if (!designer->controls[i].destignation_enabled) {
                 char* var = strdup(designer->controls[i].wid->label);
-                strtovar(var),
-                printf ("    float* %s;\n"
-                "    float %s_;\n", var, var);
+                strtovar(var);
+                if (designer->controls[i].is_audio_input) {
+                    printf ("    float* %s;\n", var);
+                    a_inputs[a] = strdup(var);
+                    a++;
+                } else if (designer->controls[i].is_audio_output) {
+                    printf ("    float* %s;\n", var);
+                    a_outputs[o] = strdup(var);
+                    o++;
+                } else {
+                    printf ("    float* %s;\n"
+                    "    float %s_;\n", var, var);
+                }
                 free(var);
                 var = NULL;
             } else {
+                designer->lv2c.bypass = 1;
                 printf ("    float* bypass;\n"
                 "    float bypass_;\n");
             }
@@ -163,23 +184,25 @@ void print_plugin(XUiDesigner *designer) {
             }
         }
     }
-    i = 0;
-    for (;i<designer->lv2c.audio_input;i++) {
-        printf ("%s\n    input%i(NULL)", add_comma ? "," : "", i);
-        add_comma = true;
-    }
-    i = 0;
-    for (;i<designer->lv2c.audio_output;i++) {
-        printf ("%s\n    output%i(NULL)", add_comma ? "," : "", i);
-        add_comma = true;
-    }
-    if (designer->lv2c.midi_input) {
-        printf ("%s\n    midi_in(NULL)", add_comma ? "," : "");
-        add_comma = true;
-    }
-    if (designer->lv2c.midi_output) {
-        printf ("%s\n    midi_out(NULL)", add_comma ? "," : "");
-        add_comma = true;
+    if (designer->is_project) {
+        i = 0;
+        for (;i<designer->lv2c.audio_input;i++) {
+            printf ("%s\n    input%i(NULL)", add_comma ? "," : "", i);
+            add_comma = true;
+        }
+        i = 0;
+        for (;i<designer->lv2c.audio_output;i++) {
+            printf ("%s\n    output%i(NULL)", add_comma ? "," : "", i);
+            add_comma = true;
+        }
+        if (designer->lv2c.midi_input) {
+            printf ("%s\n    midi_in(NULL)", add_comma ? "," : "");
+            add_comma = true;
+        }
+        if (designer->lv2c.midi_output) {
+            printf ("%s\n    midi_out(NULL)", add_comma ? "," : "");
+            add_comma = true;
+        }
     }
     if (designer->lv2c.bypass) {
         printf ("%s\n    needs_ramp_down(false),\n"
@@ -211,37 +234,41 @@ void print_plugin(XUiDesigner *designer) {
     "    {\n", name);
     i = 0;
     int p = 0;
-    for (;i<designer->lv2c.audio_input;i++) {
-        printf ("        case %i:\n"
-                "            input%i = static_cast<float*>(data);\n"
-                "            break;\n", p, i);
-        p++;
-    }
-    i = 0;
-    for (;i<designer->lv2c.audio_output;i++) {
-        printf ("        case %i:\n"
-                "            output%i = static_cast<float*>(data);\n"
-                "            break;\n", p, i);
-        p++;
-    }
-    if (designer->lv2c.midi_input) {
-        printf ("        case %i:\n"
-                "            midi_in = (const LV2_Atom_Sequence*)data;\n"
-                "            break;\n", p);
-        p++;
-    }
-    if (designer->lv2c.midi_output) {
-        printf ("        case %i:\n"
-                "            midi_out = (LV2_Atom_Sequence*)data;\n"
-                "            break;\n", p);
-        p++;
+    if (designer->is_project) {
+        for (;i<designer->lv2c.audio_input;i++) {
+            printf ("        case %i:\n"
+                    "            input%i = static_cast<float*>(data);\n"
+                    "            break;\n", p, i);
+            p++;
+        }
+        i = 0;
+        for (;i<designer->lv2c.audio_output;i++) {
+            printf ("        case %i:\n"
+                    "            output%i = static_cast<float*>(data);\n"
+                    "            break;\n", p, i);
+            p++;
+        }
+        if (designer->lv2c.midi_input) {
+            printf ("        case %i:\n"
+                    "            midi_in = (const LV2_Atom_Sequence*)data;\n"
+                    "            break;\n", p);
+            p++;
+        }
+        if (designer->lv2c.midi_output) {
+            printf ("        case %i:\n"
+                    "            midi_out = (LV2_Atom_Sequence*)data;\n"
+                    "            break;\n", p);
+            p++;
+        }
     }
     i = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME ||
                 designer->controls[i].is_type == IS_IMAGE ||
-                designer->controls[i].is_type == IS_TABBOX) {
+                designer->controls[i].is_type == IS_TABBOX ||
+                designer->controls[i].is_atom_input ||
+                designer->controls[i].is_atom_output ) {
                 continue;
             }
             if (!designer->controls[i].destignation_enabled) {
@@ -291,7 +318,11 @@ void print_plugin(XUiDesigner *designer) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME ||
                 designer->controls[i].is_type == IS_IMAGE ||
-                designer->controls[i].is_type == IS_TABBOX) {
+                designer->controls[i].is_type == IS_TABBOX ||
+                designer->controls[i].is_audio_input ||
+                designer->controls[i].is_audio_output ||
+                designer->controls[i].is_atom_input ||
+                designer->controls[i].is_atom_output ) {
                 continue;
             }
             if (!designer->controls[i].destignation_enabled) {
@@ -347,8 +378,9 @@ void print_plugin(XUiDesigner *designer) {
     for (;i<designer->lv2c.audio_input;i++) {
         if (i < designer->lv2c.audio_output) {
             printf ("\n    // do inplace processing on default\n"
-            "    if(output%i != input%i)\n"
-            "        memcpy(output%i, input%i, n_samples*sizeof(float));\n\n", i,i,i,i);
+            "    if(%s != %s)\n"
+            "        memcpy(%s, %s, n_samples*sizeof(float));\n\n",
+                    a_outputs[i],a_inputs[i],a_outputs[i],a_inputs[i]);
         } else {
             printf ("    // audio input and output count is not equal\n"
             "    // you must handle them yourself\n\n");
@@ -381,7 +413,7 @@ void print_plugin(XUiDesigner *designer) {
             "    if (needs_ramp_down || needs_ramp_up) {\n");
             i = 0;
             for (;i<designer->lv2c.audio_input;i++) {
-                printf ("         memcpy(buf%i, input%i, n_samples*sizeof(float));\n", i, i);
+                printf ("         memcpy(buf%i, %s, n_samples*sizeof(float));\n", i, a_inputs[i]);
             }
             printf ("    }\n"
 
@@ -391,9 +423,9 @@ void print_plugin(XUiDesigner *designer) {
     printf ("    for (uint32_t i = 0; i<n_samples; i++) {\n");
     i = 0;
     for (;i<designer->lv2c.audio_output;i++) {
-        printf("        float tmp%i = output%i[i];\n"
+        printf("        float tmp%i = %s[i];\n"
         "        //do your dsp\n"
-        "        output%i[i] = tmp%i;\n", i, i, i, i);
+        "        %s[i] = tmp%i;\n", i, a_outputs[i], a_outputs[i], i);
     }
     printf ("    }\n\n");
     if (designer->lv2c.bypass) {
@@ -414,7 +446,8 @@ void print_plugin(XUiDesigner *designer) {
             "            fade = max(0.0,ramp_down) /ramp_down_step ;\n");
             i = 0;
             for (;i<designer->lv2c.audio_input;i++) {            
-                printf ("            output%i[i] = output%i[i] * fade + buf%i[i] * (1.0 - fade);\n", i, i, i);
+                printf ("            %s[i] = %s[i] * fade + buf%i[i] * (1.0 - fade);\n",
+                        a_outputs[i], a_outputs[i], i);
             }
             printf ("        }\n"
 
@@ -437,7 +470,8 @@ void print_plugin(XUiDesigner *designer) {
             "            fade = min(ramp_up_step,ramp_up) /ramp_up_step ;\n");
             i = 0;
             for (;i<designer->lv2c.audio_input;i++) {            
-                printf ("            output%i[i] = output%i[i] * fade + buf%i[i] * (1.0 - fade);\n", i, i, i);
+                printf ("            %s[i] = %s[i] * fade + buf%i[i] * (1.0 - fade);\n",
+                        a_outputs[i], a_outputs[i], i);
             }
             printf ("        }\n"
 
@@ -456,7 +490,11 @@ void print_plugin(XUiDesigner *designer) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME ||
                 designer->controls[i].is_type == IS_IMAGE ||
-                designer->controls[i].is_type == IS_TABBOX) {
+                designer->controls[i].is_type == IS_TABBOX||
+                designer->controls[i].is_audio_input ||
+                designer->controls[i].is_audio_output ||
+                designer->controls[i].is_atom_input ||
+                designer->controls[i].is_atom_output) {
                 continue;
             }
             if (!designer->controls[i].destignation_enabled) {
@@ -574,4 +612,11 @@ void print_plugin(XUiDesigner *designer) {
     "}\n\n"
 
     "///////////////////////////// FIN //////////////////////////////////////\n", name, name);
+    
+    for (a-=1;a>-1;a--) {
+        free((void*)a_inputs[a]);
+    }
+    for (o-=1;o>-1;o--) {
+        free((void*)a_outputs[o]);
+    }
 }

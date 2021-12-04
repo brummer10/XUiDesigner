@@ -23,6 +23,7 @@
 #include "XUiTextInput.h"
 #include "XUiWriteTurtle.h"
 #include "XUiWriteJson.h"
+#include "XUiWritePlugin.h"
 #include "XUiSettings.h"
 
 
@@ -59,7 +60,7 @@ static void reset_plugin_ui(XUiDesigner *designer) {
 
     designer->modify_mod = XUI_NONE;
     designer->active_widget = NULL;
-    designer->is_project = false;
+    designer->is_project = true;
     designer->lv2c.audio_input = 0;
     designer->lv2c.audio_output = 0;
     adj_set_value(designer->project_audio_input->adj, (float)designer->lv2c.audio_input);
@@ -88,6 +89,8 @@ static void reset_plugin_ui(XUiDesigner *designer) {
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
 
     adj_set_value(designer->index->adj,0.0);
+    adj_set_value(designer->project_bypass->adj, 0.0);
+    designer->lv2c.bypass = 0;
     designer->wid_counter = 0;
     designer->active_widget_num = 0;
     designer->prev_active_widget = NULL;
@@ -151,6 +154,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
             add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
             if (designer->lv2c.bypass) {
                 designer->controls[designer->active_widget_num].destignation_enabled = true;
+                adj_set_value(designer->project_bypass->adj, 1.0);
             }
             designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
             designer->controls[designer->active_widget_num].is_atom_patch = designer->lv2c.is_atom_patch? true : false;
@@ -388,6 +392,7 @@ void load_plugin_ui(void* w_, void* user_data) {
         const LilvPlugin* plugin = lilv_plugins_get_by_uri(designer->lv2_plugins, uri);
  
         if (plugin) {
+            designer->is_project = false;
             free(designer->lv2c.symbol);
             designer->lv2c.symbol = NULL;
             const LilvNode* uri = lilv_plugin_get_uri(plugin);
@@ -548,8 +553,8 @@ void load_plugin_ui(void* w_, void* user_data) {
                 designer->lv2c.is_atom_patch = false;
                 designer->lv2c.is_audio_port = false;
                 designer->lv2c.is_atom_port = false;
-                designer->lv2c.bypass = false;
-                if (n == ena_port) designer->lv2c.bypass = true;
+                designer->lv2c.bypass = 0;
+                if (n == ena_port) designer->lv2c.bypass = 1;
                 const LilvPort* port = lilv_plugin_get_port_by_index(plugin, n);
                 if (lilv_port_is_a(plugin, port, lv2_AudioPort)) {
                     if (lilv_port_is_a(plugin, port, lv2_InputPort)) {
@@ -727,6 +732,7 @@ void load_plugin_ui(void* w_, void* user_data) {
     //print_list(designer);
     //print_ttl(designer);
     //print_json(designer);
+    //print_plugin(designer);
     //XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
     if (designer->active_widget != NULL)
         box_entry_set_text(designer->controller_label, designer->active_widget->label);

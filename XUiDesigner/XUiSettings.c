@@ -22,6 +22,7 @@
 #include "XUiSettings.h"
 #include "XUiGenerator.h"
 #include "XUiTextInput.h"
+#include "XUiWritePlugin.h"
 
 
 static void set_project_title(void *w_, void* user_data) {
