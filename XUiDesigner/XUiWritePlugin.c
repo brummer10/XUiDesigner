@@ -597,8 +597,7 @@ void print_plugin(XUiDesigner *designer) {
 
     "////////////////////////// LV2 SYMBOL EXPORT ///////////////////////////\n\n", name);
 
-    printf("extern \"C\"\n"
-    "LV2_SYMBOL_EXPORT\n"
+    printf("LV2_SYMBOL_EXPORT\n"
     "const LV2_Descriptor*\n"
     "lv2_descriptor(uint32_t index)\n"
     "{\n"
