@@ -29,6 +29,7 @@
 #include "XUiReparent.h"
 #include "XUiSettings.h"
 #include "XUiWriteTurtle.h"
+#include "XUiWritePlugin.h"
 #include "xtabbox_private.h"
 
 
@@ -1142,6 +1143,7 @@ static void run_settings(void *w_, void* user_data) {
         XWindowAttributes attrs;
         XGetWindowAttributes(w->app->dpy, (Window)designer->set_project->widget, &attrs);
         if (attrs.map_state != IsViewable) {
+            adj_set_value(designer->project_bypass->adj, (float)designer->lv2c.bypass);
             widget_show_all(designer->set_project);
             char *name = NULL;
             XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
@@ -1212,6 +1214,93 @@ static void filter_plugin_ui(void *w_, void* user_data) {
         load_uris(designer->lv2_uris, designer->lv2_plugins);
         combobox_set_active_entry(designer->lv2_uris, 0);
     }
+}
+
+static void parse_faust_file (XUiDesigner *designer, char* filename) {
+    char* cmd = NULL;
+    char* outname = strdup(filename);
+    strdecode(outname, ".dsp", ".cc");
+    asprintf(&cmd, "./tools/dsp2cc -d %s -b -o %s", filename, outname);
+    int ret = system(cmd);
+    if (ret) fprintf(stderr, "parse faust fail\n");
+    asprintf(&designer->faust_file, "%s", outname);
+    free(cmd);
+    cmd = NULL;
+    char buf[128];
+    FILE *fp;
+    asprintf(&cmd, "cat %s | sed -n '/enum/,/PortIndex/p' |  sed '/enum/d;/PortIndex/d;/{/d;/}/d'", outname);
+    if((fp = popen(cmd, "r")) == NULL) {
+        printf("Error opening pipe!\n");
+        return;
+    }
+    int p = 1;
+    designer->lv2c.audio_input = 0;
+    designer->lv2c.audio_output = 0;
+    while (fgets(buf, 128, fp) != NULL) {
+        if (strstr(buf, "input") != NULL) {
+            designer->lv2c.audio_input += 1;
+        } else if (strstr(buf, "output") != NULL) {
+            designer->lv2c.audio_output += 1;
+        } else if (strstr(buf, "bypass") != NULL) {
+            designer->lv2c.bypass = 1;
+            if (designer->lv2c.bypass) {
+                Widget_t *wid = add_toggle_button(designer->ui, "Bypass", 60*p, 60, 60, 60);
+                set_controller_callbacks(designer, wid, true);
+                designer->controls[designer->active_widget_num].destignation_enabled = true;
+                add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+                designer->prev_active_widget = wid;
+                p++;
+            }
+        } else {
+            char *ptr = strtok(buf, ",");
+            strdecode(ptr, " ", "");
+            char *label;
+            float v[8] = {0,0,0,0};
+            int i = 0;
+            asprintf(&label, "%s", ptr);
+            while(ptr != NULL) {
+                ptr = strtok(NULL, ",");
+                if (ptr != NULL) {
+                    if (strstr(ptr, "//") == NULL) {
+                        v[i] = strtod(ptr, NULL);
+                        i++;
+                    }
+                }
+            }
+            
+            asprintf(&designer->controls[designer->wid_counter].name, label);
+            Widget_t *wid = add_knob(designer->ui, designer->controls[designer->wid_counter].name, 60*p + 10*p, 60, 60, 80);
+            set_adjustment(wid->adj, v[0], v[0], v[1], v[2], v[3], CL_CONTINUOS);
+            set_controller_callbacks(designer, wid, true);
+            tooltip_set_text(wid, wid->label);
+            add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
+            //designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+            p++;
+            
+            free(label);
+            label = NULL;
+        }
+        //printf("OUTPUT: %s", buf);
+    }
+    if (pclose(fp)) {
+        printf("Command not found or exited with error status\n");
+        return;
+    }
+    strdecode(outname, ".cc", "");
+    widget_set_title(designer->ui,basename(outname));
+    free(designer->lv2c.ui_uri);
+    designer->lv2c.ui_uri = NULL;
+    asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), basename(outname),"_ui");
+    free(designer->lv2c.uri);
+    designer->lv2c.uri = NULL;
+    asprintf(&designer->lv2c.uri, "urn:%s:%s", getUserName(), basename(outname));
+    designer->is_faust_file = true;
+    free(cmd);
+    cmd = NULL;    
+    free(outname);
+    outname = NULL;
+    //print_ttl(designer);
+    //print_plugin(designer);
 }
 
 /*---------------------------------------------------------------------
@@ -1309,14 +1398,18 @@ int main (int argc, char ** argv) {
 
     extern char *optarg;
     char *path = NULL;
+    char *ffile = NULL;
     int a = 0;
     static char usage[] = "usage: %s \n"
-    "[-p path] optional set a path to open a ttl file from\n";
+    "[-p path] optional set a path to open a ttl file from\n"
+    "[-f faust] optional set a faust *.dsp file to parse from\n";
 
-    while ((a = getopt(argc, argv, "p:h?")) != -1) {
+    while ((a = getopt(argc, argv, "p:f:h?")) != -1) {
         switch (a) {
             break;
             case 'p': path = optarg;
+            break;
+            case 'f': ffile = optarg;
             break;
             case 'h':
             case '?': fprintf(stderr, usage, argv[0]);
@@ -1334,6 +1427,7 @@ int main (int argc, char ** argv) {
     designer->wid_counter = 0;
     designer->image_path = NULL;
     designer->image = NULL;
+    designer->faust_file = NULL;
     designer->icon = NULL;
     designer->run_test = false;
     designer->lv2c.ui_uri = NULL;
@@ -1356,6 +1450,7 @@ int main (int argc, char ** argv) {
     designer->grid_width = 30;
     designer->grid_height = 15;
     designer->is_project = true;
+    designer->is_faust_file = false;
     designer->generate_ui_only = false;
     designer->drag_icon.x = 0;
     designer->drag_icon.w = 0;
@@ -1638,6 +1733,7 @@ int main (int argc, char ** argv) {
     widget_show_all(designer->w);
     widget_show_all(designer->ui);
     hide_show_as_needed(designer);
+    if (ffile != NULL) parse_faust_file(designer, ffile);
     main_run(&app);
 
     //print_ttl(designer);
@@ -1664,6 +1760,7 @@ int main (int argc, char ** argv) {
     free(designer->tab_label);
     free(designer->image_path);
     free(designer->image);
+    free(designer->faust_file);
     free(designer->lv2c.ui_uri);
     free(designer->lv2c.uri);
     free(designer->lv2c.author);

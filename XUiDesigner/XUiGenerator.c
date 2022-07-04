@@ -242,6 +242,16 @@ void run_save(void *w_, void* user_data) {
         filename = NULL;
         if (system(NULL)) {
             cmd = NULL;
+
+            if (designer->is_faust_file) {
+                asprintf(&cmd, "cp %s \'%s\'", designer->faust_file, filepath);
+                ret = system(cmd);
+                if (!ret) {
+                    free(cmd);
+                    cmd = NULL;
+                }
+            }
+
             asprintf(&cmd, "cp /usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
             ret = system(cmd);
             if (!ret) {

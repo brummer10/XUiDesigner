@@ -1,0 +1,1735 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+
+import re, os, sys
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+from subprocess import Popen, PIPE
+from optparse import OptionParser
+from collections import OrderedDict
+from importlib import import_module
+
+
+num_re = r"(-?\d*\.?\d*e?[+-]?\d*f?)"
+
+def wrap_N_(s):
+    if s:
+        return 'N_("%s")' % s
+    else:
+        return '""'
+
+class UIDefs(object):
+
+    class UID(dict):
+        def write(self, fp, v, prefix):
+            d = {}
+            d.update(self)
+            d["tail"] = "".join([", "+x for x in d["value"]])
+            d["prefix"] = prefix
+            d["N_name"] = wrap_N_("%(name)s" % self)
+            d["N_tooltip"] = wrap_N_("%(tooltip)s" % self)
+            if "log" in d:
+                d["type"] += "L"
+            if "nomidi" in d:
+                d["type"] += "N"
+            if "alias" in d:
+                d["type"] += "A"
+            if "enum" in d:
+                def value_pair(s):
+                    m = re.match(r"(.*)\[(.*)\]$", s)
+                    if m:
+                        return '{"%s",%s}' % (m.group(1), wrap_N_(m.group(2)))
+                    else:
+                        return '{"%s"}' % s
+                enumvals = ",".join([value_pair(x) for x in d["enum"].split("|")]+["{0}"])
+                d["ename"] = ename = d["variable"] + "_values"
+                fp.write('\tstatic const value_pair %s[] = {%s};\n' % (ename, enumvals))
+            else:
+                d["ename"] = "0"
+            fp.write('\t')
+            if "alias" in d:
+                fp.write('%(variable)s_ = ' %d)
+            fp.write('%(prefix)sregisterFloatVar("%(id)s",%(N_name)s,"%(type)s",%(N_tooltip)s,&%(variable)s%(tail)s, %(ename)s);\n' % d)
+
+        def write_port(self, fp, v, prefix, ports, dp):
+            d = {}
+            d.update(self)
+            d["tail"] = "".join([", "+x for x in d["value"]])
+            d["prefix"] = prefix
+            d["N_name"] = wrap_N_("%(name)s" % self)
+            d["N_tooltip"] = wrap_N_("%(tooltip)s" % self)
+            ast = d["id"].split(".")
+            d["port"] = re.sub(r'\s+', '',ast[-1].upper())
+            if "log" in d:
+                d["type"] += "L"
+            if "enum" not in d:
+                if "alias" in d:
+                    assert "enum" not in d
+                    if d["port"] in ports:
+                        fp.write('		%(variable)s_ = static_cast<float*>(data); // %(tail)s \n		break;\n' % d)
+                        dp.append(1)
+                        print (ports)
+                    else:
+                        if dp[-1 ] == 2:
+                            fp.write('		break;\n')
+                        fp.write('	case %(port)s: \n		%(variable)s_ = static_cast<float*>(data); // %(tail)s \n' % d)
+                        dp.append(2)
+            elif "enum" in d:
+                def value_pair(s):
+                    m = re.match(r"(.*)\[(.*)\]$", s)
+                    if m:
+                        return '{"%s",%s}' % (m.group(1), wrap_N_(m.group(2)))
+                    else:
+                        return '{"%s"}' % s
+                enumvals = ",".join([value_pair(x) for x in d["enum"].split("|")]+["{0}"])
+                d["ename"] = ename = d["variable"] + "_values"
+                fp.write('\t// static const value_pair %s[] = {%s};\n' % (ename, enumvals))
+                fp.write('	case %(port)s: \n		%(variable)s_ = static_cast<float*>(data); // %(tail)s \n		break;\n' % d)
+                dp.append(0)
+            else:
+                fp.write('	case %(port)s: \n		%(variable)s_ = static_cast<float*>(data); // %(tail)s \n		break;\n' % d)
+                dp.append(0)
+            ports.append(d["port"])
+
+        def write_port_head(self, fp, v, prefix, ports):
+            d = {}
+            d.update(self)
+            d["tail"] = "".join([", "+x for x in d["value"]])
+            ast = d["id"].split(".")
+            d["port"] = re.sub(r'\s+', '',ast[-1].upper())
+            if not d["port"] in ports:
+                fp.write('   %(port)s, // %(tail)s \n' % d)
+            ports.append(d["port"])
+
+        def __getitem__(self, n):
+            try:
+                return dict.__getitem__(self, n)
+            except KeyError:
+                return ""
+
+    def __init__(self):
+        self.ui = OrderedDict()
+
+    def add(self, element, key, value):
+        try:
+            uid = self.ui[element]
+        except KeyError:
+            self.ui[element] = uid = self.UID(variable=element)
+        uid[key] = value
+
+    def get(self, element, key):
+        return self.ui[element][key]
+
+    def has(self, element, key):
+        return key in self.ui[element]
+
+    def var_filter(self, const):
+        def filt(t):
+            if const == 1 and t.startswith("for "):
+                return True
+            if const == 0 and not t.startswith("for "):
+                return True
+            return False
+        return filt
+
+    def write(self, fp, prefix=""):
+        for v, r in self.ui.items():
+            r.write(fp, v, prefix)
+
+    def write_port(self, fp, prefix=""):
+        self.items=sorted(self.ui.items(), key=lambda d: d[0][4])
+        ports = []
+        dp = []
+        dp.append(0)
+        for v, r in self.items:
+            r.write_port(fp, v, prefix, ports, dp)
+        ports = []
+        if dp[-1] == 2:
+            fp.write('		break;\n')
+        dp = []
+
+    def write_port_head(self, fp, prefix=""):
+        ports = []
+        for v, r in self.ui.items():
+            r.write_port_head(fp, v, prefix, ports)
+        ports = []
+
+    def check_parameter(self, fname, uiname, l, only_warn):
+        s1 = set(l)
+        s2 = set([v["id"] for v in self.ui.values()])
+        d = s2 - s1
+        errlevel = 0
+        if d:
+            print ("%s:warning: parameters in faust dsp not used in %s: %s"
+                   % (fname, uiname, ", ".join(d)))
+            errlevel = 1
+        d = s1 - s2
+        if d:
+            if only_warn:
+                cat = "warning"
+                errlevel = 1
+            else:
+                cat = "error"
+                errlevel = 2
+            print ("%s:%s: parameters in %s not found in faust dsp: %s"
+                   % (fname, cat, uiname, ", ".join(d)))
+        return errlevel
+
+
+class Parser(object):
+
+    def skip_until(self, exp):
+        r = re.compile(exp)
+        for line in self.lines:
+            m = r.match(line)
+            if m:
+                return m
+        return None
+
+    def skip_while(self, exp):
+        m = re.compile(exp).match
+        for line in self.lines:
+            if not m(line):
+                return line
+        return ""
+
+    @staticmethod
+    def remove_indentation(cp):
+        m = re.compile(r"\t*").match
+        n = 10
+        for l in cp:
+            if l != "\n":
+                n = min(n, len(m(l).group(0)))
+        return [l[n:] for l in cp]
+
+    def copy(self, exp, line=None):
+        cp = []
+        if line:
+            cp.append(line)
+        m = re.compile(exp).match
+        p = re.compile(r"\tint (fSamplingFreq|fSampleRate);").match
+        o = re.compile(r" public:").match
+        for line in self.lines:
+            if not line.strip():
+                continue
+            t = p(line)
+            if t:
+                self.sample_rate_var = t.group(1)
+                continue
+            if m(line):
+                break
+            if o(line):
+                break
+            cp.append(line)
+        return self.remove_indentation(cp)
+
+    def read_init(self, exp, line=None):
+        cp = []
+        if line:
+            cp.append(line)
+        m = re.compile(exp).match
+        o = re.compile(r" public:").match
+        for line in self.lines:
+            if not line.strip():
+                continue
+            if m(line):
+                break
+            if o(line):
+                break
+            if line.startswith("		for"):
+                line = line.replace("{\n","")
+                l = next(self.lines)
+                line += l.replace("\t","")
+                l = next(self.lines)
+                if not l.strip():
+                    l = next(self.lines)
+                assert l.strip() == '}', repr(l)
+            cp.append(line)
+        return self.remove_indentation(cp)
+
+    def get_section_list(self):
+        return "includes", "incl_class", "var-decl", "alias-defines", "alias-undefines", "var-init", "var-free", "ui", "compute", "post_compute"
+
+
+    def getIO(self, s):
+        e = r"\s*virtual int getNum%sputs" % s
+        f = r"\s*return\s*(\d+);"
+        for line in self.lines:
+            m = re.match(e, line)
+            if m:
+                n = re.match(f, next(self.lines))
+                if n:
+                    return int(n.group(1))
+        raise ValueError("getNum%sputs not found in source" % s)
+
+    def parse_name(self, s):
+        def findBrackets(aString):
+            l = []
+            n = []
+            while aString:
+                v = aString.split('[',1)
+                if len(v) == 2:
+                    s, match = v
+                else:
+                    n.append(aString)
+                    break
+                s.strip()
+                if s:
+                    n.append(s)
+                match.lstrip()
+                open = 1
+                for index in range(len(match)):
+                    if match[index] in '[]':
+                        open = (open + 1) if match[index] == '[' else (open - 1)
+                    if not open:
+                        l.append(match[:index])
+                        break
+                aString = match[index+1:].lstrip()
+            return " ".join(n), l
+        s, l = findBrackets(s)
+        for v in l:
+            if ":" in v:
+                key, value = v.split(":",1)
+            else:
+                key = v
+                value = ""
+            if key == "name" and value:
+                self.groups[s] = value
+        return s
+
+    def readUI(self, exp):
+        stop = re.compile(exp).match
+        pre = r"\s*ui_interface->"
+        nm = '"([^"]*)"'
+        vr = "([a-zA-Z_][0-9a-zA-Z_]*)"
+        sarg = (r"%s,\s*&%s,\s*%s,\s*%s,\s*%s,\s*%s"
+                % (nm, vr, num_re, num_re, num_re, num_re))
+        sargb = (r"%s,\s*&%s,\s*%s,\s*%s"
+                % (nm, vr, num_re, num_re))
+        openbox = re.compile(pre+r"open(Horizontal|Vertical)Box\(%s\);" % nm).match
+        closebox = re.compile(pre+r"closeBox\(\);").match
+        vslider = re.compile(pre+r"addVerticalSlider\(%s\);" % sarg).match
+        hslider = re.compile(pre+r"addHorizontalSlider\(%s\);" % sarg).match
+        numentry = re.compile(pre+r"addNumEntry\(%s\);" % sarg).match
+        vbargraph = re.compile(pre+r"addVerticalBargraph\(%s\);" % sargb).match
+        hbargraph = re.compile(pre+r"addHorizontalBargraph\(%s\);" % sargb).match
+        checkbutton = re.compile(pre+r"addCheckButton\(%s,\s*&%s\);" % (nm, vr)).match
+        declare = re.compile(pre+r"declare\((?:&%s|0),\s*%s,\s*%s\);" % (vr, nm, nm)).match
+        stack = []
+        def make_name_int(mystack):
+            st = mystack[1:]
+            if not st:
+                return mystack[0]
+            s = make_name_int(st)
+            if s.startswith("."):
+                return s
+            return mystack[0] + "." + s
+
+        def make_name(nm):
+            stack.append(nm)
+            nm = make_name_int(stack)
+            stack.pop()
+            if nm.startswith("."):
+                if self.toplevel == "low_highpass" :
+                    return nm[1:].replace("0x00","low_high_pass")
+                return nm[1:].replace("0x00",self.toplevel)
+            return nm.replace("0x00",self.toplevel)
+
+        nextbox = {}
+        for line in self.lines:
+            if "FAUSTFLOAT(" in line:
+                count = 0
+                while line.find("FAUSTFLOAT(") != -1:
+                    line = line.replace("FAUSTFLOAT(", "", 1)
+                    count += 1
+                line = line.replace(")","",count)
+
+            if not line.strip():
+                continue
+            if stop(line):
+                return
+            m = openbox(line)
+            if m:
+                grp = m.group(2)
+                if "[" in grp:
+                    # 0.9.30 didn't parse [..] in [hv]group names
+                    grp = self.parse_name(grp)
+                if nextbox:
+                    if "name" in nextbox:
+                        self.groups[grp] = nextbox["name"]
+                    # ignore all other attributes for now
+                    nextbox = {}
+                if not stack:
+                    if self.toplevel: #and grp == self.modname:
+                        grp = self.toplevel
+                    if not self.topname:
+                        self.topname = grp
+                stack.append(grp)
+                continue
+            if closebox(line):
+                stack.pop()
+                continue
+            m = vslider(line) or hslider(line) or numentry(line)
+            if m:
+                vn = m.group(2)
+                self.ui.add(vn, "type", "S")
+                self.ui.add(vn, "id", make_name(m.group(1)))
+                self.ui.add(vn, "value", m.groups()[2:])
+                continue
+            m = checkbutton(line)
+            if m:
+                vn = m.group(2)
+                self.ui.add(vn, "type", "B")
+                self.ui.add(vn, "id", make_name(m.group(1)))
+                self.ui.add(vn, "value", ("0.0","0.0","1.0","1.0"))
+                continue
+            m = vbargraph(line) or hbargraph(line)
+            if m:
+                vn = m.group(2)
+                self.ui.add(vn, "type", "SO")
+                self.ui.add(vn, "id", make_name(m.group(1)))
+                self.ui.add(vn, "value", ("0",)+m.groups()[2:]+("0",))
+                continue
+            m = declare(line)
+            if m:
+                if m.group(1) is None: # 0.9.43: attributes for next openbox
+                    nextbox[m.group(2)] = m.group(3)
+                else:
+                    self.ui.add(m.group(1), m.group(2), m.group(3))
+                continue
+            assert False, line
+
+    def readMeta(self):
+        "only needed for faust 9.4; not used at the moment"
+        self.meta = {}
+        stop = re.compile(r'// Code generated with Faust').match
+        declare = re.compile(r'// ([^:]+):\s*"([^"]*)"\s*$').match
+        for line in self.lines:
+            if stop(line):
+                return
+            m = declare(line)
+            if m:
+                key = m.group(1)
+                value = m.group(2)
+                self.meta[key] = value
+                if key == "name":
+                    self.toplevel = value
+
+    def splitgroups(self, value):
+        d = {}
+        for l in re.split(r"\]\s*,\s*", value):
+            a = re.split(r"\s*\[\s*",l,1)
+            g = a[0].strip()
+            if len(a) == 1:
+                v = "?"
+            else:
+                v = a[1].rstrip(" ]")
+            d[g] = v
+        return d
+            
+
+    def readMeta2(self, stop_expr):
+        self.meta = {}
+        stop = re.compile(stop_expr).match
+        declare = re.compile(r'\s*m->declare\s*\("([^"]+)"\s*,\s*"([^"]*)"\);').match
+        for line in self.lines:
+            if stop(line):
+                return
+            m = declare(line)
+            if m:
+                key = m.group(1)
+                value = m.group(2)
+                self.meta[key] = value
+                if key == "id":
+                    self.toplevel = value
+                elif key == "name":
+                    self.name = value
+                elif key == "groups":
+                    self.groups.update(self.splitgroups(value));
+                elif key == "category":
+                    self.category = value
+                elif key == "shortname":
+                    self.shortname = value
+                elif key == "description":
+                    self.description = value
+                elif key == "gladefile":
+                    self.gladefile = value
+                elif key == "samplerate":
+                    self.fixedrate = value
+                elif key == "oversample":
+                    self.oversample = value
+                elif key == "insert_p":
+                    self.insert_p = value
+                elif key == "drywetbox":
+                    self.drywetbox = value
+                elif key == "volume_p":
+                    self.volume_p = value
+
+    def readIncludes(self, stop_expr):
+        stop = re.compile(stop_expr).match
+        cp = []
+        cl = False
+        l = ""
+        for line in self.lines:
+            if stop(line):
+                return cl,l,cp
+            if line.startswith('const static '):
+                l = line
+                cl = True
+                return cl,l,cp
+            if line.startswith('class '):
+                l = line
+                cl = True
+                return cl,l,cp
+            if line.startswith('#include "'):
+                cp.append(line)
+                
+        raise RuntimeError("EOF while looking for #include")
+
+    def readClass(self, stop_expr):
+        stop = re.compile(stop_expr).match
+        scip = re.compile('}').match
+        cp = []
+        cp += self.l
+        for line in self.lines:
+            if stop(line):
+                return cp
+            if line.startswith('#'):
+                continue
+            if line.startswith('static float mydsp_faustpower'):
+                continue
+            if line.startswith('static double mydsp_faustpower'):
+                continue
+            if line.startswith('	return (value * value);'):
+                continue
+            if line.startswith('	return value * value;'):
+                continue
+            if line.startswith('	return ((value * value) * value);'):
+                continue
+            if line.startswith('}') and not line.startswith('};'):
+                continue
+            cp.append(line)
+        raise RuntimeError("EOF while looking for Class")
+
+    def change_var_decl(self, lines, init_type):
+        param_matcher = re.compile(r"FAUSTFLOAT\s+([a-zA-Z_0-9]+);\n$").match
+        array_matcher = re.compile(r"(int|float|double)\s+([a-zA-Z_0-9]+)\s*\[\s*(\d+)\s*\]\s*;\n$").match
+        static_matcher = re.compile(r"static (int|float|double)\s+([a-zA-Z_0-9]+)\s*\[\s*(\d+)\s*\]\s*;\n$").match
+        out = []
+        out_defines = []
+        out_undefines = []
+        for l in lines:
+            if '% ' in l:
+                l = l.replace(u'%','%%')
+            m = param_matcher(l);
+            if m:
+                var = m.group(1)
+                alias = self.ui.has(var,"alias")
+                if init_type in ("plugin-lv2"):
+                    if not alias:
+                        self.ui.add(var,"alias", "[alias]")
+                        alias = self.ui.has(var,"alias")
+                if alias:
+                    #l = ('FAUSTFLOAT&\t%s = get_alias("%s");\n'
+                    #     % (var, self.ui.get(var, "id")))
+                    out.append(l)
+                    out.append('FAUSTFLOAT\t*%s_;\n' % var)
+                    out_defines.append('#define %s (*%s_)\n' % (var, var))
+                    out_undefines.append('#undef %s\n' % var)
+                    continue
+            m = static_matcher(l);
+            if m:
+                self.staticlist.append((m.group(2), m.group(1), m.group(3)))
+            if self.options.memory_threshold:
+                m = array_matcher(l)
+                if m:
+                    sz = {"int": 4, "float": 4, "double": 8}[m.group(1)]
+                    alen = int(m.group(3))
+                    if alen * sz > self.options.memory_threshold:
+                        l = "%s *%s;\n" % (m.group(1), m.group(2))
+                        self.memlist.append((m.group(2), m.group(1), alen))
+            if l.startswith(("int","float","double","FAUSTFLOAT")):
+                l = "%(static)s" + l
+            out.append(l)
+        return out, out_defines, out_undefines
+
+    def add_var_alloc(self):
+        l = []
+        for v, t, s in self.memlist:
+            l.append("if (!%s) %s = new %s[%d];\n" % (v, v, t, s))
+        return l
+
+    def add_var_free(self):
+        l = []
+        for v, t, s in self.memlist:
+            l.append("if (%s) { delete %s; %s = 0; }\n" % (v, v, v))
+        return l
+
+    def __init__(self, lines, modname, options):
+        self.lines = ((line.decode("utf-8") for line in lines))
+        self.modname = modname
+        self.options = options
+        self.toplevel = None
+        self.topname = None
+        self.name = None
+        self.fixedrate = None
+        self.has_fixedrate = False
+        self.oversample = None
+        self.no_oversample = True
+        self.has_oversample = False
+        self.has_stereo = False
+        self.insert_p = None
+        self.has_insert_p = False
+        self.has_vector = False
+        self.drywetbox = None
+        self.has_drywetbox = False
+        self.volume_p = None
+        self.has_volume_p = False
+        self.groups = OrderedDict()
+        self.memlist = []
+        self.staticlist = []
+        self.l = ""
+        s = {}
+        self.ui = UIDefs()
+        #self.readMeta()  # (needed only for faust 9.4
+        headvers = self.skip_until(r"\s*\s*((Code generated with Faust *)([^  ]*)(.*))")
+        self.faust_version = headvers.group(3)
+        if self.options.version_header:
+            self.headvers = headvers.group(1)
+        else:
+            self.headvers = headvers.group(2) + headvers.group(4).lstrip()
+        cl,self.l,s["includes"] = self.readIncludes(r"class mydsp : public dsp {")
+        if cl:
+            s["incl_class"] = self.readClass(r"class mydsp : public dsp {")
+        else:
+            s["incl_class"] = ""
+        self.skip_until(r" private:")
+        var_decl = self.copy(r" public:")
+        self.skip_until(r"^\s*void\s+metadata\s*\(\s*Meta\s*\*\s*m\s*\)\s*{")
+        self.readMeta2(r"\s*}\s*\n$")
+        if self.toplevel is None :
+            self.toplevel = self.modname
+        self.numInputs = self.getIO("In")
+        self.numOutputs = self.getIO("Out")
+        self.skip_until(r"\s*static void classInit")
+        s["var-init"] = self.copy(r"\s*}$")
+        self.skip_until(r"\s*virtual void instanceConstants")
+        s["var-init"] += self.copy(r"\s*}$")
+        self.skip_until(r"\s*virtual void instanceClear")
+        s["var-init"] += self.read_init(r'\t}')
+        self.sample_rate_param = self.skip_until(r"\s*virtual void init\(int ([a-zA-Z_]+)\)").group(1)
+        self.skip_until(r"\s*virtual void buildUserInterface")
+        s["ui"] = self.readUI(r"\s*}$")
+        s["var-decl"], s["alias-defines"], s["alias-undefines"] = self.change_var_decl(var_decl,options.init_type)
+        s["var-init"] = s["var-init"]
+        s["var-alloc"] = self.add_var_alloc()
+        s["var-free"] = self.add_var_free()
+        self.skip_until(r"\s*virtual void compute")
+        if self.options.vectorize:
+            s["compute"] = self.replace_ioref_vector(self.copy(r"\t}$"))
+            self.has_vector = True
+        else:
+            s["compute"] = self.replace_ioref_scalar(self.copy(r"\t}$"))
+        self.skip_until(r"\s*#endif};")
+        s["post_compute"] = self.replace_mydsp(self.copy(r"\s*END USER SECTION$"))
+        self.sections = s
+        if self.fixedrate is not None:
+            self.has_fixedrate = True
+            self.no_oversample = False
+        if self.oversample is not None:
+            self.has_oversample = True
+            self.no_oversample = False
+        if self.drywetbox is not None:
+            self.has_drywetbox = True
+        if self.volume_p is not None:
+            self.has_volume_p = True
+        if self.insert_p is not None:
+            self.has_insert_p = True
+            self.faust_opt = []
+            if self.options.faust:
+                self.faust_opt.append('-d')
+            elif self.options.faustf:
+                self.faust_opt.append('-f')
+            if self.options.vectorize:
+                self.faust_opt.append('-V')
+            if self.options.add:
+                self.faust_opt.append(options.add);
+            cmd ='../tools/dsp2insert -o /tmp/'+self.insert_p+'.py'+' '+'  '.join(self.faust_opt)+' --init-type=insert ../src/faust/'+self.insert_p+'.dsp'
+           # print('%s\n' % cmd)
+            os.system(cmd) 
+        if self.numOutputs == 2:
+            self.has_stereo = True
+        if self.topname is None:
+            self.topname = self.modname
+        if self.has_oversample and self.has_fixedrate:
+            print ("Error: you could only use one of fixedrate or oversample")
+            sys.exit(1)
+        # ignore any following definitions of static class members
+        #self.checkfor(r".*\bexp\b", "compute")
+
+    def replace_ioref_vector(self, lines):
+        #ioref = r"\s*(float|FAUSTFLOAT)\s*\*\s*(in|out)put(\d+)_ptr\s*=\s*\2puts\[\3\]\[index\];"
+        ioref = r"\s*(float|FAUSTFLOAT)\s*\*\s*(in|out)put(\d+)_ptr\s*"
+        match = re.compile(ioref).match
+        l = []
+        for line in lines:
+            m = match(line)
+            if m:
+                g = m.groups()
+                line = "%s* %sput%s_ptr = &%sputX%s[0];\n" % (g[0],g[1],g[2],g[1],g[2])
+            if self.fixedrate or self.oversample:
+                line=re.sub("count",'ReCount',line)
+                line=re.sub("inputX0",'buf',line)
+                line=re.sub("outputX0",'buf',line)
+                if self.numOutputs == 2:
+                    line=re.sub("inputX1",'bufs',line)
+                    line=re.sub("outputX1",'bufs',line)
+            l.append(line)
+        return l
+
+    def replace_ioref_scalar(self, lines):
+        ioref = r"\s*(float|FAUSTFLOAT)\s*\*\s*(in|out)put(\d+)\s*=\s*\2puts\[\3\];"
+        match = re.compile(ioref).match
+        l = []
+        for line in lines:
+            if not match(line):
+                if self.fixedrate or self.oversample:
+                    line=re.sub("count",'ReCount',line)
+                    line=re.sub("input0",'buf',line)
+                    line=re.sub("output0",'buf',line)
+                    if self.numOutputs == 2:
+                        line=re.sub("input1",'bufs',line)
+                        line=re.sub("output1",'bufs',line)
+                l.append(line)
+        return l
+
+    def replace_mydsp(self, lines):
+        l = []
+        for line in lines:
+            if not 'mydsp::ftbl' in line:
+                line=re.sub("mydsp",'Dsp',line)
+                z = 0
+                f = ''
+                for item in line:
+                    if item in '}':
+                        f = f + ("\n\t")
+                    if z == 5:
+                        f = f + ("\n\t")
+                        z = 0
+                    f = f + item
+                    if item in ',':
+                        z +=1
+                    if item in '{':
+                        f = f + ("\n\t")
+                l.append(f)            
+        return l
+
+    def checkfor(self, re_exp, sect):
+        loop = re.compile(r"\s*for\s*\(int\s+i=0;\s*i<count;\s*i\+\+\)\s*{").match
+        re_m = re.compile(re_exp).match
+        in_loop = False
+        for l in self.sections[sect]:
+            if not in_loop:
+                if loop(l):
+                    in_loop = True
+                continue
+            if re_m(l):
+                print("%s %s" % (self.modname, l))
+
+    def getNumInputs(self):
+        return self.numInputs
+
+    def getNumOutputs(self):
+        return self.numOutputs
+
+    def __getitem__(self, n):
+        return self.sections[n]
+
+    def formatted_groups(self, plugin_id):
+        l = []
+        for k, v in self.groups.items():
+            if k == plugin_id:
+                continue
+            k = '"'+k+'"'
+            l.append("\t%s, %s,\n" % (k, wrap_N_(v)))
+        return "".join(l) + "\t0\n"
+  
+    def write(self, fp, sect, indent=0, filt=lambda l: False, dct=None):
+        pre = "\t" * indent
+        for l in self.sections[sect]:
+            if filt(l):
+                continue
+            fp.write(pre)
+            if dct:
+                l = l % dct
+            fp.write(l)
+
+activate = """
+static int activate(bool start, PluginDef* = 0)
+{
+    if (start) {
+        if (!mem_allocated) {
+            mem_alloc();
+            clear_state_f();
+        }
+    } else if (mem_allocated) {
+        mem_free();
+    }
+    return 0;
+}
+
+"""
+
+dry_wetbox_mono_pre1 = """\
+	double 	fSlowdw0 = (0.01 * fsliderdw0);
+	double 	fSlowdw1 = (1 - fSlowdw0);
+	FAUSTFLOAT 	dryinput[count];
+	memcpy(&dryinput, input0, count * sizeof(float));
+"""
+
+dry_wetbox_mono_post1 = """\
+	for (int i=0; i<count; i++) {
+		output0[i] = ((fSlowdw1 * (double)dryinput[i]) + (fSlowdw0 * (double)output0[i]));
+	}
+"""
+
+dry_wetbox_vec_mono_pre1 = """\
+	double 	fSlowdw0 = (0.01 * fsliderdw0);
+	double 	fSlowdw1 = (1 - fSlowdw0);
+	FAUSTFLOAT 	dryinput[count];
+	memcpy(&dryinput, inputX0, count * sizeof(float));
+"""
+
+dry_wetbox_vec_mono_post1 = """\
+	for (int i=0; i<count; i++) {
+		outputX0[i] = ((fSlowdw1 * (double)dryinput[i]) + (fSlowdw0 * (double)outputX0[i]));
+	}
+"""
+
+volume_mono_pre = """\
+	double 	fSlowV0 = (0.0010000000000000009 * double(fsliderV0));
+"""
+
+volume_mono_post = """\
+	for (int i=0; i<count; i++) {
+		fRecV0[0] = ((0.999 * fRecV0[1]) + fSlowV0);
+		output0[i] = (FAUSTFLOAT)((double)output0[i] * fRecV0[0]);
+		// post processing
+		fRecV0[1] = fRecV0[0];
+	}
+"""
+
+volume_vec_mono_post = """\
+	for (int i=0; i<count; i++) {
+		fRecV0[0] = ((0.999 * fRecV0[1]) + fSlowV0);
+		outputX0[i] = (FAUSTFLOAT)((double)outputX0[i] * fRecV0[0]);
+		// post processing
+		fRecV0[1] = fRecV0[0];
+	}
+"""
+
+template_plugin_lv2 = """\
+// generated from file '%(filepath)s' by dsp2cc:
+// %(headline)s
+
+#include <cmath>
+#include <algorithm>
+
+#define FAUSTFLOAT float
+
+using std::signbit;
+
+#define max(x, y) (((x) > (y)) ? (x) : (y))
+#define min(x, y) (((x) < (y)) ? (x) : (y))
+
+template<class T> inline T mydsp_faustpower2_f(T x) {return (x * x);}
+template<class T> inline T mydsp_faustpower3_f(T x) {return ((x * x) * x);}
+template<class T> inline T mydsp_faustpower4_f(T x) {return (((x * x) * x) * x);}
+template<class T> inline T mydsp_faustpower5_f(T x) {return ((((x * x) * x) * x) * x);}
+template<class T> inline T mydsp_faustpower6_f(T x) {return (((((x * x) * x) * x) * x) * x);}
+
+#define always_inline inline __attribute__((__always_inline__))
+
+typedef enum
+{
+%(audioports)s\
+%(bypass)s\
+%(port_head)s\
+#if %(has_drywetbox)s
+   WET_DRY,
+#endif
+#if %(has_volume_p)s
+   %(Volume_Name)s,
+#endif
+} PortIndex;
+
+%(includes)s\
+#if %(has_insert_p)s
+%(insert_p_incl)s\
+#endif
+#if %(has_drywetbox)s
+#include <string.h>
+#endif
+
+%(start_extra_namespace)s\
+namespace %(namespace)s {
+%(incl_class)s\
+
+#if %(has_plugindef)s
+class Dsp: public PluginLV2 {
+#else
+class Dsp {
+#endif
+private:
+#if %(has_fixedrate)s
+	gx_resample::FixedRateResampler smp;
+#if %(has_stereo)s
+	gx_resample::FixedRateResampler smps;
+#endif
+	uint32_t %(sample_rate_param)s;
+#endif
+#if %(has_oversample)s
+	gx_resample::FixedRateResampler smp;
+#if %(has_stereo)s
+	gx_resample::FixedRateResampler smps;
+#endif
+	uint32_t %(sample_rate_param)s;
+#endif
+	uint32_t %(sample_rate_var)s;
+%(var_decl)s\
+
+#if %(has_insert_p)s
+%(insert_p_class)s
+#endif
+#if %(has_drywetbox)s
+	FAUSTFLOAT fsliderdw0;
+	FAUSTFLOAT *fsliderdw0_;
+#endif
+#if %(has_volume_p)s
+	FAUSTFLOAT 	fsliderV0;
+	FAUSTFLOAT 	*fsliderV0_;
+	double 	fRecV0[2];
+#endif
+#if %(has_activate)s
+	bool mem_allocated;
+	void mem_alloc();
+	void mem_free();
+#endif
+#ifnot %(has_plugindef)s
+
+public:
+#endif
+#if %(has_lv2)s
+	void connect(uint32_t port,void* data);
+	void del_instance(Dsp *p);
+#endif
+#if %(has_state)s
+	void clear_state_f();
+#endif
+#if %(has_activate)s
+	int activate(bool start);
+#endif
+	void init(uint32_t %(sample_rate_param)s);
+	void compute(int %(countname)s%(compute_args)s);
+#if %(has_plugindef)s
+
+#if %(has_state)s
+	static void clear_state_f_static(PluginLV2*);
+#endif
+#if %(has_activate)s
+	static int activate_static(bool start, PluginLV2*);
+#endif
+	static void init_static(uint32_t %(sample_rate_param)s, PluginLV2*);
+	static void compute_static(int %(countname)s%(compute_args)s, PluginLV2*);
+	static void del_instance(PluginLV2 *p);
+#if %(has_lv2)s
+	static void connect_static(uint32_t port,void* data, PluginLV2 *p);
+#endif
+public:
+#endif
+	Dsp();
+	~Dsp();
+};
+
+#if %(has_separate_header)s
+} // end namespace %(namespace)s
+%(end_extra_namespace)s\
+#impl
+// generated from file '%(filepath)s' by dsp2cc:
+// %(headline)s
+
+#if %(has_standalone_header)s
+#include "faust_support.h"
+#include "%(header_name)s"
+#endif
+%(includes)s\
+
+%(start_extra_namespace)s\
+namespace %(namespace)s {
+#endif
+
+%(static_decl)s\
+%(groups_define)s\
+
+Dsp::Dsp() {
+#if %(has_plugindef)s
+	version = PLUGINLV2_VERSION;
+	id = "%(plugin_id)s";
+	name = %(plugin_name)s;
+	mono_audio = %(mono_compute_p)s;
+	stereo_audio = %(stereo_compute_p)s;
+	set_samplerate = init_static;
+	activate_plugin = %(activate_p)s;
+	connect_ports = connect_static;
+	clear_state = %(clear_state_p)s;
+	delete_instance = del_instance;
+#endif
+}
+
+Dsp::~Dsp() {
+}
+
+#if %(has_state)s
+inline void Dsp::clear_state_f()
+{
+%(state_init)s\
+#if %(has_insert_p)s
+%(insert_p_clearstate)s
+#endif
+#if %(has_volume_p)s
+	for (int i=0; i<2; i++) fRecV0[i] = 0;
+#endif
+}
+
+#if %(has_plugindef)s
+void Dsp::clear_state_f_static(PluginLV2 *p)
+{
+	static_cast<Dsp*>(p)->clear_state_f();
+}
+
+#endif
+#endif
+#if %(has_fixedrate)s
+inline void Dsp::init(uint32_t RsamplingFreq)
+{
+	%(sample_rate_param)s = %(fixedrate)s;
+	smp.setup(RsamplingFreq, %(sample_rate_param)s);
+#if %(has_stereo)s
+	smps.setup(RsamplingFreq, %(sample_rate_param)s);
+#endif
+#endif
+#if %(has_oversample)s
+inline void Dsp::init(uint32_t RsamplingFreq)
+{
+	%(sample_rate_param)s = %(oversample)s * RsamplingFreq;
+	smp.setup(RsamplingFreq, %(sample_rate_param)s);
+#if %(has_stereo)s
+	smps.setup(RsamplingFreq, %(sample_rate_param)s);
+#endif
+#endif
+#if %(no_oversample)s
+inline void Dsp::init(uint32_t %(sample_rate_param)s)
+{
+#endif
+%(init_body)s\
+#if %(has_insert_p)s
+%(insert_p_init)s
+#endif
+#if %(has_state_no_activate)s
+	clear_state_f();
+#endif
+}
+
+#if %(has_plugindef)s
+void Dsp::init_static(uint32_t %(sample_rate_param)s, PluginLV2 *p)
+{
+	static_cast<Dsp*>(p)->init(%(sample_rate_param)s);
+}
+
+#endif
+#if %(has_activate)s
+void Dsp::mem_alloc()
+{
+%(var_alloc)s\
+	mem_allocated = true;
+}
+
+void Dsp::mem_free()
+{
+	mem_allocated = false;
+%(var_free)s\
+}
+
+int Dsp::activate(bool start)
+{
+	if (start) {
+		if (!mem_allocated) {
+			mem_alloc();
+			clear_state_f();
+		}
+	} else if (mem_allocated) {
+		mem_free();
+	}
+	return 0;
+}
+
+#if %(has_plugindef)s
+int Dsp::activate_static(bool start, PluginLV2 *p)
+{
+	return static_cast<Dsp*>(p)->activate(start);
+}
+
+#endif
+#endif
+void always_inline Dsp::compute(int %(countname)s%(compute_args)s)
+{
+%(defines)s\
+#if %(has_drywetbox)s
+#define fsliderdw0 (*fsliderdw0_)
+%(dry_wetbox_mono_pre)s
+#endif
+#if %(has_volume_p)s
+#define fsliderV0 (*fsliderV0_)
+%(volume_pre)s
+#endif
+#if %(has_fixedrate)s
+	FAUSTFLOAT buf[smp.max_out_count(%(countname)s)];
+#if %(has_stereo)s
+	FAUSTFLOAT bufs[smps.max_out_count(%(countname)s)];
+#if %(has_vector)s
+	smps.up(%(countname)s, inputX1, bufs);
+#else
+	smps.up(%(countname)s, input1, bufs);
+#endif
+#endif
+#if %(has_vector)s
+	int ReCount = smp.up(%(countname)s, inputX0, buf);
+#else
+	int ReCount = smp.up(%(countname)s, input0, buf);
+#endif
+#endif
+#if %(has_oversample)s
+	FAUSTFLOAT buf[smp.max_out_count(%(countname)s)];
+#if %(has_stereo)s
+	FAUSTFLOAT bufs[smps.max_out_count(%(countname)s)];
+#if %(has_vector)s
+	smps.up(%(countname)s, inputX1, bufs);
+#else
+	smps.up(%(countname)s, input1, bufs);
+#endif
+#endif
+#if %(has_vector)s
+	int ReCount = smp.up(%(countname)s, inputX0, buf);
+#else
+	int ReCount = smp.up(%(countname)s, input0, buf);
+#endif
+#endif
+%(compute_body)s\
+#if %(has_fixedrate)s
+#if %(has_vector)s
+	smp.down(buf, outputX0);
+#else
+	smp.down(buf, output0);
+#endif
+#if %(has_stereo)s
+#if %(has_vector)s
+	smps.down(bufs, outputX1);
+#else
+	smps.down(bufs, output1);
+#endif
+#endif
+#endif
+#if %(has_oversample)s
+#if %(has_vector)s
+	smp.down(buf, outputX0);
+#else
+	smp.down(buf, output0);
+#endif
+#if %(has_stereo)s
+#if %(has_vector)s
+	smps.down(bufs, outputX1);
+#else
+	smps.down(bufs, output1);
+#endif
+#endif
+#endif
+#if %(has_insert_p)s
+%(insert_p_compute)s
+#endif
+#if %(has_volume_p)s
+%(volume_post)s
+#undef fsliderV0 
+#endif
+#if %(has_drywetbox)s
+%(dry_wetbox_mono_post)s
+#undef fsliderdw0
+#endif
+%(undefines)s\
+}
+%(post_compute_body)s\
+
+#if %(has_plugindef)s
+void __rt_func Dsp::compute_static(int %(countname)s%(compute_args)s, PluginLV2 *p)
+{
+	static_cast<Dsp*>(p)->compute(%(countname)s%(compute_call_args)s);
+}
+
+#endif
+
+#if %(has_lv2)s
+void Dsp::connect(uint32_t port,void* data)
+{
+	switch ((PortIndex)port)
+	{
+%(port_body)s\
+#if %(has_drywetbox)s
+	case WET_DRY: 
+		fsliderdw0_ = (float*)data; // , 1e+02, 0.0, 1e+02, 1.0 
+		break;
+#endif
+#if %(has_volume_p)s
+	case %(Volume_Name)s: 
+		fsliderV0_ = (float*)data; // , 0.5, 0.0, 1, 0.01 
+		break;
+#endif
+	default:
+		break;
+	}
+}
+#if %(has_plugindef)s
+void Dsp::connect_static(uint32_t port,void* data, PluginLV2 *p)
+{
+	static_cast<Dsp*>(p)->connect(port, data);
+}
+#endif
+#endif
+#if %(has_plugindef)s
+PluginLV2 *plugin() {
+	return new Dsp();
+}
+
+void Dsp::del_instance(PluginLV2 *p)
+{
+	delete static_cast<Dsp*>(p);
+}
+
+/*
+typedef enum
+{
+%(audioports)s\
+%(port_head)s\
+#if %(has_drywetbox)s
+   WET_DRY,
+#endif
+#if %(has_volume_p)s
+   %(Volume_Name)s,
+#endif
+} PortIndex;
+*/
+#else
+
+Dsp *plugin() {
+	return new Dsp();
+}
+
+void Dsp::del_instance(Dsp *p)
+{
+	delete p;
+}
+#endif
+#if %(has_plugindef)s
+#if %(sharedlib)s
+extern "C" __attribute__ ((visibility ("default"))) int
+get_gx_plugin(unsigned int idx, PluginLV2 **pplugin)
+{
+    if (!pplugin) {
+        return 1;
+    }
+    if (idx > 0) {
+        return -1;
+    }
+    *pplugin = new Dsp();
+    return 1;
+}
+#endif
+#endif
+} // end namespace %(namespace)s
+%(end_extra_namespace)s\
+"""
+
+
+def preprocess(s, fp, fp_head):
+    depth = 0  # conditional nesting depth
+    truelevel = 0  # last depth where all nested conditions where true
+    impl_seen = False
+    for lno, l in enumerate(s):
+        if l.startswith("#if"):
+            if l.endswith("True\n"):
+                cond = True
+            elif l.endswith("False\n"):
+                cond = False
+            else:
+                assert False, "%d: %s" % (lno+1, l)
+            if l.startswith("#ifnot ") != cond:
+                if truelevel == depth:
+                    truelevel += 1
+            depth += 1
+            continue
+        elif l == "#else\n":
+            if depth == 0:
+                raise SystemExit("template line %d: wrong #else" % (lno+1))
+            if truelevel == depth:
+                truelevel -= 1
+            elif truelevel == depth-1:
+                truelevel = depth
+            continue
+        elif l == "#endif\n":
+            if depth == 0:
+                raise SystemExit("template line %d: unbalanced #if / #endif" % (lno+1))
+            if truelevel == depth:
+                truelevel -= 1
+            depth -= 1
+            continue
+        if l == "#impl\n":
+            impl_seen = True
+            continue
+        if truelevel == depth:
+            if fp_head and not impl_seen:
+                fp_head.write(l)
+            else:
+                fp.write(l)
+    if depth:
+        raise SystemExit("template EOF: unbalanced #if / #endif")
+
+
+class Output(object):
+
+    def __init__(self, parser, fname, options):
+        self.parser = parser
+        self.fname = fname
+        self.options = options
+        self.has_activate = len(self.parser.memlist) > 0
+        if self.options.vectorize:
+            self.countname = "count"
+            self.inputdecl = ", FAUSTFLOAT *inputX%d"
+            self.outputdecl = ", FAUSTFLOAT *outputX%d"
+            self.inputcall = ", inputX%d"
+            self.outputcall = ", outputX%d"
+        else:
+            self.countname = "count"
+            self.inputdecl = ", FAUSTFLOAT *input%d"
+            self.outputdecl = ", FAUSTFLOAT *output%d"
+            self.inputcall = ", input%d"
+            self.outputcall = ", output%d"
+        s = StringIO()
+        self.parser.write(s, "var-init", 1, filt=self.parser.ui.var_filter(0))
+        self.state_init = s.getvalue()
+
+
+    def write_head(self, fp):
+        "file header and anything that must not be in a namespace"
+        fp.write("// generated from file '%s' by dsp2cc:\n" % self.fname)
+        fp.write("// %s\n\n" % self.parser.headvers)
+        if self.options.init_type == "plugin" and self.options.template_type in ("staticlib", "sharedlib"):
+            fp.write(plugin_standalone_header)
+        self.parser.write(fp, "includes")
+
+    def scan_params(self, ccdef, plugin_id):
+        previous = ""
+        for line in ccdef:
+            if re.match('\s*//', line):
+                continue
+            line = previous + line
+            previous = ""
+            m = re.search(r'\.create_[a-zA-Z0-9_]+\s*\((.*)', line)
+            if not m:
+                continue
+            rest = m.group(1).strip()
+            if not rest.endswith(');'):
+                previous = line[:-1]
+                continue
+            m = re.search(r'(?:[a-z_0-9]+\s*,\s*)?(.*)', rest)
+            rest = m.group(1)
+            m = re.match(r'"([^"]*)', rest)
+            # if param is a switch we need to remove the sw_type
+            # to avoid false error message.
+            if m:
+                if ('PARAM' in rest):
+                    index = rest.find(',')
+                    rest = rest[index+1:len(rest)]
+                    m = re.match(r'"([^"]*)', rest)
+            if m:
+                yield m.group(1)
+                continue
+            for v in re.findall(r'PARAM\(\s*"([^"]+)"\s*\)', rest):
+                yield plugin_id + "." + v
+
+    def write_load_ui(self, fps, fpg, plugin_id, wrap=True):
+        load_ui = 0
+        ui_name = self.fname.replace(".dsp", "_ui.glade")
+        sg = ""
+        if os.path.exists(ui_name):
+            xml = open(ui_name).read()
+            found_params = re.findall('<property name="var_id">([^<]*)</property>',xml)
+            if not self.parser.has_drywetbox and not self.parser.has_volume_p:
+                if self.parser.ui.check_parameter(self.fname, ui_name, found_params, self.options.param_warn) > 1:
+                    raise SystemExit(1)
+            sg = xml.replace("\\",r"\\").replace("\n","\\n\\\n").replace('"',r'\"')
+            load_ui |= 2
+        ui_name = self.fname.replace(".dsp", "_ui.cc")
+        ccdef = ""
+        if os.path.exists(ui_name):
+            with open(ui_name) as ccfd:
+                ccdef = ccfd.read()
+            found_params = list(self.scan_params(StringIO(ccdef), plugin_id))
+            if not self.parser.has_drywetbox and not self.parser.has_volume_p:
+                if self.parser.ui.check_parameter(self.fname, ui_name, found_params, self.options.param_warn) > 1:
+                    raise SystemExit(1)
+            load_ui |= 1
+        if wrap:
+            s = loadui_glade % dict(
+                has_glade_ui = ((load_ui & 2) != 0),
+                glade_ui = sg,
+                has_gladefile = hasattr(self.parser, "gladefile"),
+                gladefile = '"'+getattr(self.parser, "gladefile", "")+'"',
+                has_cc_ui = ((load_ui & 1) != 0),
+                plugin_id = self.parser.toplevel or self.parser.topname,
+                cc_ui = ccdef,
+                )
+            preprocess(StringIO(s), fps, None)
+        else:
+            fpg.write(sg)
+            fps.write(ccdef)
+        return load_ui
+
+
+    def write_body_plugin(self, fp):
+        fp.write("static int register_params(const ParamReg& reg)\n{\n")
+        self.parser.ui.write(fp, prefix="reg.")
+        fp.write("\treturn 0;\n}\n")
+        plugin_id = self.parser.toplevel or self.parser.topname
+        if self.write_load_ui(fp, None, plugin_id):
+            load_ui = "load_ui"
+        else:
+            load_ui = "0"
+        if self.parser.groups:
+            fp.write("\nstatic const char* parm_groups[] = {\n%s\t};\n" % self.parser.formatted_groups(plugin_id))
+        if self.parser.name:
+            plugin_name = wrap_N_(self.parser.name)
+        else:
+            plugin_name = '"?%s"' % self.parser.modname
+        fp.write(plugin % (
+            plugin_id,    # id
+            plugin_name,  # name
+            "parm_groups" if self.parser.groups else "0",  # groups
+            wrap_N_(getattr(self.parser,"description","")), # description (tooltip)
+            wrap_N_(getattr(self.parser,"category","")),    # category
+            wrap_N_(getattr(self.parser,"shortname","")),   # shortname
+            "compute" if self.parser.getNumOutputs() == 1 else "0",  # mono_audio
+            "compute" if self.parser.getNumOutputs() == 2 else "0",  # stereo_audio
+            "activate" if self.has_activate else "0",  # activate plugin
+            load_ui, # load_ui
+            "clear_state_f" if self.state_init else "0", # clear_state
+            ))
+
+    def parser_sect(self, sect, indent=0, filt=lambda l: False):
+        s = StringIO()
+        self.parser.write(s, sect, indent, filt)
+        return s.getvalue()
+
+    def parser_ui(self, has_lv2, prefix=""):
+        s = StringIO()
+        if has_lv2:
+            self.parser.ui.write_port(s, prefix)
+        else:
+            self.parser.ui.write(s, prefix)
+        return s.getvalue()
+
+    def parser_h_lv2(self, prefix=""):
+        s = StringIO()
+        self.parser.ui.write_port_head(s, prefix)
+        return s.getvalue()
+    def parser_lv2(self, prefix=""):
+        s = StringIO()
+        self.parser.ui.write_port(s, prefix)
+        return s.getvalue()
+    def gen_load_ui(self, plugin_id):
+        sg = StringIO()
+        ss = StringIO()
+        ret = self.write_load_ui(ss, sg, plugin_id, False)
+        return (ret & 1 != 0), ss.getvalue(), (ret & 2 != 0), sg.getvalue()
+
+    def get_audio_ports(self):
+        ports = ""
+        for i in range(self.parser.getNumInputs()):
+            ports += ("   input%d,\n" % i)
+        for i in range(self.parser.getNumOutputs()):
+            ports += ("   output%d,\n" % i)
+        return (ports)
+            
+
+    def dsp_initlist(self, has_plugindef, has_lv2):
+        if has_lv2:
+            l = ["PluginLV2()"]
+        elif has_plugindef:
+            l = ["PluginDef()"]
+        else:
+            l = []
+        if self.has_activate:
+            for v, t, s in self.parser.memlist:
+                l.append("%s(0)" % v)
+            l.append("mem_allocated(false)")
+        if not l:
+            return ""
+        return "\n\t: " + ",\n\t  ".join(l)
+
+    def write_plugin(self, fp, fp_head, h_name):
+        if self.options.init_type == "plugin":
+            dd = dict(static = "static ", cls = "")
+            ds = ""
+            indent = 0
+        else:
+            dd = dict(static = "", cls = "Dsp::")
+            ds = "_static"
+            indent = 1
+        if self.options.bypass:
+            self.bypass = "   bypass,\n"
+        else:
+            self.bypass = ""
+        plugin_standalone = self.options.template_type in ("staticlib", "sharedlib")
+        has_plugindef = self.options.init_type in ("plugin", "plugin-instance")
+        has_lv2 = (self.options.init_type == "plugin-lv2")
+        in_namespace = self.options.in_namespace
+        compute_args = ("".join([self.inputdecl % i for i in range(self.parser.getNumInputs())])
+                        + "".join([self.outputdecl % i for i in range(self.parser.getNumOutputs())]))
+        compute_call_args = ("".join([self.inputcall % i for i in range(self.parser.getNumInputs())])
+                             + "".join([self.outputcall % i for i in range(self.parser.getNumOutputs())]))
+        plugin_id = self.parser.toplevel or self.parser.topname
+        has_cc_ui, cc_ui, has_glade_ui, glade_ui = self.gen_load_ui(plugin_id)
+        if self.parser.groups:
+            groups_define = "\nstatic const char* parm_groups[] = {\n%s\t};\n" % self.parser.formatted_groups(plugin_id)
+        else:
+            groups_define = ""
+        if self.parser.name:
+            plugin_name = wrap_N_(self.parser.name)
+        else:
+            plugin_name = '"?%s"' % self.parser.modname
+        has_gladefile = hasattr(self.parser, "gladefile")
+        gladefile = '"'+getattr(self.parser, "gladefile", "")+'"'
+        static_decl = "".join(["%s Dsp::%s[%s];\n" % (tp, v, n) for v, tp, n in self.parser.staticlist])
+        template = template_plugin_lv2  
+        if self.parser.has_insert_p:
+            #tranpath = '/tools/tranylib1.py'
+            #libto = 'tranylib1'
+            sys.path.append(os.path.abspath('/tmp/'))
+            my_c = import_module("%s" % self.parser.insert_p)
+            #from libto import insert_p1_incl, insert_p1_class, insert_p1_clearstate, insert_p1_init, insert_p1_compute
+            insert_p_incl = my_c.insert_p1_incl
+            insert_p_class = my_c.insert_p1_class
+            insert_p_clearstate = my_c.insert_p1_clearstate
+            insert_p_init = my_c.insert_p1_init
+            insert_p_compute = my_c.insert_p1_compute
+            #os.remove('/tmp/'+self.parser.insert_p+'.py')
+            #os.remove('/tmp/'+self.parser.insert_p+'.pyc')
+        else:
+            insert_p_incl = ""
+            insert_p_class = ""
+            insert_p_clearstate = ""
+            insert_p_init = ""
+            insert_p_compute = ""
+
+        if self.parser.has_drywetbox:
+            if self.options.vectorize:
+                dry_wetbox_mono_pre = dry_wetbox_vec_mono_pre1
+                dry_wetbox_mono_post = dry_wetbox_vec_mono_post1
+            else:
+                dry_wetbox_mono_pre = dry_wetbox_mono_pre1
+                dry_wetbox_mono_post = dry_wetbox_mono_post1
+        else:
+            dry_wetbox_mono_pre = ""
+            dry_wetbox_mono_post = ""
+
+        if self.parser.has_volume_p:
+            volume_pre = volume_mono_pre
+            if self.options.vectorize:
+                volume_post = volume_vec_mono_post
+            else:
+                volume_post = volume_mono_post
+            volume_name = self.parser.volume_p
+            Volume_Name = self.parser.volume_p.upper()
+        else:
+            volume_pre = ""
+            volume_post = ""
+            volume_name = ""
+            Volume_Name = ""
+            
+            
+        s = StringIO()
+        s.write(template % dict(
+            has_fixedrate = self.parser.has_fixedrate,
+            has_stereo = self.parser.has_stereo,
+            fixedrate = self.parser.fixedrate,
+            has_oversample = self.parser.has_oversample,
+            oversample = self.parser.oversample,
+            no_oversample = self.parser.no_oversample,
+            has_insert_p = self.parser.has_insert_p,
+            insert_p = self.parser.insert_p,
+            has_vector = self.parser.has_vector,
+            filepath = self.fname,
+            headline = self.parser.headvers,
+            start_extra_namespace = "namespace %s {\n" % in_namespace if in_namespace else "",
+            end_extra_namespace = "} // end namespace %s\n" % in_namespace if in_namespace else "",
+            has_standalone_header = plugin_standalone,
+            includes = self.parser_sect("includes"),
+            incl_class = self.parser_sect("incl_class"),
+            namespace = self.parser.modname.replace("-","_"),
+            var_decl = self.parser_sect("var-decl", indent=indent) % dd,
+            static_decl = static_decl,
+            has_activate = self.has_activate,
+            state_init = self.state_init,
+            has_state = self.state_init != "",
+            has_state_no_activate = self.state_init != "" and not self.has_activate,
+            init_body = self.parser_sect("var-init", 1, filt=self.parser.ui.var_filter(1)),
+            dsp_initlist = self.dsp_initlist(has_plugindef, has_lv2),
+            var_alloc = self.parser_sect("var-alloc", 1),
+            var_free = self.parser_sect("var-free", 1),
+            insert_p_class = insert_p_class,
+            insert_p_clearstate = insert_p_clearstate,
+            insert_p_init = insert_p_init,
+            insert_p_compute = insert_p_compute,
+            insert_p_incl = insert_p_incl,
+            dry_wetbox_mono_pre = dry_wetbox_mono_pre,
+            dry_wetbox_mono_post = dry_wetbox_mono_post,
+            has_drywetbox = self.parser.has_drywetbox,
+            volume_name = volume_name,
+            Volume_Name = volume_name.upper(),
+            volume_pre = volume_pre,
+            volume_post = volume_post,
+            has_volume_p = self.parser.has_volume_p,
+            audioports = self.get_audio_ports(),
+            bypass = self.bypass,
+            
+            countname = self.countname,
+            compute_args = compute_args,
+            compute_call_args = compute_call_args,
+            defines = self.parser_sect("alias-defines", 0),
+            compute_body = self.parser_sect("compute", 1),
+            post_compute_body = self.parser_sect("post_compute", 1),
+            undefines = self.parser_sect("alias-undefines", 0),
+            register_body = self.parser_ui(has_lv2, "reg."),
+            port_body     = self.parser_lv2(""),
+            port_head     = self.parser_h_lv2(""),
+            has_cc_ui = has_cc_ui,
+            has_glade_ui = has_glade_ui,
+            has_gladefile = has_gladefile,
+            has_ui = has_cc_ui or has_glade_ui or has_gladefile,
+            cc_ui = cc_ui,
+            glade_ui = glade_ui,
+            gladefile = gladefile,
+            groups_define =  groups_define,
+            plugin_id = plugin_id,
+            plugin_name = plugin_name,
+            groups_p = "parm_groups" if groups_define else "0",
+            description = wrap_N_(getattr(self.parser,"description","")),
+            category = wrap_N_(getattr(self.parser,"category","")),
+            shortname = wrap_N_(getattr(self.parser,"shortname","")),
+            mono_compute_p = "compute"+ds if self.parser.getNumOutputs() == 1 else "0",
+            stereo_compute_p = "compute"+ds if self.parser.getNumOutputs() == 2 else "0",
+            activate_p = "activate"+ds if self.has_activate else "0",
+            load_ui_p = "load_ui_f"+ds if has_cc_ui or has_glade_ui or has_gladefile else "0",
+            clear_state_p = "clear_state_f"+ds if self.state_init else "0",
+            has_plugindef = has_plugindef,
+            has_lv2 = has_lv2,
+            has_separate_header = fp_head is not None,
+            header_name = h_name,
+            sharedlib = self.options.template_type == "sharedlib",
+            sample_rate_param = self.parser.sample_rate_param,
+            sample_rate_var = self.parser.sample_rate_var,
+            ))
+        s.seek(0)
+        preprocess(s, fp, fp_head)
+
+    def write(self, fp, fp_head, h_name):
+        if self.options.init_type in ("plugin", "plugin-instance", "no-init-instance", "plugin-lv2"):
+            self.write_plugin(fp, fp_head, h_name)
+            return
+
+
+def main():
+    op = OptionParser(usage="usage: %prog [options] <faust-dsp-file>")
+    op.add_option("-o", "--output", dest="oname",
+                  help="write c++ code to FILE", metavar="FILE")
+    op.add_option("-H", "--header-output", dest="hname",
+                  help="write separate c++ header to FILE", metavar="FILE")
+    op.add_option("-d", "--double", dest="faust", action="store_true", default=False,
+                  help="additional faust options, build with double precision") 
+    op.add_option("-f", "--float", dest="faustf", action="store_true", default=False,
+                  help="additional faust options, build with single precision")
+    op.add_option("-V", "--vectorize", dest="vectorize", action="store_true", default=False,
+                  help="faust --vectorize")
+    op.add_option("-a", "--add", dest="add", action="store",
+                  help="additional faust options, like '-vs 128 -dfs'")
+    op.add_option("-s", "--memory-threshold", dest="memory_threshold",
+                  default=0, type="int",
+                  help="change static memory allocations above threshold to dynamic ones")
+    init_opts = ["ctor", "no-init", "no-init-instance", "plugin", "plugin-instance", "plugin-standalone", "plugin-lv2"]
+    op.add_option("-i", "--init-type", dest="init_type", action="store", default="ctor",
+                  help="type of init code generation: %s" % ", ".join(init_opts))
+    template_opts = ["embed", "staticlib", "sharedlib"]
+    op.add_option("-t", "--template-type", dest="template_type", action="store",
+                  default="embed",
+                  help="template for code generation: %s" % ", ".join(template_opts))
+    op.add_option("-N", "--in-namespace", action="store", metavar="NAMESPACE",
+                  help="put definitions inside an extra namespace")
+    op.add_option("-e", "--param-warn", dest="param_warn", action="store_true", default=False,
+                  help="don't signal an error when the ui definition references an unknown dsp parameter")
+    op.add_option("--no-version-header", dest="version_header", action="store_false", default=True,
+                  help="don't display the faust version in generated files")
+    op.add_option("-b","--add-bypass-port", dest="bypass", action="store_true", default=False,
+                  help="add a bypass port to the portindex")
+    options, args = op.parse_args()
+    options.init_type = "plugin-lv2"
+    options.template_type = "sharedlib"
+    if len(args) != 1:
+        op.error("exactly one input filename expected\n")
+    fname = args[0]
+    if not os.path.exists(fname):
+        print("error: can't open '%s'" % fname)
+        raise SystemExit(1)
+    faust_opt = []
+    if options.faust:
+        faust_opt.append('-double')
+    elif options.faustf:
+        faust_opt.append('-single')
+    if options.vectorize:
+        faust_opt.append('-vec')
+    if options.add:
+        faust_opt.append(options.add);
+    #print (faust_opt)
+    faust = Popen("faust %s %s" % (" ".join(faust_opt), fname), shell=True, stdout=PIPE)
+    try:
+        parser = Parser(faust.stdout,
+                        os.path.splitext(os.path.basename(fname))[0],
+                        options)
+    except ValueError as e:
+        if faust.wait() == 0:
+            print(e)
+        raise SystemExit(1)
+    if options.oname:
+        outp = open(options.oname, "w")
+    else:
+        outp = sys.stdout
+    if options.hname:
+        h_outp = open(options.hname, "w")
+        h_name = os.path.basename(options.hname)
+    else:
+        h_outp = h_name = None
+    Output(parser, fname, options).write(outp, h_outp, h_name)
+    outp.close()
+    if h_outp:
+        h_outp.close()
+
+if __name__ == "__main__":
+    main()

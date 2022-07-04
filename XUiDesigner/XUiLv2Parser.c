@@ -61,6 +61,7 @@ static void reset_plugin_ui(XUiDesigner *designer) {
     designer->modify_mod = XUI_NONE;
     designer->active_widget = NULL;
     designer->is_project = true;
+    designer->is_faust_file = false;
     designer->lv2c.audio_input = 0;
     designer->lv2c.audio_output = 0;
     adj_set_value(designer->project_audio_input->adj, (float)designer->lv2c.audio_input);

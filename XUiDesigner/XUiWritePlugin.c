@@ -59,8 +59,12 @@ void print_plugin(XUiDesigner *designer) {
     "#ifndef min\n"
     "#define min(x, y) (((x) < (y)) ? (x) : (y))\n"
     "#endif\n\n",  designer->lv2c.uri);
-    printf ("typedef int PortIndex;\n\n"
-    "////////////////////////////// PLUG-IN CLASS ///////////////////////////\n\n"
+    if (designer->is_faust_file) {
+        printf ("#include \"%s\"\n\n", basename(designer->faust_file));
+    } else {
+        printf ("typedef int PortIndex;\n\n");
+    }
+    printf ("////////////////////////////// PLUG-IN CLASS ///////////////////////////\n\n"
     "namespace %s {\n\n"
     "class X%s\n"
     "{\n"
@@ -110,7 +114,7 @@ void print_plugin(XUiDesigner *designer) {
                     printf ("    float* %s;\n", var);
                     a_outputs[o] = strdup(var);
                     o++;
-                } else {
+                } else if (!designer->is_faust_file) {
                     printf ("    float* %s;\n"
                     "    float %s_;\n", var, var);
                 }
@@ -132,6 +136,9 @@ void print_plugin(XUiDesigner *designer) {
         "    float ramp_up_step;\n"
         "    float ramp_down_step;\n"
         "    bool bypassed;\n\n");
+    }
+    if (designer->is_faust_file) {
+        printf ("    %s::DSP* plugin;\n\n", name);
     }
 
     printf ("    // private functions\n"
@@ -162,28 +169,6 @@ void print_plugin(XUiDesigner *designer) {
     printf ("// constructor\n"
     "X%s::X%s() :\n", name, name);
     bool add_comma = false;
-    i = 0;
-    for (;i<MAX_CONTROLS;i++) {
-        if (designer->controls[i].wid != NULL) {
-            if (designer->controls[i].is_type == IS_FRAME ||
-                designer->controls[i].is_type == IS_IMAGE ||
-                designer->controls[i].is_type == IS_TABBOX) {
-                continue;
-            }
-            if (!designer->controls[i].destignation_enabled) {
-                char* var = strdup(designer->controls[i].wid->label);
-                strtovar(var);
-                printf ("%s\n    %s(NULL)",add_comma ? "," : "", var);
-                free(var);
-                var = NULL;
-                add_comma = true;
-            } else {
-                printf ("%s\n    bypass(NULL)",add_comma ? "," : "");
-                add_comma = true;
-                printf ("%s\n    bypass_(2)",add_comma ? "," : "");
-            }
-        }
-    }
     if (designer->is_project) {
         i = 0;
         for (;i<designer->lv2c.audio_input;i++) {
@@ -204,20 +189,53 @@ void print_plugin(XUiDesigner *designer) {
             add_comma = true;
         }
     }
+    i = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL) {
+            if (designer->controls[i].is_type == IS_FRAME ||
+                designer->controls[i].is_type == IS_IMAGE ||
+                designer->controls[i].is_type == IS_TABBOX) {
+                continue;
+            }
+            if (!designer->controls[i].destignation_enabled && !designer->is_faust_file) {
+                char* var = strdup(designer->controls[i].wid->label);
+                strtovar(var);
+                printf ("%s\n    %s(NULL)",add_comma ? "," : "", var);
+                free(var);
+                var = NULL;
+                add_comma = true;
+            } else if (designer->controls[i].destignation_enabled) {
+                printf ("%s\n    bypass(NULL)",add_comma ? "," : "");
+                add_comma = true;
+                printf ("%s\n    bypass_(2)",add_comma ? "," : "");
+            }
+        }
+    }
     if (designer->lv2c.bypass) {
         printf ("%s\n    needs_ramp_down(false),\n"
         "    needs_ramp_up(false),\n"
         "    bypassed(false)", add_comma ? "," : "");
     }
+    if (designer->is_faust_file) {
+        printf (",\n"
+        "    plugin(%s::plugin())", name);
+    }
     printf (" {};\n\n");
 
     printf ("// destructor\n"
-    "X%s::~X%s() { };\n\n", name, name);
+    "X%s::~X%s() {", name, name);
+    if (designer->is_faust_file) {
+        printf ("\n    plugin->del_instance(plugin);\n");
+    }
+    printf ("};\n\n");
 
 
     printf ("///////////////////////// PRIVATE CLASS  FUNCTIONS /////////////////////\n\n"
     "void X%s::init_dsp_(uint32_t rate)\n"
     "{\n", name);
+    if (designer->is_faust_file) {
+        printf ("    plugin->init_static(rate, plugin);\n");
+    }
     if (designer->lv2c.bypass) {
         printf ("    // set values for internal ramping\n"
         "    ramp_down_step = 32 * (256 * rate) / 48000; \n"
@@ -271,7 +289,7 @@ void print_plugin(XUiDesigner *designer) {
                 designer->controls[i].is_atom_output ) {
                 continue;
             }
-            if (!designer->controls[i].destignation_enabled) {
+            if (!designer->controls[i].destignation_enabled && !designer->is_faust_file) {
                 char* var = strdup(designer->controls[i].wid->label);
                 strtovar(var);
                 printf ("        case %i:\n"
@@ -280,7 +298,7 @@ void print_plugin(XUiDesigner *designer) {
                 p++;
                 free(var);
                 var = NULL;
-            } else {
+            } else if (designer->controls[i].destignation_enabled) {
                 printf ("        case %i:\n"
                         "            bypass = static_cast<float*>(data);\n"
                         "            break;\n", p);
@@ -325,7 +343,7 @@ void print_plugin(XUiDesigner *designer) {
                 designer->controls[i].is_atom_output ) {
                 continue;
             }
-            if (!designer->controls[i].destignation_enabled) {
+            if (!designer->controls[i].destignation_enabled && !designer->is_faust_file) {
                 char* var = strdup(designer->controls[i].wid->label);
                 strtovar(var);
                 printf ("#define  %s_ (*(%s))\n", var, var);
@@ -374,6 +392,7 @@ void print_plugin(XUiDesigner *designer) {
         "    }\n");
     }
 
+    char* oports = NULL;
     i = 0;
     for (;i<designer->lv2c.audio_input;i++) {
         if (i < designer->lv2c.audio_output) {
@@ -381,6 +400,7 @@ void print_plugin(XUiDesigner *designer) {
             "    if(%s != %s)\n"
             "        memcpy(%s, %s, n_samples*sizeof(float));\n\n",
                     a_outputs[i],a_inputs[i],a_outputs[i],a_inputs[i]);
+            asprintf(&oports, ", %s, %s",a_outputs[i], a_outputs[i]);
         } else {
             printf ("    // audio input and output count is not equal\n"
             "    // you must handle them yourself\n\n");
@@ -420,14 +440,24 @@ void print_plugin(XUiDesigner *designer) {
             "    if (!bypassed) {\n    ");
         }
     }
-    printf ("    for (uint32_t i = 0; i<n_samples; i++) {\n");
-    i = 0;
-    for (;i<designer->lv2c.audio_output;i++) {
-        printf("        float tmp%i = %s[i];\n"
-        "        //do your dsp\n"
-        "        %s[i] = tmp%i;\n", i, a_outputs[i], a_outputs[i], i);
+    if (!designer->is_faust_file) {
+        printf ("    for (uint32_t i = 0; i<n_samples; i++) {\n");
+        i = 0;
+        for (;i<designer->lv2c.audio_output;i++) {
+            printf("            float tmp%i = %s[i];\n"
+            "            //do your dsp\n"
+            "            %s[i] = tmp%i;\n", i, a_outputs[i], a_outputs[i], i);
+        }
+        printf ("        }\n\n");
+    } else {
+        if (designer->lv2c.audio_input == designer->lv2c.audio_output) {
+            
+            printf ("    plugin->compute(n_samples%s);\n", oports);
+        }
+        free(oports);
+        oports = NULL;
     }
-    printf ("    }\n\n");
+    
     if (designer->lv2c.bypass) {
         if (designer->lv2c.audio_input != designer->lv2c.audio_output) {
             printf ("     // audio input and output count is not equal\n"
@@ -497,7 +527,7 @@ void print_plugin(XUiDesigner *designer) {
                 designer->controls[i].is_atom_output) {
                 continue;
             }
-            if (!designer->controls[i].destignation_enabled) {
+            if (!designer->controls[i].destignation_enabled && !designer->is_faust_file) {
                 char* var = strdup(designer->controls[i].wid->label);
                 strtovar(var);
                 printf ("#undef  %s_\n", var);

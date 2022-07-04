@@ -241,6 +241,7 @@ typedef struct {
     bool run_test;
     bool grid_view;
     bool is_project;
+    bool is_faust_file;
     bool generate_ui_only;
     int active_widget_num;
     int pos_x;
@@ -257,6 +258,7 @@ typedef struct {
     char** tab_label;
     char* image_path;
     char* image;
+    char* faust_file;
     LV2_CONTROLLER lv2c;
     Controller controls[MAX_CONTROLS];
 } XUiDesigner;
