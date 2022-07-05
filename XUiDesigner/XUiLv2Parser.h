@@ -40,6 +40,8 @@ void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins);
 
 void set_path(LilvWorld* world, const char* workdir);
 
+void reset_plugin_ui(XUiDesigner *designer);
+
 #ifdef __cplusplus
 }
 #endif

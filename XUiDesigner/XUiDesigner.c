@@ -1144,6 +1144,8 @@ static void run_settings(void *w_, void* user_data) {
         XGetWindowAttributes(w->app->dpy, (Window)designer->set_project->widget, &attrs);
         if (attrs.map_state != IsViewable) {
             adj_set_value(designer->project_bypass->adj, (float)designer->lv2c.bypass);
+            adj_set_value(designer->project_audio_input->adj, (float)designer->lv2c.audio_input);
+            adj_set_value(designer->project_audio_output->adj, (float)designer->lv2c.audio_output);
             widget_show_all(designer->set_project);
             char *name = NULL;
             XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
@@ -1301,6 +1303,22 @@ static void parse_faust_file (XUiDesigner *designer, char* filename) {
     outname = NULL;
     //print_ttl(designer);
     //print_plugin(designer);
+}
+
+static void dnd_load_response(void *w_, void* user_data) {
+    if(user_data !=NULL) {
+        Widget_t *w = (Widget_t*)w_;
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        reset_plugin_ui(designer);
+        char* dndfile = NULL;
+        dndfile = strtok(*(char**)user_data, "\r\n");
+        while (dndfile != NULL) {
+            if (strstr(dndfile, ".dsp") ) {
+                parse_faust_file (designer, dndfile);
+            }
+            dndfile = strtok(NULL, "\r\n");
+        }
+    }
 }
 
 /*---------------------------------------------------------------------
@@ -1490,6 +1508,8 @@ int main (int argc, char ** argv) {
     widget_set_title(designer->w, _("XUiDesigner"));
     widget_set_icon_from_png(designer->w, designer->icon, LDVAR(gear_png));
     designer->w->func.expose_callback = draw_window;
+    widget_set_dnd_aware(designer->w);
+    designer->w->func.dnd_notify_callback = dnd_load_response;
 
     designer->systray = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 240, 240);
     designer->systray->parent_struct = designer;
