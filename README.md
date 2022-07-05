@@ -25,6 +25,10 @@ XUIDesigner save the bundle in a git repository format, contain a working LV2 pl
 (ttl files, converted C files from used images, etc.) and build files to build, install and run the new generated plugin.
 All you need to do to finish your plug is to implement your DSP part.
 
+XUiDesigner could now parse faust (*.dsp) files and generate a full LV2 Bundle for them. 
+A faust (*.dsp) file could be given by the command-line parameter -f or simply by drag it on the Designer window. 
+It will create all control widgets which you could then rework to your needs before you save your Bundle.
+
 Control widgets could be created and moved/resized freely around in the top Window.
 A grid could be displayed and widgets could snap to grid (left, right, Center) to order them easily. 
 Control widgets could be grouped in a frame or a tab box and then the complete group could be moved to the final position in the Window.
