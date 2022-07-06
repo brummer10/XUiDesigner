@@ -250,6 +250,29 @@ void run_save(void *w_, void* user_data) {
                     free(cmd);
                     cmd = NULL;
                 }
+                if ((fp=fopen(designer->faust_file, "r"))==NULL) {
+                    printf("open failed\n");
+                }
+                char buf[128];
+                while (fgets(buf, 128, fp) != NULL) {
+                    if (strstr(buf, "#include \"") != NULL) {
+                        char *ptr = strtok(buf, "\"");
+                        ptr = strtok(NULL, "\"");
+                        asprintf(&filename, "%s%s\n", dirname(designer->faust_file),ptr);
+                        if (access(filename, F_OK) == 0) {
+                            asprintf(&cmd, "cp %s \'%s\'", filename, filepath);
+                            ret = system(cmd);
+                            if (!ret) {
+                                free(cmd);
+                                cmd = NULL;
+                            }
+                            free(filename);
+                            filename = NULL;
+                        }
+                    }
+                }
+                fclose(fp);
+                fp = NULL;
             }
 
             asprintf(&cmd, "cp /usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
