@@ -26,7 +26,7 @@
 	NAME = XUiDesigner
 	EXEC_NAME  = $(shell echo $(NAME) | tr A-Z a-z)
 	BUILD_DIR = build
-	VER = 0.1
+	VER = 0.4
 
 	LIB_DIR := ../libxputty/libxputty/
 	HEADER_DIR := $(LIB_DIR)include/

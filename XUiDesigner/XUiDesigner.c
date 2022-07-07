@@ -1234,6 +1234,8 @@ static void parse_faust_file (XUiDesigner *designer, char* filename) {
             "Fail to parse faust file", NULL);        
         free(outname);
         outname = NULL;
+        free(cmd);
+        cmd = NULL;
         return;
     }
     asprintf(&designer->faust_file, "%s", outname);
@@ -1299,6 +1301,10 @@ static void parse_faust_file (XUiDesigner *designer, char* filename) {
         printf("Command not found or exited with error status\n");
         return;
     }
+    designer->ui->width = min(1200, 60 + 70*p);
+    designer->ui->height = 120;
+    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
+
     strdecode(outname, ".cc", "");
     widget_set_title(designer->ui,basename(outname));
     free(designer->lv2c.ui_uri);
