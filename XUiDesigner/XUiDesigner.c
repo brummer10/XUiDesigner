@@ -1224,17 +1224,18 @@ static void parse_faust_file (XUiDesigner *designer, char* filename) {
     strdecode(outname, ".dsp", ".cc");
     if (access("./tools/dsp2cc", F_OK) == 0) {
         asprintf(&cmd, "./tools/dsp2cc -d %s -b -o %s", filename, outname);
-    } else if (access("dsp2cc", F_OK) == 0) {
-        asprintf(&cmd, "dsp2cc -d %s -b -o %s", filename, outname);
     } else {
+        asprintf(&cmd, "dsp2cc -d %s -b -o %s", filename, outname);
+    }
+
+    int ret = system(cmd);
+    if (ret) {
         open_message_dialog(designer->ui, ERROR_BOX, "",
             "Fail to parse faust file", NULL);        
         free(outname);
         outname = NULL;
         return;
     }
-    int ret = system(cmd);
-    if (ret) fprintf(stderr, "parse faust fail\n");
     asprintf(&designer->faust_file, "%s", outname);
     free(cmd);
     cmd = NULL;
