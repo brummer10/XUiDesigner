@@ -156,11 +156,17 @@ void run_save(void *w_, void* user_data) {
         int ret = system(cmd);
         free(cmd);
         cmd = NULL;
-        asprintf(&cmd, "cd %s && git submodule add https://github.com/brummer10/libxputty.git", filepath);
-        ret = system(cmd);
-        free(cmd);
-        cmd = NULL;
-
+        char* filename = NULL;
+        struct stat sb;
+        asprintf(&filename, "%s/libxputty",filepath);
+        if (stat(filename, &sb) != 0 && !S_ISDIR(sb.st_mode)) {
+            asprintf(&cmd, "cd %s && git submodule add https://github.com/brummer10/libxputty.git", filepath);
+            ret = system(cmd);
+            free(cmd);
+            cmd = NULL;
+        }
+        free(filename);
+        filename = NULL;
         asprintf(&cmd, "SUBDIR := %s\n\n"
 
             ".PHONY: $(SUBDIR) libxputty  recurse\n\n"
@@ -196,7 +202,6 @@ void run_save(void *w_, void* user_data) {
             mkdir(filepath, 0700);
         }
 
-        char* filename = NULL;
         asprintf(&filename, "%s%s_ui/%s/%s.c",*(const char**)user_data,name,name, name );
         remove (filename);
 
@@ -258,13 +263,17 @@ void run_save(void *w_, void* user_data) {
                     if (strstr(buf, "#include \"") != NULL) {
                         char *ptr = strtok(buf, "\"");
                         ptr = strtok(NULL, "\"");
-                        asprintf(&filename, "%s%s\n", dirname(designer->faust_file),ptr);
-                        if (access(filename, F_OK) == 0) {
-                            asprintf(&cmd, "cp %s \'%s\'", filename, filepath);
-                            ret = system(cmd);
-                            if (!ret) {
-                                free(cmd);
-                                cmd = NULL;
+                        if (strstr(ptr, "math.h") == NULL) {
+                            asprintf(&filename, "%s/%s", dirname(designer->faust_file),ptr);
+                            if (access(filename, F_OK) == 0) {
+                                asprintf(&cmd, "cp %s \'%s\'", filename, filepath);
+                                ret = system(cmd);
+                                if (!ret) {
+                                    free(cmd);
+                                    cmd = NULL;
+                                }
+                            } else {
+                                fprintf(stderr, " could not access %i %s\n", ret, filename);
                             }
                             free(filename);
                             filename = NULL;
@@ -275,7 +284,14 @@ void run_save(void *w_, void* user_data) {
                 fp = NULL;
             }
 
-            asprintf(&cmd, "cp /usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
+            if (access("/usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.h", F_OK) == 0) {
+                asprintf(&cmd, "cp /usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
+            } else if (access("../libxputty/xputty/lv2_plugin/lv2_plugin.h", F_OK) == 0) {
+                asprintf(&cmd, "cp ../libxputty/xputty/lv2_plugin/lv2_plugin.* \'%s\'", filepath);
+            } else {
+                open_message_dialog(designer->ui, ERROR_BOX, "",
+                    "Fail to copy libxputty wrapper files", NULL);   
+            }
             ret = system(cmd);
             if (!ret) {
                 free(cmd);

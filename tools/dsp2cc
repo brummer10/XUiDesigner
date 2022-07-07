@@ -841,9 +841,6 @@ template_plugin_lv2 = """\
 
 using std::signbit;
 
-#define max(x, y) (((x) > (y)) ? (x) : (y))
-#define min(x, y) (((x) < (y)) ? (x) : (y))
-
 template<class T> inline T mydsp_faustpower2_f(T x) {return (x * x);}
 template<class T> inline T mydsp_faustpower3_f(T x) {return ((x * x) * x);}
 template<class T> inline T mydsp_faustpower4_f(T x) {return (((x * x) * x) * x);}

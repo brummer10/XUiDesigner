@@ -53,13 +53,10 @@ void print_plugin(XUiDesigner *designer) {
 
     printf ("///////////////////////// MACRO SUPPORT ////////////////////////////////\n\n"
     "#define PLUGIN_URI \"%s\"\n\n"
-    "#ifndef max\n"
-    "#define max(x, y) (((x) > (y)) ? (x) : (y))\n"
-    "#endif\n"
-    "#ifndef min\n"
-    "#define min(x, y) (((x) < (y)) ? (x) : (y))\n"
-    "#endif\n\n",  designer->lv2c.uri);
+    "using std::min;\n"
+    "using std::max;\n\n",  designer->lv2c.uri);
     if (designer->is_faust_file) {
+        printf ("#define __rt_data __attribute__((section(\".rt.data\")))\n");
         printf ("#include \"%s\"\n\n", basename(designer->faust_file));
     } else {
         printf ("typedef int PortIndex;\n\n");
@@ -138,7 +135,7 @@ void print_plugin(XUiDesigner *designer) {
         "    bool bypassed;\n\n");
     }
     if (designer->is_faust_file) {
-        printf ("    %s::DSP* plugin;\n\n", name);
+        printf ("    %s::Dsp* plugin;\n\n", name);
     }
 
     printf ("    // private functions\n"
@@ -234,7 +231,7 @@ void print_plugin(XUiDesigner *designer) {
     "void X%s::init_dsp_(uint32_t rate)\n"
     "{\n", name);
     if (designer->is_faust_file) {
-        printf ("    plugin->init_static(rate, plugin);\n");
+        printf ("    plugin->init(rate);\n");
     }
     if (designer->lv2c.bypass) {
         printf ("    // set values for internal ramping\n"
@@ -473,7 +470,7 @@ void print_plugin(XUiDesigner *designer) {
             "            if (ramp_down >= 0.0) {\n"
             "                --ramp_down; \n"
             "            }\n"
-            "            fade = max(0.0,ramp_down) /ramp_down_step ;\n");
+            "            fade = max(0.0f,ramp_down) /ramp_down_step ;\n");
             i = 0;
             for (;i<designer->lv2c.audio_input;i++) {            
                 printf ("            %s[i] = %s[i] * fade + buf%i[i] * (1.0 - fade);\n",
@@ -541,8 +538,12 @@ void print_plugin(XUiDesigner *designer) {
     "void X%s::connect_all__ports(uint32_t port, void* data)\n"
     "{\n"
     "    // connect the Ports used by the plug-in class\n"
-    "    connect_(port,data); \n"
-    "}\n\n", name);
+    "    connect_(port,data); \n", name);
+    if (designer->is_faust_file) {
+        printf("    plugin->connect(port,data);");
+    }
+    
+    printf("}\n\n");
 
     printf("////////////////////// STATIC CLASS  FUNCTIONS  ////////////////////////\n\n"
 
