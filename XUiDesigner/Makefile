@@ -105,7 +105,7 @@ ifneq ("$(wildcard ./$(BUILD_DIR))","")
 	@cd ../libxputty/Build && make install
 	@mkdir -p $(DESTDIR)$(BIN_DIR)
 	@cp ./$(BUILD_DIR)/$(EXEC_NAME) $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
-	@cp ./tools/dsp2cc $(DESTDIR)$(BIN_DIR)/dsp2cc
+	@cp ../tools/dsp2cc $(DESTDIR)$(BIN_DIR)/dsp2cc
 	@mkdir -p $(DESTDIR)$(DESKAPPS_DIR)
 	@cp $(NAME).desktop $(DESTDIR)$(DESKAPPS_DIR)
 	@mkdir -p $(DESTDIR)$(PIXMAPS_DIR)
