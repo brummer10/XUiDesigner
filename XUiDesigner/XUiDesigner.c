@@ -1283,7 +1283,7 @@ static void parse_faust_file (XUiDesigner *designer, char* filename) {
                 }
             }
             
-            asprintf(&designer->controls[designer->wid_counter].name, label);
+            asprintf(&designer->controls[designer->wid_counter].name, "%s", label);
             Widget_t *wid = add_knob(designer->ui, designer->controls[designer->wid_counter].name, 60*p + 10*p, 60, 60, 80);
             set_adjustment(wid->adj, v[0], v[0], v[1], v[2], v[3], CL_CONTINUOS);
             set_controller_callbacks(designer, wid, true);

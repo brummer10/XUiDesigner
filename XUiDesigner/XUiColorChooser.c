@@ -451,9 +451,9 @@ void set_focus_by_color(Widget_t* wid, const double r, const double g, const dou
         for (;i<wid->width-61;i++) {
             pixel = XGetPixel(image, i, j);
             //fprintf(stderr, "%lu ,",pixel);
-            if (abs(((pixel >> 0x10) & 0xFF) - _R) < 2 &&
-                abs(((pixel >> 0x08) & 0xFF) - _G) < 2 && 
-                abs((pixel & 0xFF) - _B) < 2 ) {
+            if ((((pixel >> 0x10) & 0xFF) - _R) < 2 &&
+                (((pixel >> 0x08) & 0xFF) - _G) < 2 && 
+                ((pixel & 0xFF) - _B) < 2 ) {
                 color_chooser->focus_x = (double)i;
                 color_chooser->focus_y = (double)j;
                 set_costum_color(designer, 0, r);
@@ -480,7 +480,7 @@ static void set_focus_motion(void *w_, void *xmotion_, void* user_data) {
                                     && xmotion->y < w->height-10 ) {
         color_chooser->focus_x = xmotion->x;
         color_chooser->focus_y = xmotion->y;
-        fprintf(stderr, "%f %f \n", color_chooser->focus_x, color_chooser->focus_y);
+        //fprintf(stderr, "%f %f \n", color_chooser->focus_x, color_chooser->focus_y);
         XColor c;
         get_pixel(w, xmotion->x, xmotion->y, &c);
         double r = (double)c.red/65535.0;
