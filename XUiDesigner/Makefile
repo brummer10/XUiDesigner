@@ -102,7 +102,7 @@ clean :
 
 install :
 ifneq ("$(wildcard ./$(BUILD_DIR))","")
-	@cd ../libxputty/Build && make install
+	@cd ../libxputty/Build && $(MAKE) install
 	@mkdir -p $(DESTDIR)$(BIN_DIR)
 	@cp ./$(BUILD_DIR)/$(EXEC_NAME) $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
 	@cp ../tools/dsp2cc $(DESTDIR)$(BIN_DIR)/dsp2cc
