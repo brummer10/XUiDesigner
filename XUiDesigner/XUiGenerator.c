@@ -284,9 +284,9 @@ void run_save(void *w_, void* user_data) {
                 fp = NULL;
             }
 
-            asprintf(&filename, "%s/XUiDesigner/wrapper/lv2_plugin.h", SHARE_DIR);
+            asprintf(&filename, "%s/XUiDesigner/wrapper/libxputty/lv2_plugin.h", SHARE_DIR);
             if (access(filename, F_OK) == 0) {
-                asprintf(&cmd, "cp /usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
+                asprintf(&cmd, "cp %s/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", SHARE_DIR, filepath);
             } else if (access("../libxputty/xputty/lv2_plugin/lv2_plugin.h", F_OK) == 0) {
                 asprintf(&cmd, "cp ../libxputty/xputty/lv2_plugin/lv2_plugin.* \'%s\'", filepath);
             } else {
