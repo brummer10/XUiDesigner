@@ -42,7 +42,7 @@
 	# set compile flags
 	LDFLAGS += -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../libxputty/libxputty/include/ \
 	`pkg-config --cflags --libs cairo x11 lilv-0` -lm
-	CXXFLAGS += -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector
+	CXXFLAGS += -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector -DSHARE_DIR=\"$(SHARE_DIR)\"
 	DEBUG_CXXFLAGS += -g -D DEBUG
 	# invoke build files
 	OBJECTS = $(wildcard *.c)
@@ -110,8 +110,8 @@ ifneq ("$(wildcard ./$(BUILD_DIR))","")
 	@cp $(NAME).desktop $(DESTDIR)$(DESKAPPS_DIR)
 	@mkdir -p $(DESTDIR)$(PIXMAPS_DIR)
 	@cp ../$(NAME).svg $(DESTDIR)$(PIXMAPS_DIR)
-	@mkdir -p $(DESTDIR)/usr/share/XUiDesigner/wrapper
-	@cp -r ../Bundle/wrapper/* $(DESTDIR)/usr/share/XUiDesigner/wrapper
+	@mkdir -p $(DESTDIR)$(SHARE_DIR)/XUiDesigner/wrapper
+	@cp -r ../Bundle/wrapper/* $(DESTDIR)$(SHARE_DIR)/XUiDesigner/wrapper
 	@if [ ${LANGW} -gt 1 ]; then \
 		for lang in $(LANGS) ; \
 		do \

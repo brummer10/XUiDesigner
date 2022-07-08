@@ -284,7 +284,8 @@ void run_save(void *w_, void* user_data) {
                 fp = NULL;
             }
 
-            if (access("/usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.h", F_OK) == 0) {
+            asprintf(&filename, "%s/lv2_plugin.h", SHARE_DIR);
+            if (access(filename, F_OK) == 0) {
                 asprintf(&cmd, "cp /usr/share/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
             } else if (access("../libxputty/xputty/lv2_plugin/lv2_plugin.h", F_OK) == 0) {
                 asprintf(&cmd, "cp ../libxputty/xputty/lv2_plugin/lv2_plugin.* \'%s\'", filepath);
@@ -292,6 +293,8 @@ void run_save(void *w_, void* user_data) {
                 open_message_dialog(designer->ui, ERROR_BOX, "",
                     "Fail to copy libxputty wrapper files", NULL);   
             }
+            free(filename);
+            filename = NULL;
             ret = system(cmd);
             if (!ret) {
                 free(cmd);
