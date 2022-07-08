@@ -55,7 +55,7 @@
 .PHONY : $(HEADER_DIR)*.h all debug nls gettext updatepot po clean install uninstall 
 
 all : check $(NAME)
-	@cd ../libxputty/Build && make shared
+	@cd ../libxputty/Build && $(MAKE) shared
 	@mkdir -p ./$(BUILD_DIR)
 	@mv ./$(EXEC_NAME) ./$(BUILD_DIR)
 	@#if [ -f ./$(BUILD_DIR)/$(EXEC_NAME) ]; then echo $(BLUE)"build finish, now run make install"; \
