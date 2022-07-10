@@ -190,6 +190,8 @@ typedef struct {
     Widget_t *systray;
     Widget_t *systray_menu;
     Widget_t *settings;
+    Widget_t *ttlfile;
+    Widget_t *ttlfile_view;
     Widget_t *set_project;
     Widget_t *project_title;
     Widget_t *project_author;

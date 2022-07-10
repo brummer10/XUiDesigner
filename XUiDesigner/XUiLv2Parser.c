@@ -25,7 +25,8 @@
 #include "XUiWriteJson.h"
 #include "XUiWritePlugin.h"
 #include "XUiSettings.h"
-
+#include "XUiTurtleView.h"
+#
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -738,6 +739,11 @@ void load_plugin_ui(void* w_, void* user_data) {
     if (designer->active_widget != NULL)
         box_entry_set_text(designer->controller_label, designer->active_widget->label);
     widget_show_all(designer->ui);
+    XWindowAttributes attrs;
+    XGetWindowAttributes(designer->ttlfile_view->app->dpy, (Window)designer->ttlfile_view->widget, &attrs);
+    if (attrs.map_state == IsViewable) {
+        run_generate_ttl(designer->ttlfile, NULL);
+    }
 }
 
 

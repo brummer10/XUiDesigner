@@ -29,6 +29,7 @@
 #include "XUiReparent.h"
 #include "XUiSettings.h"
 #include "XUiWriteTurtle.h"
+#include "XUiTurtleView.h"
 #include "XUiWritePlugin.h"
 #include "xtabbox_private.h"
 
@@ -1318,6 +1319,11 @@ static void parse_faust_file (XUiDesigner *designer, char* filename) {
     cmd = NULL;    
     free(outname);
     outname = NULL;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(designer->ttlfile_view->app->dpy, (Window)designer->ttlfile_view->widget, &attrs);
+    if (attrs.map_state == IsViewable) {
+        run_generate_ttl(designer->ttlfile, NULL);
+    }
     //print_ttl(designer);
     //print_plugin(designer);
 }
@@ -1614,11 +1620,17 @@ int main (int argc, char ** argv) {
     designer->grid->parent_struct = designer;
     designer->grid->func.value_changed_callback = use_grid;
 
-    designer->settings = add_button(designer->w, "", 960, 740, 40, 40);
+    designer->settings = add_button(designer->w, "", 900, 740, 40, 40);
     widget_get_png(designer->settings, LDVAR(settings_png));
     tooltip_set_text(designer->settings,_("Project Settings"));
     designer->settings->parent_struct = designer;
     designer->settings->func.value_changed_callback = run_settings;
+
+    designer->ttlfile = add_button(designer->w, "", 960, 740, 40, 40);
+    widget_get_png(designer->ttlfile, LDVAR(file_png));
+    tooltip_set_text(designer->ttlfile,_("Show ttl file"));
+    designer->ttlfile->parent_struct = designer;
+    designer->ttlfile->func.value_changed_callback = run_generate_ttl;
 
     designer->test = add_button(designer->w, "", 1020, 740, 40, 40);
     widget_get_png(designer->test, LDVAR(gear_png));
@@ -1766,6 +1778,7 @@ int main (int argc, char ** argv) {
     designer->context_menu->func.button_release_callback = pop_menu_response;
 
     create_project_settings_window(designer);
+    create_text_view_window(designer);
 
     widget_show_all(designer->w);
     widget_show_all(designer->ui);
