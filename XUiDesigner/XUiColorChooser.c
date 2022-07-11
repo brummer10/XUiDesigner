@@ -122,7 +122,7 @@ static void draw_color_widget(void *w_, void* user_data) {
     double cwheelstate = 0;
 
     double pointer_off =cwheel_x/5.5;
-    double radius = min(cwheel_x-pointer_off, cwheel_y-pointer_off) / 2;
+    color_chooser->radius = min(cwheel_x-pointer_off, cwheel_y-pointer_off) / 2;
 
     double r = 1.0;
     double g = 0.0;
@@ -134,16 +134,18 @@ static void draw_color_widget(void *w_, void* user_data) {
     int blue = 0;
     for (int i = 0; i<300;i++) {
         double angle = cwheelstate * 2 * M_PI;
-        double lengh_x = (cwheelx+radius+pointer_off/2) - radius * sin(angle);
-        double lengh_y = (cwheely+radius+pointer_off/2) + radius * cos(angle);
-        double radius_x = (cwheelx+radius+pointer_off/2);
-        double radius_y = (cwheely+radius+pointer_off/2);
-        cairo_pattern_t* pat = cairo_pattern_create_linear ( radius_x, radius_y, lengh_x,lengh_y);
+        double lengh_x = (cwheelx+color_chooser->radius+pointer_off/2) -
+            color_chooser->radius * sin(angle);
+        double lengh_y = (cwheely+color_chooser->radius+pointer_off/2) +
+            color_chooser->radius * cos(angle);
+        color_chooser->radius_x = (cwheelx+color_chooser->radius+pointer_off/2);
+        color_chooser->radius_y = (cwheely+color_chooser->radius+pointer_off/2);
+        cairo_pattern_t* pat = cairo_pattern_create_linear ( color_chooser->radius_x, color_chooser->radius_y, lengh_x,lengh_y);
         cairo_pattern_add_color_stop_rgba (pat, 0, l,l,l,a);
         cairo_pattern_add_color_stop_rgba (pat, 1, min(1.0,r+l),min(1.0,g+l),min(1.0,b+l),a);
         cairo_set_source (w->crb, pat);
         cairo_set_line_join(w->crb, CAIRO_LINE_JOIN_BEVEL);
-        cairo_move_to(w->crb, radius_x, radius_y);
+        cairo_move_to(w->crb, color_chooser->radius_x, color_chooser->radius_y);
         cairo_line_to(w->crb,lengh_x,lengh_y);
         cairo_set_line_width(w->crb,6);
         cairo_stroke(w->crb);
@@ -370,14 +372,20 @@ static void get_pixel(Widget_t *w, int x, int y, XColor *color) {
     XQueryColor (w->app->dpy, DefaultColormap(w->app->dpy, DefaultScreen (w->app->dpy)), color);
 }
 
+static bool is_in_circle(ColorChooser_t *color_chooser, int x, int y) {
+    int a = (x - color_chooser->radius_x);
+    int b = (y - color_chooser->radius_y);
+    int c = (color_chooser->radius - 3);
+    return (((a*a) + (b*b)) < (c * c));
+}
+
 static void get_color(void *w_, void* button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     if (w->flags & HAS_POINTER) {
-        if(xbutton->button == Button1 && xbutton->x > 10 && xbutton->y > 10
-                && xbutton->x < w->width-10 && xbutton->y < w->height-10 ) {
+        if (xbutton->button == Button1 &&  is_in_circle(color_chooser, xbutton->x, xbutton->y)) {
             XColor c;
             get_pixel(w, xbutton->x, xbutton->y, &c);
             double r = (double)c.red/65535.0;
@@ -476,8 +484,7 @@ static void set_focus_motion(void *w_, void *xmotion_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     XMotionEvent *xmotion = (XMotionEvent*)xmotion_;
-    if(xmotion->x > 10 && xmotion->y > 10 && xmotion->x < w->width-10
-                                    && xmotion->y < w->height-10 ) {
+    if(is_in_circle (color_chooser, xmotion->x, xmotion->y)) {
         color_chooser->focus_x = xmotion->x;
         color_chooser->focus_y = xmotion->y;
         //fprintf(stderr, "%f %f \n", color_chooser->focus_x, color_chooser->focus_y);
@@ -501,7 +508,7 @@ static void set_focus(void *w_, void* button_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
-    if(xbutton->button == Button1) {
+    if(xbutton->button == Button1 && is_in_circle (color_chooser, xbutton->x, xbutton->y)) {
         color_chooser->focus_x = xbutton->x;
         color_chooser->focus_y = xbutton->y;
         expose_widget(designer->color_widget);
@@ -512,25 +519,28 @@ static void set_focus_on_key(void *w_, void *key_, void *user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
-    if(color_chooser->focus_x >= 10 && color_chooser->focus_y >= 10 &&
-      color_chooser->focus_x <= w->width-10 && color_chooser->focus_y <= w->height-10 ) {
-        XKeyEvent *key = (XKeyEvent*)key_;
-        if (!key) return;
-        int nk = key_mapping(w->app->dpy, key);
-        if (nk) {
-            switch (nk) {
-                case 3: color_chooser->focus_y -=1.0;
-                break;
-                case 4: color_chooser->focus_x +=1.0;
-                break;
-                case 5: color_chooser->focus_y +=1.0;
-                break;
-                case 6: color_chooser->focus_x -=1.0;
-                break;
-                default:
-                break;
-            }
+    XKeyEvent *key = (XKeyEvent*)key_;
+    if (!key) return;
+    int nk = key_mapping(w->app->dpy, key);
+    double x = 0.0;
+    double y = 0.0;
+    if (nk) {
+        switch (nk) {
+            case 3: y = -1.0;
+            break;
+            case 4: x = 1.0;
+            break;
+            case 5: y = 1.0;
+            break;
+            case 6: x = -1.0;
+            break;
+            default:
+            break;
         }
+    }
+    if (is_in_circle (color_chooser, color_chooser->focus_x + x, color_chooser->focus_y + y)) {
+        color_chooser->focus_y +=y;
+        color_chooser->focus_x +=x;
         XColor c;
         get_pixel(w, color_chooser->focus_x, color_chooser->focus_y, &c);
         double r = (double)c.red/65535.0;

@@ -49,6 +49,7 @@ static void draw_ttlview(void *w_, void* user_data) {
     FILE *fp;
     if ((fp=fopen("/tmp/xui.ttl", "r"))==NULL) {
         printf("open failed\n");
+        return;
     }
     int i = 1;
     char buf[200];
@@ -171,6 +172,7 @@ void run_generate_ttl(void *w_, void* user_data) {
         FILE *fp;
         if((fp=freopen("/tmp/xui.ttl", "w" ,stdout))==NULL) {
             printf("open failed\n");
+            return;
         }
 
         print_ttl(designer);

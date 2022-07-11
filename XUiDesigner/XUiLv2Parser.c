@@ -738,6 +738,7 @@ void load_plugin_ui(void* w_, void* user_data) {
     //XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
     if (designer->active_widget != NULL)
         box_entry_set_text(designer->controller_label, designer->active_widget->label);
+    expose_widget(designer->ui);
     widget_show_all(designer->ui);
     XWindowAttributes attrs;
     XGetWindowAttributes(designer->ttlfile_view->app->dpy, (Window)designer->ttlfile_view->widget, &attrs);
