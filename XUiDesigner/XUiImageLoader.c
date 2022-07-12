@@ -179,6 +179,19 @@ static void set_image_button(XUiDesigner *designer) {
     designer->active_widget_num = new_wid->data;
 }
 
+static void set_all_image_button(XUiDesigner *designer, Widget_t *wid, int i) {
+    Widget_t *p = (Widget_t*)wid->parent;
+    remove_from_list(designer, wid);
+    designer->prev_active_widget = NULL;
+    Widget_t *new_wid = NULL;
+    asprintf (&designer->new_label[i], "%s",wid->label);
+    new_wid = add_switch_image_button(p, designer->new_label[i], wid->x, wid->y, 60, 60);
+    copy_widget_settings(designer, wid, new_wid);
+    add_to_list(designer, new_wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
+    destroy_widget(wid, designer->w->app);
+    widget_show(new_wid);
+}
+
 static void unset_image_button(XUiDesigner *designer) {
     Widget_t *wid = designer->active_widget;
     remove_from_list(designer, wid);
@@ -194,6 +207,33 @@ static void unset_image_button(XUiDesigner *designer) {
     widget_show(new_wid);
     designer->active_widget = new_wid;
     designer->active_widget_num = new_wid->data;
+}
+
+static void load_for_all_global(XUiDesigner *designer, WidgetType is_type, cairo_surface_t *getpng,
+                                const char* filename, int width, int height) {
+    int i = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL && designer->controls[i].is_type == is_type ) {
+            cairo_surface_destroy(designer->controls[i].wid->image);
+            designer->controls[i].wid->image = NULL;
+
+            designer->controls[i].wid->image = cairo_surface_create_similar (designer->controls[i].wid->surface, 
+                                CAIRO_CONTENT_COLOR_ALPHA, width, height);
+            cairo_t *cri = cairo_create (designer->controls[i].wid->image);
+            cairo_set_source_surface (cri, getpng,0,0);
+            cairo_paint (cri);
+            cairo_destroy(cri);
+            expose_widget(designer->controls[i].wid);
+            free(designer->controls[i].image);
+            designer->controls[i].image = NULL;
+            designer->controls[i].image = strdup(filename);
+            char *tmp = strdup(filename);
+            free(designer->image_path);
+            designer->image_path = NULL;
+            designer->image_path = strdup(dirname(tmp));
+            free(tmp);
+        }
+    }
 }
 
 void controller_image_load_response(void *w_, void* user_data) {
@@ -221,25 +261,45 @@ void controller_image_load_response(void *w_, void* user_data) {
 
         int width = cairo_image_surface_get_width(getpng);
         int height = cairo_image_surface_get_height(getpng);
-        cairo_surface_destroy(designer->active_widget->image);
-        designer->active_widget->image = NULL;
+        if (designer->controls[designer->active_widget_num].is_type == IS_KNOB &&
+                                    adj_get_value(designer->global_knob_image->adj)) {
+            load_for_all_global(designer, IS_KNOB, getpng, filename, width, height);
+            cairo_surface_destroy(getpng);
+        } else if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON &&
+                                    adj_get_value(designer->global_button_image->adj)) {
+            load_for_all_global(designer, IS_BUTTON, getpng, filename, width, height);
+            cairo_surface_destroy(getpng);
+        } else if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_TOGGLE &&
+                                    adj_get_value(designer->global_switch_image->adj)) {
+            int i = 0;
+            for (;i<MAX_CONTROLS;i++) {
+                if (designer->controls[i].wid != NULL && designer->controls[i].is_type == IS_TOGGLE_BUTTON) {
+                    set_all_image_button(designer, designer->controls[i].wid, i);
+                }
+            }
+            load_for_all_global(designer, IS_IMAGE_TOGGLE, getpng, filename, width, height);
+            cairo_surface_destroy(getpng);
+        } else {
+            cairo_surface_destroy(designer->active_widget->image);
+            designer->active_widget->image = NULL;
 
-        designer->active_widget->image = cairo_surface_create_similar (designer->active_widget->surface, 
-                            CAIRO_CONTENT_COLOR_ALPHA, width, height);
-        cairo_t *cri = cairo_create (designer->active_widget->image);
-        cairo_set_source_surface (cri, getpng,0,0);
-        cairo_paint (cri);
-        cairo_surface_destroy(getpng);
-        cairo_destroy(cri);
-        expose_widget(designer->active_widget);
-        free(designer->controls[designer->active_widget_num].image);
-        designer->controls[designer->active_widget_num].image = NULL;
-        designer->controls[designer->active_widget_num].image = strdup(filename);
-        char *tmp = strdup(filename);
-        free(designer->image_path);
-        designer->image_path = NULL;
-        designer->image_path = strdup(dirname(tmp));
-        free(tmp);
+            designer->active_widget->image = cairo_surface_create_similar (designer->active_widget->surface, 
+                                CAIRO_CONTENT_COLOR_ALPHA, width, height);
+            cairo_t *cri = cairo_create (designer->active_widget->image);
+            cairo_set_source_surface (cri, getpng,0,0);
+            cairo_paint (cri);
+            cairo_surface_destroy(getpng);
+            cairo_destroy(cri);
+            expose_widget(designer->active_widget);
+            free(designer->controls[designer->active_widget_num].image);
+            designer->controls[designer->active_widget_num].image = NULL;
+            designer->controls[designer->active_widget_num].image = strdup(filename);
+            char *tmp = strdup(filename);
+            free(designer->image_path);
+            designer->image_path = NULL;
+            designer->image_path = strdup(dirname(tmp));
+            free(tmp);
+        }
     }
 }
 

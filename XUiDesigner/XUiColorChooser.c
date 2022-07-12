@@ -138,14 +138,14 @@ static void draw_color_widget(void *w_, void* user_data) {
             color_chooser->radius * sin(angle);
         double lengh_y = (cwheely+color_chooser->radius+pointer_off/2) +
             color_chooser->radius * cos(angle);
-        color_chooser->radius_x = (cwheelx+color_chooser->radius+pointer_off/2);
-        color_chooser->radius_y = (cwheely+color_chooser->radius+pointer_off/2);
-        cairo_pattern_t* pat = cairo_pattern_create_linear ( color_chooser->radius_x, color_chooser->radius_y, lengh_x,lengh_y);
+        color_chooser->center_x = (cwheelx+color_chooser->radius+pointer_off/2);
+        color_chooser->center_y = (cwheely+color_chooser->radius+pointer_off/2);
+        cairo_pattern_t* pat = cairo_pattern_create_linear ( color_chooser->center_x, color_chooser->center_y, lengh_x,lengh_y);
         cairo_pattern_add_color_stop_rgba (pat, 0, l,l,l,a);
         cairo_pattern_add_color_stop_rgba (pat, 1, min(1.0,r+l),min(1.0,g+l),min(1.0,b+l),a);
         cairo_set_source (w->crb, pat);
         cairo_set_line_join(w->crb, CAIRO_LINE_JOIN_BEVEL);
-        cairo_move_to(w->crb, color_chooser->radius_x, color_chooser->radius_y);
+        cairo_move_to(w->crb, color_chooser->center_x, color_chooser->center_y);
         cairo_line_to(w->crb,lengh_x,lengh_y);
         cairo_set_line_width(w->crb,6);
         cairo_stroke(w->crb);
@@ -373,8 +373,8 @@ static void get_pixel(Widget_t *w, int x, int y, XColor *color) {
 }
 
 static bool is_in_circle(ColorChooser_t *color_chooser, int x, int y) {
-    int a = (x - color_chooser->radius_x);
-    int b = (y - color_chooser->radius_y);
+    int a = (x - color_chooser->center_x);
+    int b = (y - color_chooser->center_y);
     int c = (color_chooser->radius - 3);
     return (((a*a) + (b*b)) < (c * c));
 }

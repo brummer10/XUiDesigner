@@ -212,6 +212,9 @@ typedef struct {
     Widget_t *combobox_entry;
     Widget_t *controller_settings;
     Widget_t *controller_entry[4];
+    Widget_t *global_knob_image;
+    Widget_t *global_button_image;
+    Widget_t *global_switch_image;
     Widget_t *tabbox_settings;
     Widget_t *tabbox_entry[2];
     Widget_t *set_adjust;

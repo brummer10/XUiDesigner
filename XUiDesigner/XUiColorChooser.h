@@ -33,8 +33,8 @@ extern "C" {
 #endif
 
 typedef struct {
-    double radius_x;
-    double radius_y;
+    double center_x;
+    double center_y;
     double radius;
     double red;
     double green;

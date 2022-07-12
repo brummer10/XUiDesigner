@@ -387,6 +387,17 @@ static void hide_show_as_needed(XUiDesigner *designer) {
     } else {
         widget_hide(designer->combobox_settings);
     }
+    if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON) {
+        widget_show(designer->global_button_image);
+    } else {
+        widget_hide(designer->global_button_image);
+    }
+    if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON ||
+        designer->controls[designer->active_widget_num].is_type == IS_IMAGE_TOGGLE) {
+        widget_show(designer->global_switch_image);
+    } else {
+        widget_hide(designer->global_switch_image);
+    }
     if (designer->grid_view) {
         widget_show(designer->grid_size_x);
         widget_show(designer->grid_size_y);
@@ -1087,11 +1098,7 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         } else {
             widget_hide(designer->controller_settings);
         }
-        if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX) {
-            widget_show_all(designer->combobox_settings);
-        } else {
-            widget_hide(designer->combobox_settings);
-        }
+        hide_show_as_needed(designer);
         designer->prev_active_widget = wid;
         widget_hide(designer->set_project);
     } else if(xbutton->button == Button3) {
@@ -1709,11 +1716,17 @@ int main (int argc, char ** argv) {
     designer->combobox_entry->parent_struct = designer;
     designer->combobox_entry->func.user_callback = set_combobox_entry;
 
+    designer->global_button_image = add_check_box(designer->w, _("Use Global Button Image"), 1000, 360, 180, 30);
+    designer->global_button_image->parent_struct = designer;
+
+    designer->global_switch_image = add_check_box(designer->w, _("Use Global Switch Image"), 1000, 360, 180, 30);
+    designer->global_switch_image->parent_struct = designer;
+
     designer->add_entry = add_button(designer->combobox_settings, _("Add"), 140, 40, 40, 30);
     designer->add_entry->parent_struct = designer;
     designer->add_entry->func.value_changed_callback = add_combobox_entry;
 
-    designer->controller_settings = create_widget(&app, designer->w, 1000, 360, 180, 250);
+    designer->controller_settings = create_widget(&app, designer->w, 1000, 360, 180, 270);
     add_label(designer->controller_settings, _("Controller Settings"), 0, 0, 180, 30);
     const char* labels[4] = { "Min","Max","Default", "Step Size"};
     int k = 0;
@@ -1726,6 +1739,9 @@ int main (int argc, char ** argv) {
     designer->set_adjust = add_button(designer->controller_settings, _("Set"), 100, 200, 60, 30);
     designer->set_adjust->parent_struct = designer;
     designer->set_adjust->func.value_changed_callback = set_controller_adjustment;
+
+    designer->global_knob_image = add_check_box(designer->controller_settings, _("Use Global Knob Image"), 1, 240, 160, 30);
+    designer->global_knob_image->parent_struct = designer;
 
     designer->tabbox_settings = create_widget(&app, designer->w, 1000, 360, 180, 250);
     add_label(designer->tabbox_settings, _("Tab Box Settings"), 0, 0, 180, 30);
