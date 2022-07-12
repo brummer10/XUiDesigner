@@ -387,6 +387,11 @@ static void hide_show_as_needed(XUiDesigner *designer) {
     } else {
         widget_hide(designer->combobox_settings);
     }
+    if (designer->controls[designer->active_widget_num].is_type == IS_KNOB) {
+        widget_show(designer->global_knob_image);
+    } else {
+        widget_hide(designer->global_knob_image);
+    }
     if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON) {
         widget_show(designer->global_button_image);
     } else {
@@ -975,6 +980,8 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 wid = add_knob(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-40, 60, 80);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
+                if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
+                    load_single_controller_image(designer, designer->global_knob_image_file);
             break;
             case 2:
                 asprintf(&designer->controls[designer->wid_counter].name, "HSlider%i", designer->wid_counter);
@@ -993,12 +1000,16 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 wid = add_button(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-30, 60, 60);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
+                if (designer->global_button_image_file != NULL && adj_get_value(designer->global_button_image->adj))
+                    load_single_controller_image(designer, designer->global_button_image_file);
             break;
             case 5:
                 asprintf(&designer->controls[designer->wid_counter].name, "Switch%i", designer->wid_counter);
                 wid = add_toggle_button(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-30, 60, 60);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+                if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
+                    load_single_controller_image(designer, designer->global_switch_image_file);
             break;
             case 6:
                 asprintf(&designer->controls[designer->wid_counter].name, "Combobox%i", designer->wid_counter);
@@ -1297,9 +1308,10 @@ static void parse_faust_file (XUiDesigner *designer, char* filename) {
             set_controller_callbacks(designer, wid, true);
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
-            //designer->controls[designer->active_widget_num].port_index = designer->lv2c.Port_Index;
+            if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
+                load_single_controller_image(designer, designer->global_knob_image_file);
             p++;
-            
+
             free(label);
             label = NULL;
         }
@@ -1476,6 +1488,9 @@ int main (int argc, char ** argv) {
     designer->image_path = NULL;
     designer->image = NULL;
     designer->faust_file = NULL;
+    designer->global_knob_image_file = NULL;
+    designer->global_button_image_file = NULL;
+    designer->global_switch_image_file = NULL;
     designer->icon = NULL;
     designer->run_test = false;
     designer->lv2c.ui_uri = NULL;
@@ -1717,9 +1732,11 @@ int main (int argc, char ** argv) {
     designer->combobox_entry->func.user_callback = set_combobox_entry;
 
     designer->global_button_image = add_check_box(designer->w, _("Use Global Button Image"), 1000, 360, 180, 30);
+    tooltip_set_text(designer->global_button_image,_("Use the Image loaded on one Button for all Buttons"));
     designer->global_button_image->parent_struct = designer;
 
     designer->global_switch_image = add_check_box(designer->w, _("Use Global Switch Image"), 1000, 360, 180, 30);
+    tooltip_set_text(designer->global_switch_image,_("Use the Image loaded on one Switch for all Switchs"));
     designer->global_switch_image->parent_struct = designer;
 
     designer->add_entry = add_button(designer->combobox_settings, _("Add"), 140, 40, 40, 30);
@@ -1741,6 +1758,7 @@ int main (int argc, char ** argv) {
     designer->set_adjust->func.value_changed_callback = set_controller_adjustment;
 
     designer->global_knob_image = add_check_box(designer->controller_settings, _("Use Global Knob Image"), 1, 240, 160, 30);
+    tooltip_set_text(designer->global_knob_image,_("Use the Image loaded on one Knob for all Knobs"));
     designer->global_knob_image->parent_struct = designer;
 
     designer->tabbox_settings = create_widget(&app, designer->w, 1000, 360, 180, 250);
@@ -1827,6 +1845,9 @@ int main (int argc, char ** argv) {
     free(designer->image_path);
     free(designer->image);
     free(designer->faust_file);
+    free(designer->global_knob_image_file);
+    free(designer->global_button_image_file);
+    free(designer->global_switch_image_file);
     free(designer->lv2c.ui_uri);
     free(designer->lv2c.uri);
     free(designer->lv2c.author);

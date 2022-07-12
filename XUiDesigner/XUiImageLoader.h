@@ -43,6 +43,8 @@ void controller_image_load_response(void *w_, void* user_data);
 
 void pop_menu_response(void *w_, void* item_, void* user_data);
 
+void load_single_controller_image (XUiDesigner *designer, const char* filename);
+
 #ifdef __cplusplus
 }
 #endif

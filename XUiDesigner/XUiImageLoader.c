@@ -236,6 +236,41 @@ static void load_for_all_global(XUiDesigner *designer, WidgetType is_type, cairo
     }
 }
 
+void load_single_controller_image (XUiDesigner *designer, const char* filename) {
+    if (!designer->active_widget) return;
+    if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON) {
+        set_image_button(designer);
+    }
+    cairo_surface_t *getpng = NULL;
+    if (strstr(filename, ".png")) {
+        getpng = cairo_image_surface_create_from_png (filename);
+    } else if (strstr(filename, ".svg")) {
+        getpng = cairo_image_surface_create_from_svg (filename);
+    }
+    if (!getpng) return;
+    int width = cairo_image_surface_get_width(getpng);
+    int height = cairo_image_surface_get_height(getpng);
+    cairo_surface_destroy(designer->active_widget->image);
+    designer->active_widget->image = NULL;
+
+    designer->active_widget->image = cairo_surface_create_similar (designer->active_widget->surface, 
+                        CAIRO_CONTENT_COLOR_ALPHA, width, height);
+    cairo_t *cri = cairo_create (designer->active_widget->image);
+    cairo_set_source_surface (cri, getpng,0,0);
+    cairo_paint (cri);
+    cairo_surface_destroy(getpng);
+    cairo_destroy(cri);
+    expose_widget(designer->active_widget);
+    free(designer->controls[designer->active_widget_num].image);
+    designer->controls[designer->active_widget_num].image = NULL;
+    designer->controls[designer->active_widget_num].image = strdup(filename);
+    char *tmp = strdup(filename);
+    free(designer->image_path);
+    designer->image_path = NULL;
+    designer->image_path = strdup(dirname(tmp));
+    free(tmp);
+}
+
 void controller_image_load_response(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -264,10 +299,12 @@ void controller_image_load_response(void *w_, void* user_data) {
         if (designer->controls[designer->active_widget_num].is_type == IS_KNOB &&
                                     adj_get_value(designer->global_knob_image->adj)) {
             load_for_all_global(designer, IS_KNOB, getpng, filename, width, height);
+            asprintf(&designer->global_knob_image_file, "%s", filename);
             cairo_surface_destroy(getpng);
         } else if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON &&
                                     adj_get_value(designer->global_button_image->adj)) {
             load_for_all_global(designer, IS_BUTTON, getpng, filename, width, height);
+            asprintf(&designer->global_button_image_file, "%s", filename);
             cairo_surface_destroy(getpng);
         } else if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_TOGGLE &&
                                     adj_get_value(designer->global_switch_image->adj)) {
@@ -278,6 +315,7 @@ void controller_image_load_response(void *w_, void* user_data) {
                 }
             }
             load_for_all_global(designer, IS_IMAGE_TOGGLE, getpng, filename, width, height);
+            asprintf(&designer->global_switch_image_file, "%s", filename);
             cairo_surface_destroy(getpng);
         } else {
             cairo_surface_destroy(designer->active_widget->image);

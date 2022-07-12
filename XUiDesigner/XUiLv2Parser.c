@@ -26,7 +26,7 @@
 #include "XUiWritePlugin.h"
 #include "XUiSettings.h"
 #include "XUiTurtleView.h"
-#
+#include "XUiImageLoader.h"
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -165,6 +165,8 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 designer->controls[designer->active_widget_num].symbol = NULL;
                 asprintf (&designer->controls[designer->active_widget_num].symbol, "%s",designer->lv2c.symbol);
             }
+            if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
+                load_single_controller_image(designer, designer->global_switch_image_file);
             x += 80;
         } else if (designer->lv2c.is_trigger_port) {
             if (x+70 >= 1200) {
@@ -185,6 +187,8 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 designer->controls[designer->active_widget_num].symbol = NULL;
                 asprintf (&designer->controls[designer->active_widget_num].symbol, "%s",designer->lv2c.symbol);
             }
+            if (designer->global_button_image_file != NULL && adj_get_value(designer->global_button_image->adj))
+                load_single_controller_image(designer, designer->global_button_image_file);
             x += 80;
         } else if (designer->lv2c.is_enum_port) {
             if (x+130 >= 1200) {
@@ -283,6 +287,8 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 designer->controls[designer->active_widget_num].symbol = NULL;
                 asprintf (&designer->controls[designer->active_widget_num].symbol, "%s",designer->lv2c.symbol);
             }
+            if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj))
+                load_single_controller_image(designer, designer->global_knob_image_file);
             x += 80;
         }
     } else if (designer->lv2c.is_output_port) {
