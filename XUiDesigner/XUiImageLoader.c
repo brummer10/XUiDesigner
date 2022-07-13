@@ -299,11 +299,15 @@ void controller_image_load_response(void *w_, void* user_data) {
         if (designer->controls[designer->active_widget_num].is_type == IS_KNOB &&
                                     adj_get_value(designer->global_knob_image->adj)) {
             load_for_all_global(designer, IS_KNOB, getpng, filename, width, height);
+            free(designer->global_knob_image_file);
+            designer->global_knob_image_file = NULL;
             asprintf(&designer->global_knob_image_file, "%s", filename);
             cairo_surface_destroy(getpng);
         } else if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON &&
                                     adj_get_value(designer->global_button_image->adj)) {
             load_for_all_global(designer, IS_BUTTON, getpng, filename, width, height);
+            free(designer->global_button_image_file);
+            designer->global_button_image_file = NULL;
             asprintf(&designer->global_button_image_file, "%s", filename);
             cairo_surface_destroy(getpng);
         } else if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_TOGGLE &&
@@ -315,6 +319,8 @@ void controller_image_load_response(void *w_, void* user_data) {
                 }
             }
             load_for_all_global(designer, IS_IMAGE_TOGGLE, getpng, filename, width, height);
+            free(designer->global_switch_image_file);
+            designer->global_switch_image_file = NULL;
             asprintf(&designer->global_switch_image_file, "%s", filename);
             cairo_surface_destroy(getpng);
         } else {
