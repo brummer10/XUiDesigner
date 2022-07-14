@@ -1596,6 +1596,7 @@ int main (int argc, char ** argv) {
     designer->ui->func.enter_callback = set_cursor;
     designer->ui->func.leave_callback = unset_cursor;
     designer->ui->func.motion_callback = set_drag_icon;
+    designer->ui->func.map_notify_callback = transparent_draw;
 
     designer->widgets = add_combobox(designer->w, "", 20, 25, 120, 30);
     designer->widgets->scale.gravity = CENTER;

@@ -331,7 +331,7 @@ static void text_box_button_released(void *w_, void* button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
-    if (w->flags & HAS_POINTER) {
+    //if (w->flags & HAS_POINTER) {
         if(xbutton->button == Button1) {
             int x = xbutton->x;
             int j = 0;
@@ -348,7 +348,7 @@ static void text_box_button_released(void *w_, void* button_, void* user_data) {
             else text_box->item2->state = 0;
             pop_menu_show(w, text_box->menu, 2, true);
         }
-    }
+    //}
 }
 
 // maark the complete string on double click and set curser to end position

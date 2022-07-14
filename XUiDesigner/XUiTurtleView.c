@@ -115,7 +115,7 @@ static void set_viewport(void *w_, void* user_data) {
 }
 
 Widget_t* add_viewport(Widget_t *parent, int width, int height) {
-    Widget_t *slider = add_vslider(parent, "", 510, 0, 10, 800);
+    Widget_t *slider = add_vslider(parent, "", width, 0, 10, height);
     slider->func.expose_callback = draw_viewslider;
     slider->adj_y = add_adjustment(slider,0.0, 0.0, 0.0, 1.0,0.0085, CL_VIEWPORTSLIDER);
     slider->adj = slider->adj_y;
@@ -153,7 +153,7 @@ void create_text_view_window(XUiDesigner *designer) {
     Atom wmStateAbove = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE_ABOVE", 1 );
     Atom wmNetWmState = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE", 1 );
 
-    designer->ttlfile_view = create_window(designer->w->app, DefaultRootWindow(designer->w->app->dpy), 0, 0, 520, 800);
+    designer->ttlfile_view = create_window(designer->w->app, DefaultRootWindow(designer->w->app->dpy), 0, 0, 620, 800);
     XChangeProperty(designer->w->app->dpy, designer->ttlfile_view->widget, wmNetWmState, XA_ATOM, 32, 
         PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
     //XSetTransientForHint(designer->w->app->dpy, w->widget, designer->ui->widget);
@@ -161,7 +161,7 @@ void create_text_view_window(XUiDesigner *designer) {
     designer->ttlfile_view->flags |= HIDE_ON_DELETE;
     widget_set_title(designer->ttlfile_view, _("ttl"));
 
-    add_viewport(designer->ttlfile_view, 510, 800);
+    add_viewport(designer->ttlfile_view, 610, 800);
 }
 
 void run_generate_ttl(void *w_, void* user_data) {

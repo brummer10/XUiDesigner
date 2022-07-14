@@ -20,7 +20,7 @@ check-and-reinit-submodules :
 clean:
 
 libxputty: check-and-reinit-submodules
-	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS)
+	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS) CFLAGS='-O3 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector'
 
 $(SUBDIR): libxputty
 	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS)
