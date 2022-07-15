@@ -1436,6 +1436,80 @@ static void systray_released(void *w_, void* button_, void* user_data) {
     }
 }
 
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                save/load config file
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+
+static void save_config(XUiDesigner *designer) {
+    char* config_file = NULL;
+    asprintf(&config_file, "%s/.config/xuidesigner.conf", getenv("HOME"));
+    FILE *fpm;
+    if((fpm=freopen(config_file, "w" ,stdout))==NULL) {
+        printf("Error opening config file\n");
+        return;
+    }
+    if (designer->global_knob_image_file) {
+        printf("[Global Knob Image]=%s\n", designer->global_knob_image_file);
+    }
+    if (designer->global_button_image_file) {
+        printf("[Global Button Image]=%s\n", designer->global_button_image_file);
+    }
+    if (designer->global_switch_image_file) {
+        printf("[Global Switch Image]=%s\n", designer->global_switch_image_file);
+    }
+    printf("[Use Global Knob Image]=%f\n", adj_get_value(designer->global_knob_image->adj));
+    printf("[Use Global Button Image]=%f\n", adj_get_value(designer->global_button_image->adj));
+    printf("[Use Global Switch Image]=%f\n", adj_get_value(designer->global_switch_image->adj));
+    fclose(fpm);
+    free(config_file);
+}
+
+static void read_config(XUiDesigner *designer) {
+    char* config_file = NULL;
+    asprintf(&config_file, "%s/.config/xuidesigner.conf", getenv("HOME"));
+    FILE *fpm;
+    char buf[128];
+    if((fpm = fopen(config_file, "r")) == NULL) {
+        printf("Error opening config file!\n");
+        return;
+    }
+    while (fgets(buf, 128, fpm) != NULL) {
+        char *ptr = strtok(buf, "=");
+        while(ptr != NULL) {
+            if (strstr(ptr, "[Global Knob Image]") != NULL) {
+                free(designer->global_knob_image_file);
+                designer->global_knob_image_file = NULL;
+                ptr = strtok(NULL, "\n");
+                asprintf(&designer->global_knob_image_file, "%s", ptr);
+            } else if (strstr(ptr, "[Global Button Image]") != NULL) {
+                free(designer->global_button_image_file);
+                designer->global_button_image_file = NULL;
+                ptr = strtok(NULL, "\n");
+                asprintf(&designer->global_button_image_file, "%s", ptr);
+            } else if (strstr(ptr, "[Global Switch Image]") != NULL) {
+                free(designer->global_switch_image_file);
+                designer->global_switch_image_file = NULL;
+                ptr = strtok(NULL, "\n");
+                asprintf(&designer->global_switch_image_file, "%s", ptr);
+            } else if (strstr(ptr, "[Use Global Knob Image]") != NULL) {
+                ptr = strtok(NULL, "\n");
+                adj_set_value(designer->global_knob_image->adj, strtod(ptr, NULL));
+            } else if (strstr(ptr, "[Use Global Button Image]") != NULL) {
+                ptr = strtok(NULL, "\n");
+                adj_set_value(designer->global_button_image->adj, strtod(ptr, NULL));
+            } else if (strstr(ptr, "[Use Global Switch Image]") != NULL) {
+                ptr = strtok(NULL, "\n");
+                adj_set_value(designer->global_switch_image->adj, strtod(ptr, NULL));
+            }
+            ptr = strtok(NULL, "=");
+        }
+    }
+    fclose(fpm);
+    free(config_file);
+}
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -1510,7 +1584,7 @@ int main (int argc, char ** argv) {
     designer->lv2c.atom_output_port = -1;
     designer->lv2c.atom_input_port = -1;
     designer->lv2c.bypass = 0;
-    designer->grid_width = 30;
+    designer->grid_width = 15;
     designer->grid_height = 15;
     designer->is_project = true;
     designer->is_faust_file = false;
@@ -1591,6 +1665,7 @@ int main (int argc, char ** argv) {
     XSetTransientForHint(app.dpy, designer->ui->widget, designer->w->widget);
     widget_set_title(designer->ui, _("NoName"));
     designer->ui->parent_struct = designer;
+    designer->ui->flags |= HIDE_ON_DELETE;
     designer->ui->func.expose_callback = draw_ui;
     designer->ui->func.button_release_callback = button_released_callback;
     designer->ui->func.enter_callback = set_cursor;
@@ -1818,9 +1893,11 @@ int main (int argc, char ** argv) {
     widget_show_all(designer->w);
     widget_show_all(designer->ui);
     hide_show_as_needed(designer);
+    read_config(designer);
     if (ffile != NULL) parse_faust_file(designer, ffile);
     main_run(&app);
 
+    save_config(designer);
     //print_ttl(designer);
     lilv_world_free(designer->world);
     fprintf(stderr, "bye, bye\n");
