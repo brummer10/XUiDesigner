@@ -721,9 +721,9 @@ void run_test(void *w_, void* user_data) {
             if ((int)adj_get_value(designer->color_chooser->adj)) {
                 adj_set_value(designer->color_chooser->adj, 0.0);
             }
-            widget_hide(designer->w);
-            widget_hide(designer->ui);
-            widget_hide(designer->set_project);
+            widget_hide_all(designer->w);
+            //widget_hide(designer->ui);
+            //widget_hide(designer->set_project);
             XFlush(designer->w->app->dpy);
             int ret = system("cd /tmp/  && "
                 "cc -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector "

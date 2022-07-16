@@ -1512,15 +1512,21 @@ static void read_config(XUiDesigner *designer) {
 }
 
 
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                keep editor window centered on main window
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
 static void win_configure_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     XWindowAttributes attrs;
     XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
     if (attrs.map_state != IsViewable) return;
+
     int width = attrs.width;
     int height = attrs.height;
-
     int x1, y1;
     Window child;
     XTranslateCoordinates( w->app->dpy, w->widget, DefaultRootWindow(
@@ -1528,7 +1534,9 @@ static void win_configure_callback(void *w_, void* user_data) {
 
     XGetWindowAttributes(w->app->dpy, (Window)designer->ui->widget, &attrs);
     if (attrs.map_state != IsViewable) return;
-    XMoveWindow(w->app->dpy,designer->ui->widget, x1 + ((width - attrs.width)/2), y1 + (height - attrs.height)/2);
+
+    XMoveWindow(w->app->dpy,designer->ui->widget, x1 +
+        ((width - attrs.width)/2), y1 + ((height - attrs.height)/2));
 }
 
 
