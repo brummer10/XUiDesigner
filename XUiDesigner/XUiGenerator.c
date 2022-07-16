@@ -739,16 +739,12 @@ void run_test(void *w_, void* user_data) {
                 designer->run_test = false;
                 widget_show_all(designer->w);
                 widget_show_all(designer->ui);
-                use_grid(designer->grid, NULL);
-                widget_hide(designer->controller_settings);
-                widget_hide(designer->combobox_settings);
+                hide_show_as_needed(designer);
             } else {
                 designer->run_test = false;
                 widget_show_all(designer->w);
                 widget_show_all(designer->ui);
-                use_grid(designer->grid, NULL);
-                widget_hide(designer->controller_settings);
-                widget_hide(designer->combobox_settings);
+                hide_show_as_needed(designer);
                 Widget_t *dia = open_message_dialog(designer->ui, INFO_BOX, _("INFO"),
                                                 _("Test fail, sorry"),NULL);
                 XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);

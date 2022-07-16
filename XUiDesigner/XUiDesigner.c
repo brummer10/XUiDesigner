@@ -365,7 +365,7 @@ static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
     designer->h_axis->func.value_changed_callback = store;
 }
 
-static void hide_show_as_needed(XUiDesigner *designer) {
+void hide_show_as_needed(XUiDesigner *designer) {
     if (designer->controls[designer->active_widget_num].have_adjustment  &&
             designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
         widget_hide(designer->tabbox_settings);
@@ -1511,6 +1511,27 @@ static void read_config(XUiDesigner *designer) {
     free(config_file);
 }
 
+
+static void win_configure_callback(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+    if (attrs.map_state != IsViewable) return;
+    int width = attrs.width;
+    int height = attrs.height;
+
+    int x1, y1;
+    Window child;
+    XTranslateCoordinates( w->app->dpy, w->widget, DefaultRootWindow(
+                    w->app->dpy), 0, 0, &x1, &y1, &child );
+
+    XGetWindowAttributes(w->app->dpy, (Window)designer->ui->widget, &attrs);
+    if (attrs.map_state != IsViewable) return;
+    XMoveWindow(w->app->dpy,designer->ui->widget, x1 + ((width - attrs.width)/2), y1 + (height - attrs.height)/2);
+}
+
+
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 main
@@ -1629,6 +1650,7 @@ int main (int argc, char ** argv) {
     designer->w->func.expose_callback = draw_window;
     widget_set_dnd_aware(designer->w);
     designer->w->func.dnd_notify_callback = dnd_load_response;
+    designer->w->func.configure_notify_callback = win_configure_callback;
 
     designer->systray = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 240, 240);
     designer->systray->parent_struct = designer;
