@@ -183,6 +183,7 @@ typedef struct {
     Widget_t *y_axis;
     Widget_t *w_axis;
     Widget_t *h_axis;
+    Widget_t *aspect_ratio;
     Widget_t *active_widget;
     Widget_t *prev_active_widget;
     Widget_t *w;

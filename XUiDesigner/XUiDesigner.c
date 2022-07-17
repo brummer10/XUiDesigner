@@ -632,6 +632,32 @@ static void set_widget_callback(void *w_, void* user_data) {
     }
  }
 
+static void set_ratio(Widget_t *w) {
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (designer->active_widget == NULL) return;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
+    if (attrs.map_state != IsViewable) return;
+    int width = attrs.width;
+    int height = attrs.height;
+    int v = 0;
+    if (w == designer->w_axis) {
+        v = adj_get_value(designer->w_axis->adj) - width;
+        xevfunc store = designer->h_axis->func.value_changed_callback;
+        designer->h_axis->func.value_changed_callback = null_callback;
+        adj_set_value(designer->h_axis->adj, adj_get_value(designer->h_axis->adj) + v);
+        designer->h_axis->func.value_changed_callback = store;
+    } else if (w == designer->h_axis) {
+        v = adj_get_value(designer->h_axis->adj) - height;
+        xevfunc store = designer->w_axis->func.value_changed_callback;
+        designer->w_axis->func.value_changed_callback = null_callback;
+        adj_set_value(designer->w_axis->adj, adj_get_value(designer->w_axis->adj) + v);
+        designer->w_axis->func.value_changed_callback = store;
+    }
+    XResizeWindow(designer->active_widget->app->dpy, designer->active_widget->widget,
+        (int)adj_get_value(designer->w_axis->adj), (int)adj_get_value(designer->h_axis->adj));
+}
+
 static void set_x_axis_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -653,6 +679,10 @@ static void set_y_axis_callback(void *w_, void* user_data) {
 static void set_w_axis_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (adj_get_value(designer->aspect_ratio->adj)) {
+        set_ratio(w);
+        return;
+    }
     int v = (int)adj_get_value(w->adj);
     if (designer->active_widget != NULL)
         XResizeWindow(designer->active_widget->app->dpy,
@@ -662,6 +692,10 @@ static void set_w_axis_callback(void *w_, void* user_data) {
 static void set_h_axis_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (adj_get_value(designer->aspect_ratio->adj)) {
+        set_ratio(w);
+        return;
+    }
     int v = (int)adj_get_value(w->adj);
     if (designer->active_widget != NULL)
         XResizeWindow(designer->active_widget->app->dpy,
@@ -721,21 +755,29 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
         }
         break;
         case XUI_SIZE:
-            XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)),
-                                                  max(10,w->height+ (xmotion->x_root-designer->pos_x)));
-            adj_set_value(designer->w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
-            adj_set_value(designer->h_axis->adj, w->height+ ((xmotion->x_root-designer->pos_x)));
+            int v = fabs(xmotion->x_root-designer->pos_x) > fabs(xmotion->y_root-designer->pos_y) ? 
+                xmotion->x_root-designer->pos_x : xmotion->y_root-designer->pos_y;
+            XResizeWindow(w->app->dpy, w->widget, max(10,w->width + v), max(10,w->height + v));
+            xevfunc store = designer->w_axis->func.value_changed_callback;
+            designer->w_axis->func.value_changed_callback = null_callback;
+            adj_set_value(designer->w_axis->adj, w->width + v);
+            designer->w_axis->func.value_changed_callback = store;
+            store = designer->h_axis->func.value_changed_callback;
+            designer->h_axis->func.value_changed_callback = null_callback;
+            adj_set_value(designer->h_axis->adj, w->height+ v);
+            designer->h_axis->func.value_changed_callback = store;
             if (designer->controls[w->data].is_type == IS_TABBOX) {
                 int elem = w->childlist->elem;
                 int i = 0;
                 for(;i<elem;i++) {
                     Widget_t *wi = w->childlist->childs[i];
-                    XResizeWindow(w->app->dpy, wi->widget, max(10,wi->width + (xmotion->x_root-designer->pos_x)),
-                                                           max(10,wi->height+ (xmotion->x_root-designer->pos_x)));
+                    XResizeWindow(w->app->dpy, wi->widget, max(10,wi->width + v),
+                                                           max(10,wi->height + v));
                 }
             }
             w->scale.ascale = 1.0;
             designer->pos_x = xmotion->x_root;
+            designer->pos_y = xmotion->y_root;
         break;
         case XUI_WIDTH:
             XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), w->height);
@@ -848,9 +890,17 @@ void set_pos_wid(void *w_, void *button_, void* user_data) {
     if (xbutton->x > width-10 && xbutton->y > height-10) {
         designer->modify_mod = XUI_SIZE;
     } else if (xbutton->y > height-10) {
-        designer->modify_mod = XUI_HEIGHT;
+        if (adj_get_value(designer->aspect_ratio->adj)) {
+            designer->modify_mod = XUI_SIZE;
+        } else {
+            designer->modify_mod = XUI_HEIGHT;
+        }
     } else if (xbutton->x > width-10) {
-        designer->modify_mod = XUI_WIDTH;
+        if (adj_get_value(designer->aspect_ratio->adj)) {
+            designer->modify_mod = XUI_SIZE;
+        } else {
+            designer->modify_mod = XUI_WIDTH;
+        }
     } else {
         designer->modify_mod = XUI_POSITION;
     }
@@ -894,6 +944,13 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
             int v = (int)adj_get_value(w->adj);
             Widget_t *wi = designer->active_widget->childlist->childs[v];
             box_entry_set_text(designer->controller_label, wi->label);
+        } else if (designer->controls[w->data].is_type == IS_COMBOBOX) {
+            Widget_t *wi = w->childlist->childs[0];
+            wi->x = width-wi->width;
+            wi->scale.init_x = wi->x;
+            wi->scale.init_width = wi->width;
+            wi->scale.init_height = wi->height;
+            wi->scale.ascale = 1.0;
         }
         if (designer->controls[designer->active_widget_num].is_type != IS_FRAME &&
             designer->controls[designer->active_widget_num].is_type != IS_IMAGE &&
@@ -1463,6 +1520,7 @@ static void save_config(XUiDesigner *designer) {
     printf("[Use Global Knob Image]=%f\n", adj_get_value(designer->global_knob_image->adj));
     printf("[Use Global Button Image]=%f\n", adj_get_value(designer->global_button_image->adj));
     printf("[Use Global Switch Image]=%f\n", adj_get_value(designer->global_switch_image->adj));
+    printf("[Keep Aspect Ratio]=%f\n", adj_get_value(designer->aspect_ratio->adj));
     fclose(fpm);
     free(config_file);
 }
@@ -1503,6 +1561,9 @@ static void read_config(XUiDesigner *designer) {
             } else if (strstr(ptr, "[Use Global Switch Image]") != NULL) {
                 ptr = strtok(NULL, "\n");
                 adj_set_value(designer->global_switch_image->adj, strtod(ptr, NULL));
+            } else if (strstr(ptr, "[Keep Aspect Ratio]") != NULL) {
+                ptr = strtok(NULL, "\n");
+                adj_set_value(designer->aspect_ratio->adj, strtod(ptr, NULL));
             }
             ptr = strtok(NULL, "=");
         }
@@ -1815,6 +1876,9 @@ int main (int argc, char ** argv) {
     set_adjustment(designer->h_axis->adj,10.0, 10.0, 10.0, 600.0, 1.0, CL_CONTINUOS);
     designer->h_axis->func.value_changed_callback = set_h_axis_callback;
 
+    designer->aspect_ratio = add_check_box(designer->w, _("  Aspect Ratio"), 1020, 360, 180, 20);
+    tooltip_set_text(designer->aspect_ratio,_("Keep Aspect Ratio when resize a Controller"));
+    designer->aspect_ratio->parent_struct = designer;
 
 
     designer->grid_size_x = add_valuedisplay(designer->w, _("Grid X"), 125, 135, 40, 20);
@@ -1831,17 +1895,17 @@ int main (int argc, char ** argv) {
     tooltip_set_text(designer->grid_size_y,_("Grid height"));
     designer->grid_size_y->func.value_changed_callback = set_grid_height;
 
-    designer->combobox_settings = create_widget(&app, designer->w, 1000, 360, 180, 200);
+    designer->combobox_settings = create_widget(&app, designer->w, 1000, 390, 180, 200);
     add_label(designer->combobox_settings, _("Add Combobox Entry"), 0, 0, 180, 30);
     designer->combobox_entry = add_input_box(designer->combobox_settings, 0, 0, 40, 140, 30);
     designer->combobox_entry->parent_struct = designer;
     designer->combobox_entry->func.user_callback = set_combobox_entry;
 
-    designer->global_button_image = add_check_box(designer->w, _("Use Global Button Image"), 1000, 360, 180, 30);
+    designer->global_button_image = add_check_box(designer->w, _("Use Global Button Image"), 1000, 390, 180, 20);
     tooltip_set_text(designer->global_button_image,_("Use the Image loaded on one Button for all Buttons"));
     designer->global_button_image->parent_struct = designer;
 
-    designer->global_switch_image = add_check_box(designer->w, _("Use Global Switch Image"), 1000, 360, 180, 30);
+    designer->global_switch_image = add_check_box(designer->w, _("Use Global Switch Image"), 1000, 390, 180, 20);
     tooltip_set_text(designer->global_switch_image,_("Use the Image loaded on one Switch for all Switchs"));
     designer->global_switch_image->parent_struct = designer;
 
@@ -1849,7 +1913,7 @@ int main (int argc, char ** argv) {
     designer->add_entry->parent_struct = designer;
     designer->add_entry->func.value_changed_callback = add_combobox_entry;
 
-    designer->controller_settings = create_widget(&app, designer->w, 1000, 360, 180, 270);
+    designer->controller_settings = create_widget(&app, designer->w, 1000, 390, 180, 270);
     add_label(designer->controller_settings, _("Controller Settings"), 0, 0, 180, 30);
     const char* labels[4] = { "Min","Max","Default", "Step Size"};
     int k = 0;
@@ -1863,11 +1927,11 @@ int main (int argc, char ** argv) {
     designer->set_adjust->parent_struct = designer;
     designer->set_adjust->func.value_changed_callback = set_controller_adjustment;
 
-    designer->global_knob_image = add_check_box(designer->controller_settings, _("Use Global Knob Image"), 1, 240, 160, 30);
+    designer->global_knob_image = add_check_box(designer->controller_settings, _("Use Global Knob Image"), 1, 240, 160, 20);
     tooltip_set_text(designer->global_knob_image,_("Use the Image loaded on one Knob for all Knobs"));
     designer->global_knob_image->parent_struct = designer;
 
-    designer->tabbox_settings = create_widget(&app, designer->w, 1000, 360, 180, 250);
+    designer->tabbox_settings = create_widget(&app, designer->w, 1000, 390, 180, 250);
     add_label(designer->tabbox_settings, _("Tab Box Settings"), 0, 0, 180, 30);
     designer->tabbox_entry[0] = add_button(designer->tabbox_settings, _("Add Tab"), 40, 40, 100, 30);
     designer->tabbox_entry[0]->parent_struct = designer;
