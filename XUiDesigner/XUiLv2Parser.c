@@ -351,6 +351,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
 void load_plugin_ui(void* w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    combobox_set_active_entry(designer->lv2_uris, adj_get_value(w->adj));
     reset_plugin_ui(designer);
     designer->lv2c.is_atom_patch = false;
     designer->lv2c.is_patch_path = false;
@@ -396,7 +397,7 @@ void load_plugin_ui(void* w_, void* user_data) {
         LilvNode* patch_writable = lilv_new_uri(designer->world, LV2_PATCH__writable);
         LilvNode* patch_readable = lilv_new_uri(designer->world, LV2_PATCH__readable);
 
-        const LilvNode* uri = lilv_new_uri(designer->world, w->label);
+        const LilvNode* uri = lilv_new_uri(designer->world, designer->lv2_uris->label);
         const LilvPlugin* plugin = lilv_plugins_get_by_uri(designer->lv2_plugins, uri);
  
         if (plugin) {
@@ -754,9 +755,11 @@ void load_plugin_ui(void* w_, void* user_data) {
 }
 
 
-void filter_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
+void filter_uris(Widget_t *lv2_uris, Widget_t *lv2_names, const LilvPlugins* lv2_plugins) {
     combobox_delete_entrys(lv2_uris);
+    combobox_delete_entrys(lv2_names);
     combobox_add_entry(lv2_uris,_("--"));
+    combobox_add_entry(lv2_names,_("--"));
     for (LilvIter* it = lilv_plugins_begin(lv2_plugins);
       !lilv_plugins_is_end(lv2_plugins, it);
       it = lilv_plugins_next(lv2_plugins, it)) {
@@ -764,22 +767,27 @@ void filter_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
         if (plugin) {
             LilvUIs* uis = lilv_plugin_get_uis(plugin);
             if (!uis) {
+                const LilvNode* name = lilv_plugin_get_name(plugin);
                 const LilvNode* uri = lilv_plugin_get_uri(plugin);
+                combobox_add_entry(lv2_names, lilv_node_as_string(name));
                 combobox_add_entry(lv2_uris,lilv_node_as_string(uri));
             }
             lilv_uis_free(uis);
         }
     }
     combobox_set_active_entry(lv2_uris, 0);
+    combobox_set_active_entry(lv2_names, 0);
 }
 
-void load_uris(Widget_t *lv2_uris, const LilvPlugins* lv2_plugins) {
+void load_uris(Widget_t *lv2_uris, Widget_t *lv2_names, const LilvPlugins* lv2_plugins) {
     for (LilvIter* it = lilv_plugins_begin(lv2_plugins);
       !lilv_plugins_is_end(lv2_plugins, it);
       it = lilv_plugins_next(lv2_plugins, it)) {
         const LilvPlugin* plugin = lilv_plugins_get(lv2_plugins, it);
         if (plugin) {
+            const LilvNode* name = lilv_plugin_get_name(plugin);
             const LilvNode* uri = lilv_plugin_get_uri(plugin);
+            combobox_add_entry(lv2_names, lilv_node_as_string(name));
             combobox_add_entry(lv2_uris,lilv_node_as_string(uri));
         }
     }

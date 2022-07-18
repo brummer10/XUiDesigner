@@ -1284,13 +1284,16 @@ static void filter_plugin_ui(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-        filter_uris(designer->lv2_uris, designer->lv2_plugins);
+        filter_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
     } else if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
         combobox_delete_entrys(designer->lv2_uris);
+        combobox_delete_entrys(designer->lv2_names);
         combobox_add_entry(designer->lv2_uris,_("--"));
-        load_uris(designer->lv2_uris, designer->lv2_plugins);
+        combobox_add_entry(designer->lv2_names,_("--"));
+        load_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
         combobox_set_active_entry(designer->lv2_uris, 0);
+        combobox_set_active_entry(designer->lv2_names, 0);
     }
 }
 
@@ -1735,10 +1738,18 @@ int main (int argc, char ** argv) {
 
     designer->lv2_uris = add_combobox(designer->w, "", 300, 25, 600, 30);
     designer->lv2_uris->parent_struct = designer;
+    designer->lv2_uris->flags |= IS_TOOLTIP;
     combobox_add_entry(designer->lv2_uris,_("--"));
-    load_uris(designer->lv2_uris, designer->lv2_plugins);
+
+    designer->lv2_names = add_combobox(designer->w, "", 300, 25, 600, 30);
+    designer->lv2_names->parent_struct = designer;
+    tooltip_set_text(designer->lv2_names->childlist->childs[0], _("Select LV2 Plugin"));
+    combobox_add_entry(designer->lv2_names,_("--"));
+    load_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
+    combobox_set_active_entry(designer->lv2_names, 0);
     combobox_set_active_entry(designer->lv2_uris, 0);
-    designer->lv2_uris->func.value_changed_callback = load_plugin_ui;
+    designer->lv2_names->func.value_changed_callback = load_plugin_ui;
+    combobox_set_menu_size(designer->lv2_names, 24);
 
     designer->filter_lv2_uris = add_toggle_button(designer->w, "Filter", 250, 25, 40, 30);
     tooltip_set_text(designer->filter_lv2_uris,_("Show only UI-less plugins"));
@@ -1784,6 +1795,8 @@ int main (int argc, char ** argv) {
     combobox_add_entry(designer->widgets,_("Tab Box"));
     combobox_add_entry(designer->widgets,_("Image"));
     combobox_set_active_entry(designer->widgets, 0);
+    tooltip_set_text(designer->widgets->childlist->childs[0], _("Select Controller Type"));
+    combobox_set_menu_size(designer->widgets, 15);
     designer->widgets->func.value_changed_callback = set_widget_callback;
 
     designer->image_loader = add_image_button(designer->w,20,75,40,40, "", "image");
