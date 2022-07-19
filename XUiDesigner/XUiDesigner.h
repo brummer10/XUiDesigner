@@ -184,6 +184,7 @@ typedef struct {
     Widget_t *w_axis;
     Widget_t *h_axis;
     Widget_t *aspect_ratio;
+    Widget_t *resize_all;
     Widget_t *active_widget;
     Widget_t *prev_active_widget;
     Widget_t *w;
@@ -259,6 +260,7 @@ typedef struct {
     int grid_height;
     int modify_mod;
     bool run;
+    bool skipit;
     int wid_counter;
     int select_widget_num;
     char** new_label;

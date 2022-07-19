@@ -632,6 +632,26 @@ static void set_widget_callback(void *w_, void* user_data) {
     }
  }
 
+static void resize_all_for_type(XUiDesigner *designer, Widget_t *wi, WidgetType is_type, int w, int h) {
+    int i = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL && designer->controls[i].is_type == is_type) {
+            Widget_t *wid = designer->controls[i].wid;
+            XResizeWindow(wi->app->dpy, wid->widget, max(10,wi->width + w), max(10,wi->height + h));
+            if (is_type == IS_TABBOX) {
+                int elem = wid->childlist->elem;
+                int i = 0;
+                for(;i<elem;i++) {
+                    Widget_t *win = wid->childlist->childs[i];
+                    XResizeWindow(wi->app->dpy, win->widget, max(10,win->width + w),
+                                                           max(10,win->height + h));
+                }
+            }
+            wid->scale.ascale = 1.0;
+        }
+    }
+}
+
 static void set_ratio(Widget_t *w) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (designer->active_widget == NULL) return;
@@ -654,8 +674,13 @@ static void set_ratio(Widget_t *w) {
         adj_set_value(designer->w_axis->adj, adj_get_value(designer->w_axis->adj) + v);
         designer->w_axis->func.value_changed_callback = store;
     }
-    XResizeWindow(designer->active_widget->app->dpy, designer->active_widget->widget,
-        (int)adj_get_value(designer->w_axis->adj), (int)adj_get_value(designer->h_axis->adj));
+    if (adj_get_value(designer->resize_all->adj)) {
+        resize_all_for_type(designer, designer->active_widget,
+            designer->controls[designer->active_widget_num].is_type, v , v);
+    } else {
+        XResizeWindow(designer->active_widget->app->dpy, designer->active_widget->widget,
+            (int)adj_get_value(designer->w_axis->adj), (int)adj_get_value(designer->h_axis->adj));
+    }
 }
 
 static void set_x_axis_callback(void *w_, void* user_data) {
@@ -684,9 +709,16 @@ static void set_w_axis_callback(void *w_, void* user_data) {
         return;
     }
     int v = (int)adj_get_value(w->adj);
-    if (designer->active_widget != NULL)
-        XResizeWindow(designer->active_widget->app->dpy,
-            designer->active_widget->widget, v, (int)adj_get_value(designer->h_axis->adj));
+    if (designer->active_widget != NULL) {
+        if (adj_get_value(designer->resize_all->adj)) {
+            resize_all_for_type(designer, designer->active_widget,
+                designer->controls[designer->active_widget_num].is_type,
+                v - designer->active_widget->width, 0);
+        } else {
+            XResizeWindow(designer->active_widget->app->dpy,
+                designer->active_widget->widget, v, (int)adj_get_value(designer->h_axis->adj));
+        }
+    }
 }
 
 static void set_h_axis_callback(void *w_, void* user_data) {
@@ -697,9 +729,16 @@ static void set_h_axis_callback(void *w_, void* user_data) {
         return;
     }
     int v = (int)adj_get_value(w->adj);
-    if (designer->active_widget != NULL)
-        XResizeWindow(designer->active_widget->app->dpy,
-            designer->active_widget->widget, (int)adj_get_value(designer->w_axis->adj), v);
+    if (designer->active_widget != NULL) {
+        if (adj_get_value(designer->resize_all->adj)) {
+            resize_all_for_type(designer, designer->active_widget,
+                designer->controls[designer->active_widget_num].is_type,
+                0, v - designer->active_widget->height);
+        } else {
+            XResizeWindow(designer->active_widget->app->dpy,
+                designer->active_widget->widget, (int)adj_get_value(designer->w_axis->adj), v);
+        }
+    }
 }
 
 static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
@@ -757,59 +796,79 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
         case XUI_SIZE:
             int v = fabs(xmotion->x_root-designer->pos_x) > fabs(xmotion->y_root-designer->pos_y) ? 
                 xmotion->x_root-designer->pos_x : xmotion->y_root-designer->pos_y;
-            XResizeWindow(w->app->dpy, w->widget, max(10,w->width + v), max(10,w->height + v));
+            if (adj_get_value(designer->resize_all->adj)) {
+                resize_all_for_type(designer, w, designer->controls[w->data].is_type, v, v);
+            } else {
+                XResizeWindow(w->app->dpy, w->widget, max(10,w->width + v), max(10,w->height + v));
+                if (designer->controls[w->data].is_type == IS_TABBOX) {
+                    int elem = w->childlist->elem;
+                    int i = 0;
+                    for(;i<elem;i++) {
+                        Widget_t *wi = w->childlist->childs[i];
+                        XResizeWindow(w->app->dpy, wi->widget, max(10,wi->width + v),
+                                                               max(10,wi->height + v));
+                    }
+                }
+            }
             xevfunc store = designer->w_axis->func.value_changed_callback;
             designer->w_axis->func.value_changed_callback = null_callback;
             adj_set_value(designer->w_axis->adj, w->width + v);
             designer->w_axis->func.value_changed_callback = store;
             store = designer->h_axis->func.value_changed_callback;
             designer->h_axis->func.value_changed_callback = null_callback;
-            adj_set_value(designer->h_axis->adj, w->height+ v);
+            adj_set_value(designer->h_axis->adj, w->height + v);
             designer->h_axis->func.value_changed_callback = store;
-            if (designer->controls[w->data].is_type == IS_TABBOX) {
-                int elem = w->childlist->elem;
-                int i = 0;
-                for(;i<elem;i++) {
-                    Widget_t *wi = w->childlist->childs[i];
-                    XResizeWindow(w->app->dpy, wi->widget, max(10,wi->width + v),
-                                                           max(10,wi->height + v));
-                }
-            }
             w->scale.ascale = 1.0;
             designer->pos_x = xmotion->x_root;
             designer->pos_y = xmotion->y_root;
         break;
         case XUI_WIDTH:
-            XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), w->height);
-            adj_set_value(designer->w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
-            if (designer->controls[w->data].is_type == IS_TABBOX) {
-                int elem = w->childlist->elem;
-                int i = 0;
-                for(;i<elem;i++) {
-                    Widget_t *wi = w->childlist->childs[i];
-                    XResizeWindow(w->app->dpy, wi->widget,
-                        max(10,wi->width + (xmotion->x_root-designer->pos_x)), wi->height);
+            if (adj_get_value(designer->resize_all->adj)) {
+                resize_all_for_type(designer, w, designer->controls[w->data].is_type,
+                            xmotion->x_root-designer->pos_x, 0);
+            } else {
+                XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), w->height);
+                if (designer->controls[w->data].is_type == IS_TABBOX) {
+                    int elem = w->childlist->elem;
+                    int i = 0;
+                    for(;i<elem;i++) {
+                        Widget_t *wi = w->childlist->childs[i];
+                        XResizeWindow(w->app->dpy, wi->widget,
+                            max(10,wi->width + (xmotion->x_root-designer->pos_x)), wi->height);
+                    }
                 }
             }
+            store = designer->w_axis->func.value_changed_callback;
+            designer->w_axis->func.value_changed_callback = null_callback;
+            adj_set_value(designer->w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
+            designer->w_axis->func.value_changed_callback = store;
             w->scale.ascale = 1.0;
             designer->pos_x = xmotion->x_root;
-            expose_widget(designer->ui);
+            //expose_widget(designer->ui);
         break;
         case XUI_HEIGHT:
-            XResizeWindow(w->app->dpy, w->widget, w->width, max(10,w->height + (xmotion->y_root-designer->pos_y)));
-            adj_set_value(designer->h_axis->adj, w->height + ((xmotion->y_root-designer->pos_y)));
-            if (designer->controls[w->data].is_type == IS_TABBOX) {
-                int elem = w->childlist->elem;
-                int i = 0;
-                for(;i<elem;i++) {
-                    Widget_t *wi = w->childlist->childs[i];
-                    XResizeWindow(w->app->dpy, wi->widget, wi->width,
-                        max(10,wi->height+ (xmotion->x_root-designer->pos_x)));
+            if (adj_get_value(designer->resize_all->adj)) {
+                resize_all_for_type(designer, w, designer->controls[w->data].is_type,
+                            0, xmotion->y_root-designer->pos_y);
+            } else {
+                XResizeWindow(w->app->dpy, w->widget, w->width, max(10,w->height + (xmotion->y_root-designer->pos_y)));
+                if (designer->controls[w->data].is_type == IS_TABBOX) {
+                    int elem = w->childlist->elem;
+                    int i = 0;
+                    for(;i<elem;i++) {
+                        Widget_t *wi = w->childlist->childs[i];
+                        XResizeWindow(w->app->dpy, wi->widget, wi->width,
+                            max(10,wi->height+ (xmotion->x_root-designer->pos_x)));
+                    }
                 }
             }
+            store = designer->h_axis->func.value_changed_callback;
+            designer->h_axis->func.value_changed_callback = null_callback;
+            adj_set_value(designer->h_axis->adj, w->height + (xmotion->y_root-designer->pos_y));
+            designer->h_axis->func.value_changed_callback = store;
             w->scale.ascale = 1.0;
             designer->pos_y = xmotion->y_root;
-            expose_widget(designer->ui);
+            //expose_widget(designer->ui);
         break;
         case XUI_NONE:
             if (xmotion->x > w->width-10 && xmotion->y > w->height-10 && is_curser != 1) {
@@ -1222,6 +1281,8 @@ static void run_settings(void *w_, void* user_data) {
             adj_set_value(designer->project_bypass->adj, (float)designer->lv2c.bypass);
             adj_set_value(designer->project_audio_input->adj, (float)designer->lv2c.audio_input);
             adj_set_value(designer->project_audio_output->adj, (float)designer->lv2c.audio_output);
+            adj_set_value(designer->project_midi_input->adj, (float)designer->lv2c.midi_input);
+            adj_set_value(designer->project_midi_output->adj, (float)designer->lv2c.midi_output);
             widget_show_all(designer->set_project);
             char *name = NULL;
             XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
@@ -1524,6 +1585,7 @@ static void save_config(XUiDesigner *designer) {
     printf("[Use Global Button Image]=%f\n", adj_get_value(designer->global_button_image->adj));
     printf("[Use Global Switch Image]=%f\n", adj_get_value(designer->global_switch_image->adj));
     printf("[Keep Aspect Ratio]=%f\n", adj_get_value(designer->aspect_ratio->adj));
+    printf("[Use Global Size]=%f\n", adj_get_value(designer->resize_all->adj));
     fclose(fpm);
     free(config_file);
 }
@@ -1567,6 +1629,9 @@ static void read_config(XUiDesigner *designer) {
             } else if (strstr(ptr, "[Keep Aspect Ratio]") != NULL) {
                 ptr = strtok(NULL, "\n");
                 adj_set_value(designer->aspect_ratio->adj, strtod(ptr, NULL));
+            } else if (strstr(ptr, "[Use Global Size]") != NULL) {
+                ptr = strtok(NULL, "\n");
+                adj_set_value(designer->resize_all->adj, strtod(ptr, NULL));
             }
             ptr = strtok(NULL, "=");
         }
@@ -1760,10 +1825,10 @@ int main (int argc, char ** argv) {
     XSelectInput(designer->ui->app->dpy, designer->ui->widget,StructureNotifyMask|ExposureMask|KeyPressMask 
                     |EnterWindowMask|LeaveWindowMask|ButtonReleaseMask
                     |ButtonPressMask|Button1MotionMask|PointerMotionMask);
-    Atom wmStateAbove = XInternAtom(app.dpy, "_NET_WM_STATE_ABOVE", 1 );
-    Atom wmNetWmState = XInternAtom(app.dpy, "_NET_WM_STATE", 1 );
-    XChangeProperty(app.dpy, designer->ui->widget, wmNetWmState, XA_ATOM, 32, 
-        PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
+   // Atom wmStateAbove = XInternAtom(app.dpy, "_NET_WM_STATE_ABOVE", 1 );
+  //  Atom wmNetWmState = XInternAtom(app.dpy, "_NET_WM_STATE", 1 );
+  //  XChangeProperty(app.dpy, designer->ui->widget, wmNetWmState, XA_ATOM, 32, 
+   //     PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
     XSetTransientForHint(app.dpy, designer->ui->widget, designer->w->widget);
     widget_set_title(designer->ui, _("NoName"));
     designer->ui->parent_struct = designer;
@@ -1889,7 +1954,11 @@ int main (int argc, char ** argv) {
     set_adjustment(designer->h_axis->adj,10.0, 10.0, 10.0, 600.0, 1.0, CL_CONTINUOS);
     designer->h_axis->func.value_changed_callback = set_h_axis_callback;
 
-    designer->aspect_ratio = add_check_box(designer->w, _("  Aspect Ratio"), 1020, 360, 180, 20);
+    designer->resize_all = add_check_box(designer->w, _("  Global size"), 1020, 360, 180, 20);
+    tooltip_set_text(designer->resize_all,_("Resize all Controller of the same type"));
+    designer->resize_all->parent_struct = designer;
+
+    designer->aspect_ratio = add_check_box(designer->w, _("  Aspect Ratio"), 1020, 390, 180, 20);
     tooltip_set_text(designer->aspect_ratio,_("Keep Aspect Ratio when resize a Controller"));
     designer->aspect_ratio->parent_struct = designer;
 
@@ -1908,7 +1977,7 @@ int main (int argc, char ** argv) {
     tooltip_set_text(designer->grid_size_y,_("Grid height"));
     designer->grid_size_y->func.value_changed_callback = set_grid_height;
 
-    designer->combobox_settings = create_widget(&app, designer->w, 1000, 390, 180, 200);
+    designer->combobox_settings = create_widget(&app, designer->w, 1000, 410, 180, 200);
     add_label(designer->combobox_settings, _("Add Combobox Entry"), 0, 0, 180, 30);
     designer->combobox_entry = add_input_box(designer->combobox_settings, 0, 0, 40, 140, 30);
     designer->combobox_entry->parent_struct = designer;
@@ -1926,7 +1995,7 @@ int main (int argc, char ** argv) {
     designer->add_entry->parent_struct = designer;
     designer->add_entry->func.value_changed_callback = add_combobox_entry;
 
-    designer->controller_settings = create_widget(&app, designer->w, 1000, 390, 180, 270);
+    designer->controller_settings = create_widget(&app, designer->w, 1000, 410, 180, 270);
     add_label(designer->controller_settings, _("Controller Settings"), 0, 0, 180, 30);
     const char* labels[4] = { "Min","Max","Default", "Step Size"};
     int k = 0;
@@ -1944,7 +2013,7 @@ int main (int argc, char ** argv) {
     tooltip_set_text(designer->global_knob_image,_("Use the Image loaded on one Knob for all Knobs"));
     designer->global_knob_image->parent_struct = designer;
 
-    designer->tabbox_settings = create_widget(&app, designer->w, 1000, 390, 180, 250);
+    designer->tabbox_settings = create_widget(&app, designer->w, 1000, 410, 180, 250);
     add_label(designer->tabbox_settings, _("Tab Box Settings"), 0, 0, 180, 30);
     designer->tabbox_entry[0] = add_button(designer->tabbox_settings, _("Add Tab"), 40, 40, 100, 30);
     designer->tabbox_entry[0]->parent_struct = designer;

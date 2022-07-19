@@ -65,11 +65,13 @@ void reset_plugin_ui(XUiDesigner *designer) {
     designer->is_faust_file = false;
     designer->lv2c.audio_input = 0;
     designer->lv2c.audio_output = 0;
-    adj_set_value(designer->project_audio_input->adj, (float)designer->lv2c.audio_input);
-    adj_set_value(designer->project_audio_output->adj, (float)designer->lv2c.audio_output);
+    designer->lv2c.midi_input = 0;
+    designer->lv2c.midi_output = 0;
+    designer->lv2c.atom_output_port = -1;
+    designer->lv2c.atom_input_port = -1;
     free(designer->lv2c.uri);
     designer->lv2c.uri = NULL;
-    asprintf(&designer->lv2c.uri, "%s", "urn:test_ui");
+    asprintf(&designer->lv2c.uri, "urn:%s:%s", getUserName(), "test");
     free(designer->lv2c.plugintype);
     designer->lv2c.plugintype = NULL;
     asprintf(&designer->lv2c.plugintype, "%s", "MixerPlugin");
@@ -79,7 +81,7 @@ void reset_plugin_ui(XUiDesigner *designer) {
     asprintf(&designer->lv2c.author, "%s", getUserName());
     free(designer->lv2c.ui_uri);
     designer->lv2c.ui_uri = NULL;
-    asprintf(&designer->lv2c.ui_uri, "%s", "urn:test_ui");    
+    asprintf(&designer->lv2c.ui_uri, "urn:%s:%s", getUserName(), "test_ui");
 
     box_entry_set_text(designer->controller_label, "");
     adj_set_value(designer->x_axis->adj, 0.0);
@@ -613,7 +615,7 @@ void load_plugin_ui(void* w_, void* user_data) {
                         asprintf (&designer->lv2c.symbol,  "%s",lilv_node_as_string(lilv_port_get_symbol(plugin, port)));
                         asprintf (&designer->new_label[designer->active_widget_num+1], "%s",lilv_node_as_string(nm));
                         lilv_node_free(nm);
-                        
+                        designer->lv2c.midi_input = 1;
                     } else if (lilv_port_is_a(plugin, port, lv2_OutputPort)) {
                         designer->lv2c.atom_output_port = n;
                         LilvNode* nm = lilv_port_get_name(plugin, port);
@@ -627,6 +629,7 @@ void load_plugin_ui(void* w_, void* user_data) {
                         asprintf (&designer->lv2c.symbol,  "%s",lilv_node_as_string(lilv_port_get_symbol(plugin, port)));
                         asprintf (&designer->new_label[designer->active_widget_num+1], "%s",lilv_node_as_string(nm));
                         lilv_node_free(nm);
+                        designer->lv2c.midi_output = 1;
                     }
                     n_atoms++;
                     //continue;
