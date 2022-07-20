@@ -749,7 +749,7 @@ static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
         designer->drag_icon.x = w->x + xmotion->x - designer->drag_icon.w/2;
         designer->drag_icon.y = w->y + xmotion->y - designer->drag_icon.h/2;
         designer->drag_icon.is_active = true;
-        expose_widget(designer->ui);
+        widget_draw(designer->ui, NULL);
     } else {
         if (designer->drag_icon.is_active) {
             designer->drag_icon.is_active = false;
@@ -1832,7 +1832,7 @@ int main (int argc, char ** argv) {
     XSetTransientForHint(app.dpy, designer->ui->widget, designer->w->widget);
     widget_set_title(designer->ui, _("NoName"));
     designer->ui->parent_struct = designer;
-    designer->ui->flags |= HIDE_ON_DELETE;
+    designer->ui->flags |= HIDE_ON_DELETE | NO_PROPAGATE;
     designer->ui->func.expose_callback = draw_ui;
     designer->ui->func.button_release_callback = button_released_callback;
     designer->ui->func.enter_callback = set_cursor;
