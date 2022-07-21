@@ -632,6 +632,51 @@ static void set_widget_callback(void *w_, void* user_data) {
     }
  }
 
+static void fix_pos_for_all(XUiDesigner *designer, WidgetType is_type) {
+    int i = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL && designer->controls[i].is_type == is_type) {
+            Widget_t *wi = designer->controls[i].wid;
+            XWindowAttributes attrs;
+            XGetWindowAttributes(wi->app->dpy, (Window)wi->widget, &attrs);
+            int x1 = attrs.x;
+            int y1 = attrs.y;
+            wi->x = x1;
+            wi->y = y1;            
+        }
+    }
+}
+
+static void move_all_for_type(XUiDesigner *designer, Widget_t *wid, WidgetType is_type, int x, int y) {
+    int i = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL && designer->controls[i].is_type == is_type) {
+            Widget_t *wi = designer->controls[i].wid;
+            int pos_x = wi->x + x;
+            int pos_y = wi->y + y;
+            int pos_width = wi->width;
+            int snap_grid_x = pos_x/designer->grid_width;
+            int snap_grid_y = pos_y/designer->grid_height;
+            if (designer->grid_view) {
+                pos_x = snap_grid_x * designer->grid_width;
+                pos_y = snap_grid_y * designer->grid_height;
+                if (designer->controls[wi->data].grid_snap_option == 1) {
+                    for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
+                    if (wi->width > designer->grid_width) {
+                        pos_x += designer->grid_width - pos_width/2;
+                    } else {
+                        pos_x += designer->grid_width - pos_width * 2;
+                    }
+                } else if (designer->controls[wi->data].grid_snap_option == 2) {
+                    for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
+                    pos_x += designer->grid_width - pos_width;
+                }
+            }
+            XMoveWindow(wi->app->dpy, wi->widget, pos_x, pos_y);
+        }
+    }
+}
+
 static void resize_all_for_type(XUiDesigner *designer, Widget_t *wi, WidgetType is_type, int w, int h) {
     int i = 0;
     for (;i<MAX_CONTROLS;i++) {
@@ -683,22 +728,54 @@ static void set_ratio(Widget_t *w) {
     }
 }
 
+void x_axis_release_callback(void *w_, void* button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    expose_widget(w);
+    if (adj_get_value(designer->move_all->adj)) {
+        fix_pos_for_all(designer, designer->controls[w->data].is_type);
+    }
+}
+
+void y_axis_release_callback(void *w_, void* button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    expose_widget(w);
+    if (adj_get_value(designer->move_all->adj)) {
+        fix_pos_for_all(designer, designer->controls[w->data].is_type);
+    }
+}
+
 static void set_x_axis_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     int v = (int)adj_get_value(w->adj);
-    if (designer->active_widget != NULL)
-        XMoveWindow(designer->active_widget->app->dpy,
-            designer->active_widget->widget,v, (int)adj_get_value(designer->y_axis->adj));
+    if (designer->active_widget != NULL) {
+        if (adj_get_value(designer->move_all->adj)) {
+            designer->ui->flags |= DONT_PROPAGATE;
+            move_all_for_type(designer, designer->active_widget,
+                designer->controls[designer->active_widget_num].is_type, v - designer->active_widget->x, 0);
+        } else {
+            XMoveWindow(designer->active_widget->app->dpy,
+                designer->active_widget->widget,v, (int)adj_get_value(designer->y_axis->adj));
+        }
+    }
 }
 
 static void set_y_axis_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     int v = (int)adj_get_value(w->adj);
-    if (designer->active_widget != NULL)
-        XMoveWindow(designer->active_widget->app->dpy,
-            designer->active_widget->widget, (int)adj_get_value(designer->x_axis->adj), v);
+    if (designer->active_widget != NULL) {
+        if (adj_get_value(designer->move_all->adj)) {
+            designer->ui->flags |= DONT_PROPAGATE;
+            move_all_for_type(designer, designer->active_widget,
+                designer->controls[designer->active_widget_num].is_type, 0, v - designer->active_widget->y);
+        } else {
+            XMoveWindow(designer->active_widget->app->dpy,
+                designer->active_widget->widget, (int)adj_get_value(designer->x_axis->adj), v);
+        }
+    }
 }
 
 static void set_w_axis_callback(void *w_, void* user_data) {
@@ -753,9 +830,10 @@ static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
     } else {
         if (designer->drag_icon.is_active) {
             designer->drag_icon.is_active = false;
-            expose_widget(designer->ui);
+            widget_draw(designer->ui, NULL);
         }
     }
+    designer->ui->flags &= ~DONT_PROPAGATE;
 }
 
 void move_wid(void *w_, void *xmotion_, void* user_data) {
@@ -764,33 +842,46 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
     XMotionEvent *xmotion = (XMotionEvent*)xmotion_;
     static int is_curser = 2;
+    designer->ui->flags |= DONT_PROPAGATE;
     switch(designer->modify_mod) {
         case XUI_POSITION:
         {
             if ((xmotion->state & Button1Mask) == 0) break;
-            int pos_x = w->x + (xmotion->x_root-designer->pos_x);
-            int pos_y = w->y + (xmotion->y_root-designer->pos_y);
-            int pos_width = w->width;
-            int snap_grid_x = pos_x/designer->grid_width;
-            int snap_grid_y = pos_y/designer->grid_height;
-            if (designer->grid_view) {
-                pos_x = snap_grid_x * designer->grid_width;
-                pos_y = snap_grid_y * designer->grid_height;
-                if (designer->controls[w->data].grid_snap_option == 1) {
-                    for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
-                    if (w->width > designer->grid_width) {
-                        pos_x += designer->grid_width - pos_width/2;
-                    } else {
-                        pos_x += designer->grid_width - pos_width * 2;
+            int x = xmotion->x_root - designer->pos_x;
+            int y = xmotion->y_root-designer->pos_y;
+            int pos_x = w->x + x;
+            int pos_y = w->y + y;
+            if (adj_get_value(designer->move_all->adj)) {
+                move_all_for_type(designer, w, designer->controls[w->data].is_type, x, y);
+            } else {
+                int pos_width = w->width;
+                int snap_grid_x = pos_x/designer->grid_width;
+                int snap_grid_y = pos_y/designer->grid_height;
+                if (designer->grid_view) {
+                    pos_x = snap_grid_x * designer->grid_width;
+                    pos_y = snap_grid_y * designer->grid_height;
+                    if (designer->controls[w->data].grid_snap_option == 1) {
+                        for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
+                        if (w->width > designer->grid_width) {
+                            pos_x += designer->grid_width - pos_width/2;
+                        } else {
+                            pos_x += designer->grid_width - pos_width * 2;
+                        }
+                    } else if (designer->controls[w->data].grid_snap_option == 2) {
+                        for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
+                        pos_x += designer->grid_width - pos_width;
                     }
-                } else if (designer->controls[w->data].grid_snap_option == 2) {
-                    for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
-                    pos_x += designer->grid_width - pos_width;
                 }
+                XMoveWindow(w->app->dpy,w->widget,pos_x, pos_y);
             }
-            XMoveWindow(w->app->dpy,w->widget,pos_x, pos_y);
+            xevfunc store = designer->x_axis->func.value_changed_callback;
+            designer->x_axis->func.value_changed_callback = null_callback;
             adj_set_value(designer->x_axis->adj, pos_x);
+            designer->x_axis->func.value_changed_callback = store;
+            store = designer->y_axis->func.value_changed_callback;
+            designer->y_axis->func.value_changed_callback = null_callback;
             adj_set_value(designer->y_axis->adj, pos_y);
+            designer->y_axis->func.value_changed_callback = store;
         }
         break;
         case XUI_SIZE:
@@ -978,6 +1069,9 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     if(xbutton->button == Button1) {
+        if (adj_get_value(designer->move_all->adj)) {
+            fix_pos_for_all(designer, designer->controls[w->data].is_type);
+        }
         w->x = x;
         w->y = y;
         w->scale.init_x   = x;
@@ -1938,11 +2032,13 @@ int main (int argc, char ** argv) {
     designer->x_axis->parent_struct = designer;
     set_adjustment(designer->x_axis->adj,0.0, 0.0, 0.0, 1200.0, 1.0, CL_CONTINUOS);
     designer->x_axis->func.value_changed_callback = set_x_axis_callback;
+    designer->x_axis->func.button_release_callback = x_axis_release_callback;
 
     designer->y_axis = add_hslider(designer->w, _("Y"), 1000, 240, 180, 30);
     designer->y_axis->parent_struct = designer;
     set_adjustment(designer->y_axis->adj,0.0, 0.0, 0.0, 600.0, 1.0, CL_CONTINUOS);
     designer->y_axis->func.value_changed_callback = set_y_axis_callback;
+    designer->y_axis->func.button_release_callback = y_axis_release_callback;
 
     designer->w_axis = add_hslider(designer->w, _("Width"), 1000, 280, 180, 30);
     designer->w_axis->parent_struct = designer;
@@ -1962,6 +2058,10 @@ int main (int argc, char ** argv) {
     tooltip_set_text(designer->aspect_ratio,_("Keep Aspect Ratio when resize a Controller"));
     designer->aspect_ratio->parent_struct = designer;
 
+    designer->move_all = add_check_box(designer->w, _("  Move All"), 1020, 420, 180, 20);
+    tooltip_set_text(designer->move_all,_("Move all Controller of the same type"));
+    designer->move_all->parent_struct = designer;
+
 
     designer->grid_size_x = add_valuedisplay(designer->w, _("Grid X"), 125, 135, 40, 20);
     designer->grid_size_x->parent_struct = designer;
@@ -1977,7 +2077,7 @@ int main (int argc, char ** argv) {
     tooltip_set_text(designer->grid_size_y,_("Grid height"));
     designer->grid_size_y->func.value_changed_callback = set_grid_height;
 
-    designer->combobox_settings = create_widget(&app, designer->w, 1000, 410, 180, 200);
+    designer->combobox_settings = create_widget(&app, designer->w, 1000, 440, 180, 200);
     add_label(designer->combobox_settings, _("Add Combobox Entry"), 0, 0, 180, 30);
     designer->combobox_entry = add_input_box(designer->combobox_settings, 0, 0, 40, 140, 30);
     designer->combobox_entry->parent_struct = designer;
@@ -1995,7 +2095,7 @@ int main (int argc, char ** argv) {
     designer->add_entry->parent_struct = designer;
     designer->add_entry->func.value_changed_callback = add_combobox_entry;
 
-    designer->controller_settings = create_widget(&app, designer->w, 1000, 410, 180, 270);
+    designer->controller_settings = create_widget(&app, designer->w, 1000, 440, 180, 270);
     add_label(designer->controller_settings, _("Controller Settings"), 0, 0, 180, 30);
     const char* labels[4] = { "Min","Max","Default", "Step Size"};
     int k = 0;
@@ -2013,7 +2113,7 @@ int main (int argc, char ** argv) {
     tooltip_set_text(designer->global_knob_image,_("Use the Image loaded on one Knob for all Knobs"));
     designer->global_knob_image->parent_struct = designer;
 
-    designer->tabbox_settings = create_widget(&app, designer->w, 1000, 410, 180, 250);
+    designer->tabbox_settings = create_widget(&app, designer->w, 1000, 440, 180, 250);
     add_label(designer->tabbox_settings, _("Tab Box Settings"), 0, 0, 180, 30);
     designer->tabbox_entry[0] = add_button(designer->tabbox_settings, _("Add Tab"), 40, 40, 100, 30);
     designer->tabbox_entry[0]->parent_struct = designer;
