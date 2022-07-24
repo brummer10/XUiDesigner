@@ -48,7 +48,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             widget_show(new_wid);
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
-                controller_image_load_response(designer->ui, (void*) &designer->controls[new_wid->data].image);
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
                 free(designer->controls[designer->active_widget_num].image);
                 designer->controls[designer->active_widget_num].image = NULL;
             }
@@ -98,7 +98,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             widget_show(new_wid);
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
-                controller_image_load_response(designer->ui, (void*) &designer->controls[new_wid->data].image);
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
                 free(designer->controls[designer->active_widget_num].image);
                 designer->controls[designer->active_widget_num].image = NULL;
                 designer->active_widget_num = new_wid->data;
@@ -117,7 +117,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             widget_show(new_wid);
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
-                controller_image_load_response(designer->ui, (void*) &designer->controls[new_wid->data].image);
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
                 free(designer->controls[designer->active_widget_num].image);
                 designer->controls[designer->active_widget_num].image = NULL;
                 designer->active_widget_num = new_wid->data;
@@ -214,7 +214,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             widget_show(new_wid);
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
-                controller_image_load_response(designer->ui, (void*) &designer->controls[new_wid->data].image);
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
                 free(designer->controls[designer->active_widget_num].image);
                 designer->controls[designer->active_widget_num].image = NULL;
                 designer->active_widget_num = new_wid->data;

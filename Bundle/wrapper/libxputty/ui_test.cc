@@ -305,6 +305,7 @@ int main (int argc, char ** argv) {
     ui->win = create_window(&ui->main, DefaultRootWindow(ui->main.dpy), 0, 0, w, h);
     ui->win->parent_struct = ui;
     ui->win->label = plugin_set_name();
+    ui->win->flags |= DONT_PROPAGATE;
     widget_set_title(ui->win, ui->win->label);
     // connect the expose func
     ui->win->func.expose_callback = draw_window;

@@ -113,6 +113,14 @@ static void draw_ui(void *w_, void* user_data) {
         cairo_rectangle(w->crb, x, y, width, height);
         cairo_stroke(w->crb);        
     }
+    if (!designer->drag_icon.is_active && designer->multi_selected) {
+        use_frame_color_scheme(w, ACTIVE_);
+        static const double dashed3[] = {2.0};
+        cairo_set_dash(w->crb, dashed3, 1, 0);
+        cairo_rectangle(w->crb, designer->select_x, designer->select_y,
+                                designer->select_width-designer->select_x, designer->select_height-designer->select_y);
+        cairo_stroke(w->crb);
+    }
 }
 
 static void rounded_frame(cairo_t *cr,float x, float y, float w, float h, float lsize) {
@@ -639,15 +647,14 @@ static void fix_pos_for_all(XUiDesigner *designer, WidgetType is_type) {
             Widget_t *wi = designer->controls[i].wid;
             XWindowAttributes attrs;
             XGetWindowAttributes(wi->app->dpy, (Window)wi->widget, &attrs);
-            int x1 = attrs.x;
-            int y1 = attrs.y;
-            wi->x = x1;
-            wi->y = y1;            
+            wi->x = attrs.x;
+            wi->y = attrs.y;
+            widget_draw(wi, NULL);
         }
     }
 }
 
-static void move_all_for_type(XUiDesigner *designer, Widget_t *wid, WidgetType is_type, int x, int y) {
+static void move_all_for_type(XUiDesigner *designer, WidgetType is_type, int x, int y) {
     int i = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && designer->controls[i].is_type == is_type) {
@@ -753,8 +760,8 @@ static void set_x_axis_callback(void *w_, void* user_data) {
     if (designer->active_widget != NULL) {
         if (adj_get_value(designer->move_all->adj)) {
             designer->ui->flags |= DONT_PROPAGATE;
-            move_all_for_type(designer, designer->active_widget,
-                designer->controls[designer->active_widget_num].is_type, v - designer->active_widget->x, 0);
+            move_all_for_type(designer, designer->controls[designer->active_widget_num].is_type,
+                v - designer->active_widget->x, 0);
         } else {
             XMoveWindow(designer->active_widget->app->dpy,
                 designer->active_widget->widget,v, (int)adj_get_value(designer->y_axis->adj));
@@ -769,8 +776,8 @@ static void set_y_axis_callback(void *w_, void* user_data) {
     if (designer->active_widget != NULL) {
         if (adj_get_value(designer->move_all->adj)) {
             designer->ui->flags |= DONT_PROPAGATE;
-            move_all_for_type(designer, designer->active_widget,
-                designer->controls[designer->active_widget_num].is_type, 0, v - designer->active_widget->y);
+            move_all_for_type(designer, designer->controls[designer->active_widget_num].is_type,
+                0, v - designer->active_widget->y);
         } else {
             XMoveWindow(designer->active_widget->app->dpy,
                 designer->active_widget->widget, (int)adj_get_value(designer->x_axis->adj), v);
@@ -818,22 +825,119 @@ static void set_h_axis_callback(void *w_, void* user_data) {
     }
 }
 
+static int is_in_selection(XUiDesigner *designer, int x, int y) {
+    if (x > designer->select_x && x < designer->select_width && y >
+                designer->select_y && y < designer->select_height) {
+        return 1;
+    }
+    return 0;
+}
+
+static void fix_pos_for_selection(XUiDesigner *designer) {
+    int i = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL) {
+            Widget_t *wi = designer->controls[i].wid;
+            XWindowAttributes attrs;
+            XGetWindowAttributes(wi->app->dpy, (Window)wi->widget, &attrs);
+            if (is_in_selection(designer, attrs.x, attrs.y)) {
+                wi->x = attrs.x;
+                wi->y = attrs.y;
+                widget_draw(wi, NULL);
+            }
+        }
+    }
+}
+
+static void move_for_selection(XUiDesigner *designer, int x, int y) {
+    int i = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL ) {
+            Widget_t *wi = designer->controls[i].wid;
+            if (is_in_selection(designer, wi->x + x, wi->y + y)) {
+                int pos_x = wi->x + x;
+                int pos_y = wi->y + y;
+                XMoveWindow(wi->app->dpy, wi->widget, pos_x, pos_y);
+            }
+        }
+    }
+}
+
+static void move_selection(XUiDesigner *designer, XMotionEvent *xmotion) {
+    designer->ui->flags |= DONT_PROPAGATE;
+    bool moveit = false;
+    int pos_x = designer->select_sx + xmotion->x - designer->select_x2;
+    int pos_y = designer->select_sy + xmotion->y - designer->select_y2;
+    int pos_width = designer->select_width;
+    int snap_grid_x = pos_x/designer->grid_width;
+    int snap_grid_y = pos_y/designer->grid_height;
+    if (designer->grid_view) {
+        pos_x = snap_grid_x * designer->grid_width;
+        pos_y = snap_grid_y * designer->grid_height;
+        for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
+        if ((designer->select_width - designer->select_x) > designer->grid_width) {
+            pos_x += designer->grid_width - pos_width/2;
+        } else {
+            pos_x += designer->grid_width - pos_width * 2;
+        }
+        if (abs(pos_x - designer->select_x) >= designer->grid_width ||
+            abs(pos_y - designer->select_y) >= designer->grid_height) {
+            moveit = true;
+        }
+    } else {
+        moveit = true;
+    }
+    if (!moveit) return;
+    int move_x = pos_x - designer->select_x;
+    int move_y = pos_y - designer->select_y;
+    designer->select_x = pos_x;
+    designer->select_y = pos_y;
+    designer->select_width += move_x;
+    designer->select_height += move_y;
+    move_for_selection(designer, pos_x - designer->select_sx,
+        pos_y - designer->select_sy);
+}
+
+static void reset_selection(XUiDesigner *designer) {
+    designer->select_x = 0;
+    designer->select_y = 0;
+    designer->select_sx = 0;
+    designer->select_sy = 0;
+    designer->select_width = 0;
+    designer->select_height = 0;
+    designer->multi_selected = false;
+}
+
 static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    XMotionEvent *xmotion = (XMotionEvent*)xmotion_;
     if (adj_get_value(designer->widgets->adj)) {
-        XMotionEvent *xmotion = (XMotionEvent*)xmotion_;
         designer->drag_icon.x = w->x + xmotion->x - designer->drag_icon.w/2;
         designer->drag_icon.y = w->y + xmotion->y - designer->drag_icon.h/2;
         designer->drag_icon.is_active = true;
+        reset_selection(designer);
         widget_draw(designer->ui, NULL);
     } else {
         if (designer->drag_icon.is_active) {
             designer->drag_icon.is_active = false;
+            reset_selection(designer);
             widget_draw(designer->ui, NULL);
         }
+        if (((xmotion->state & Button1Mask) != 0)) {
+            if (!is_in_selection(designer, xmotion->x, xmotion->y)) {
+                designer->select_width = xmotion->x;
+                designer->select_height = xmotion->y;
+                designer->multi_selected = true;
+            } else if (designer->multi_selected) {
+                move_selection(designer, xmotion);
+            }
+            widget_draw(designer->ui, NULL);
+        } else {
+            designer->ui->flags &= ~DONT_PROPAGATE;
+        }
     }
-    designer->ui->flags &= ~DONT_PROPAGATE;
+    //designer->ui->flags &= ~DONT_PROPAGATE;
 }
 
 void move_wid(void *w_, void *xmotion_, void* user_data) {
@@ -852,7 +956,7 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
             int pos_x = w->x + x;
             int pos_y = w->y + y;
             if (adj_get_value(designer->move_all->adj)) {
-                move_all_for_type(designer, w, designer->controls[w->data].is_type, x, y);
+                move_all_for_type(designer, designer->controls[w->data].is_type, x, y);
             } else {
                 int pos_width = w->width;
                 int snap_grid_x = pos_x/designer->grid_width;
@@ -1172,6 +1276,21 @@ void move_tab(void *w_, void *xmotion_, void* user_data) {
     move_wid(p, xmotion_, user_data);
 }
 
+static void button_press_callback(void *w_, void *button_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    XButtonEvent *xbutton = (XButtonEvent*)button_;
+    if (!is_in_selection(designer, xbutton->x, xbutton->y)) {
+        designer->select_x = xbutton->x;
+        designer->select_y = xbutton->y;
+        designer->select_sx = xbutton->x;
+        designer->select_sy = xbutton->y;
+    } else if (designer->multi_selected) {
+        designer->select_x2 = xbutton->x;
+        designer->select_y2 = xbutton->y;
+    }
+}
+
 static void button_released_callback(void *w_, void *button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -1306,6 +1425,15 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 XLowerWindow(w->app->dpy, wid->widget);
             break;
             default:
+                if (!is_in_selection(designer, xbutton->x, xbutton->y)) {
+                    designer->select_width = xbutton->x;
+                    designer->select_height = xbutton->y;
+                    widget_draw(designer->ui, NULL);
+                } else if (designer->multi_selected) {
+                    fix_pos_for_selection(designer);
+                    designer->select_sx = designer->select_x;
+                    designer->select_sy = designer->select_y;
+                }
             break;
         }
         if (designer->controls[designer->active_widget_num].have_adjustment &&
@@ -1323,7 +1451,9 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
         designer->prev_active_widget = wid;
         widget_hide(designer->set_project);
     } else if(xbutton->button == Button3) {
+        reset_selection(designer);
         adj_set_value(designer->widgets->adj, 0);
+        widget_draw(designer->ui, NULL);
         if (designer->cursor) {
             XUndefineCursor (w->app->dpy, w->widget);
             XFreeCursor(designer->ui->app->dpy, designer->cursor);
@@ -1497,6 +1627,8 @@ static void parse_faust_file (XUiDesigner *designer, char* filename) {
                 set_controller_callbacks(designer, wid, true);
                 designer->controls[designer->active_widget_num].destignation_enabled = true;
                 add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+                if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
+                    load_single_controller_image(designer, designer->global_switch_image_file);
                 designer->prev_active_widget = wid;
                 p++;
             }
@@ -1846,6 +1978,7 @@ int main (int argc, char ** argv) {
     designer->drag_icon.y = 0;
     designer->drag_icon.h = 0;
     designer->drag_icon.is_active = false;
+    reset_selection(designer);
 
     designer->new_label = NULL;
     designer->new_label = (char **)malloc(MAX_CONTROLS * sizeof(char *));
@@ -1876,6 +2009,7 @@ int main (int argc, char ** argv) {
     //set_light_theme(&app);
     designer->w = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 1200, 800);
     designer->w->parent_struct = designer;
+    designer->w->flags |= DONT_PROPAGATE;
     widget_set_title(designer->w, _("XUiDesigner"));
     widget_set_icon_from_png(designer->w, designer->icon, LDVAR(gear_png));
     designer->w->func.expose_callback = draw_window;
@@ -1928,6 +2062,7 @@ int main (int argc, char ** argv) {
     designer->ui->parent_struct = designer;
     designer->ui->flags |= HIDE_ON_DELETE | NO_PROPAGATE;
     designer->ui->func.expose_callback = draw_ui;
+    designer->ui->func.button_press_callback = button_press_callback;
     designer->ui->func.button_release_callback = button_released_callback;
     designer->ui->func.enter_callback = set_cursor;
     designer->ui->func.leave_callback = unset_cursor;
@@ -2083,11 +2218,11 @@ int main (int argc, char ** argv) {
     designer->combobox_entry->parent_struct = designer;
     designer->combobox_entry->func.user_callback = set_combobox_entry;
 
-    designer->global_button_image = add_check_box(designer->w, _("Use Global Button Image"), 1000, 390, 180, 20);
+    designer->global_button_image = add_check_box(designer->w, _("Use Global Button Image"), 1000, 450, 180, 20);
     tooltip_set_text(designer->global_button_image,_("Use the Image loaded on one Button for all Buttons"));
     designer->global_button_image->parent_struct = designer;
 
-    designer->global_switch_image = add_check_box(designer->w, _("Use Global Switch Image"), 1000, 390, 180, 20);
+    designer->global_switch_image = add_check_box(designer->w, _("Use Global Switch Image"), 1000, 450, 180, 20);
     tooltip_set_text(designer->global_switch_image,_("Use the Image loaded on one Switch for all Switchs"));
     designer->global_switch_image->parent_struct = designer;
 
