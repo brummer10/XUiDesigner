@@ -20,6 +20,7 @@
 
 #include "XUiControllerType.h"
 #include "XUiGenerator.h"
+#include "XUiImageLoader.h"
 
 
 /*---------------------------------------------------------------------
@@ -81,6 +82,9 @@ void switch_controller_type(void *w_, void* user_data) {
             designer->controls[new_wid->data].image = NULL;
             widget_show(new_wid);
             designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
+                load_single_controller_image(designer, designer->global_knob_image_file);
         break;
         case 1:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -120,6 +124,9 @@ void switch_controller_type(void *w_, void* user_data) {
             designer->controls[new_wid->data].image = NULL;
             widget_show(new_wid);
             designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            if (designer->global_button_image_file != NULL && adj_get_value(designer->global_button_image->adj))
+                load_single_controller_image(designer, designer->global_button_image_file);
         break;
         case 4:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -133,6 +140,10 @@ void switch_controller_type(void *w_, void* user_data) {
             designer->controls[new_wid->data].image = NULL;
             widget_show(new_wid);
             designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            fprintf(stderr, "%i %i\n", designer->active_widget_num, new_wid->data);
+            if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
+                load_single_controller_image(designer, designer->global_switch_image_file);
         break;
         case 5:
             if (designer->controls[designer->active_widget_num].is_type == -1 ) {

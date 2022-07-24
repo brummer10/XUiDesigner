@@ -316,7 +316,7 @@ class Parser(object):
         vbargraph = re.compile(pre+r"addVerticalBargraph\(%s\);" % sargb).match
         hbargraph = re.compile(pre+r"addHorizontalBargraph\(%s\);" % sargb).match
         checkbutton = re.compile(pre+r"addCheckButton\(%s,\s*&%s\);" % (nm, vr)).match
-        checkbutton = re.compile(pre+r"addButton\(%s,\s*&%s\);" % (nm, vr)).match
+        button = re.compile(pre+r"addButton\(%s,\s*&%s\);" % (nm, vr)).match
         declare = re.compile(pre+r"declare\((?:&%s|0),\s*%s,\s*%s\);" % (vr, nm, nm)).match
         stack = []
         def make_name_int(mystack):
@@ -380,6 +380,13 @@ class Parser(object):
                 self.ui.add(vn, "value", m.groups()[2:])
                 continue
             m = checkbutton(line)
+            if m:
+                vn = m.group(2)
+                self.ui.add(vn, "type", "B")
+                self.ui.add(vn, "id", make_name(m.group(1)))
+                self.ui.add(vn, "value", ("0.0","0.0","1.0","1.0"))
+                continue
+            m = button(line)
             if m:
                 vn = m.group(2)
                 self.ui.add(vn, "type", "B")
