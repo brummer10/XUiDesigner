@@ -901,6 +901,8 @@ static void move_selection(XUiDesigner *designer, XMotionEvent *xmotion) {
 static void reset_selection(XUiDesigner *designer) {
     designer->select_x = 0;
     designer->select_y = 0;
+    designer->select_x2 = 0;
+    designer->select_y2 = 0;
     designer->select_sx = 0;
     designer->select_sy = 0;
     designer->select_width = 0;

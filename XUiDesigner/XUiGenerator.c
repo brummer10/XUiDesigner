@@ -287,8 +287,10 @@ void run_save(void *w_, void* user_data) {
             asprintf(&filename, "%s/XUiDesigner/wrapper/libxputty/lv2_plugin.h", SHARE_DIR);
             if (access(filename, F_OK) == 0) {
                 asprintf(&cmd, "cp %s/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", SHARE_DIR, filepath);
-            } else if (access("../libxputty/xputty/lv2_plugin/lv2_plugin.h", F_OK) == 0) {
-                asprintf(&cmd, "cp ../libxputty/xputty/lv2_plugin/lv2_plugin.* \'%s\'", filepath);
+            } else if (access("./Bundle/wrapper/libxputty/lv2_plugin.h", F_OK) == 0) {
+                asprintf(&cmd, "cp ./Bundle/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
+            } else if (access("../Bundle/wrapper/libxputty/lv2_plugin.h", F_OK) == 0) {
+                asprintf(&cmd, "cp ../Bundle/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
             } else {
                 open_message_dialog(designer->ui, ERROR_BOX, "",
                     "Fail to copy libxputty wrapper files", NULL);   
@@ -725,13 +727,42 @@ void run_test(void *w_, void* user_data) {
             //widget_hide(designer->ui);
             //widget_hide(designer->set_project);
             XFlush(designer->w->app->dpy);
-            int ret = system("cd /tmp/  && "
+
+            char* cmd = NULL;
+            char* filename = NULL;
+            char* filepath = NULL;
+            int ret = 1;
+            asprintf(&filename, "%s/XUiDesigner/wrapper/libxputty/ui_test.cc", SHARE_DIR);
+            if (access(filename, F_OK) == 0) {
+                asprintf(&filepath, "%s/XUiDesigner/wrapper/libxputty", SHARE_DIR);
+                ret = 0;
+            } else if (access("./Bundle/wrapper/libxputty/ui_test.cc", F_OK) == 0) {
+                ret = system("cp ./Bundle/wrapper/libxputty/ui_test.cc ./Bundle/wrapper/libxputty/lv2_plugin.h /tmp/");
+                if (!ret) asprintf(&filepath, "%s", "./");
+            } else if (access("../Bundle/wrapper/libxputty/ui_test.cc", F_OK) == 0) {
+                ret = system("cp ../Bundle/wrapper/libxputty/ui_test.cc ../Bundle/wrapper/libxputty/lv2_plugin.h /tmp/");
+                if (!ret) asprintf(&filepath, "%s", "./");
+            }
+            if (ret) {
+                open_message_dialog(designer->ui, ERROR_BOX, "",
+                    "Fail to copy libxputty wrapper files", NULL);   
+            }
+            free(filename);
+            filename = NULL;
+
+            asprintf(&cmd, "cd /tmp/  && "
                 "cc -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector "
                 "`pkg-config lilv-0 --cflags` test.c "
                 "-o uitest  -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ "
-                "-I/usr/share/XUiDesigner/wrapper/libxputty "
+                "-I%s "
                 "-Wl,-Bstatic `pkg-config --cflags --libs xputty` "
-                "-Wl,-Bdynamic `pkg-config --cflags --libs cairo x11 lilv-0` -lm ");
+                "-Wl,-Bdynamic `pkg-config --cflags --libs cairo x11 lilv-0` -lm ", filepath);
+
+            ret = system(cmd);
+            free(cmd);
+            cmd = NULL;
+            free(filepath);
+            filepath = NULL;
             if (!ret) {
                 ret = system("cd /tmp/  && ./uitest");
             }
