@@ -480,6 +480,7 @@ void print_plugin(XUiDesigner *designer) {
 
             "        if (ramp_down <= 0.0) {\n"
             "            // when ramped down, clear buffer from dsp\n"
+            "            %s"
             "            needs_ramp_down = false;\n"
             "            bypassed = true;\n"
             "            ramp_down = ramp_down_step;\n"
@@ -494,7 +495,8 @@ void print_plugin(XUiDesigner *designer) {
             "            if (ramp_up < ramp_up_step) {\n"
             "                ++ramp_up ;\n"
             "            }\n"
-            "            fade = min(ramp_up_step,ramp_up) /ramp_up_step ;\n");
+            "            fade = min(ramp_up_step,ramp_up) /ramp_up_step ;\n",
+            designer->is_faust_file ? "plugin->clear_state_f();\n" : "");
             i = 0;
             for (;i<designer->lv2c.audio_input;i++) {            
                 printf ("            %s[i] = %s[i] * fade + buf%i[i] * (1.0 - fade);\n",

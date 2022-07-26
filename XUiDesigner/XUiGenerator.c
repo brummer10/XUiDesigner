@@ -350,16 +350,12 @@ void run_save(void *w_, void* user_data) {
         int i = 0;
         int j = 0;
         bool have_image = false;
-        bool use_atom = false;
         for (;i<MAX_CONTROLS;i++) {
             if (designer->controls[i].wid != NULL) {
                 j++;
             }
             if (designer->controls[i].image) {
                 have_image = true;
-            }
-            if (designer->controls[i].is_atom_patch) {
-                use_atom = true;
             }
         }
         if (!j) {
