@@ -117,6 +117,7 @@ void print_makefile(XUiDesigner *designer) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].is_atom_patch) {
             use_atom = true;
+            break;
         }
     }
     if (!designer->generate_ui_only) {
@@ -334,6 +335,8 @@ void print_makefile(XUiDesigner *designer) {
     printf(cmd);
     free(cmd);
     cmd = NULL;
+    free(name);
+    name = NULL;
 }
 
 void run_save(void *w_, void* user_data) {
