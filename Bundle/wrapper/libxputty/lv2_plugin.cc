@@ -382,6 +382,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     // create the toplevel Window on the parentXwindow provided by the host
     ui->win = create_window(&ui->main, (Window)ui->parentXwindow, 0, 0, w, h);
     ui->win->parent_struct = ui;
+    ui->win->flags |= DONT_PROPAGATE;
     ui->win->label = plugin_set_name();
     // connect the expose func
     ui->win->func.expose_callback = draw_window;
@@ -482,11 +483,6 @@ static const LV2UI_Descriptor descriptors[] = {
 #endif
 };
 
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 LV2_SYMBOL_EXPORT
 const LV2UI_Descriptor* lv2ui_descriptor(uint32_t index) {
     if (index >= sizeof(descriptors) / sizeof(descriptors[0])) {
@@ -494,7 +490,4 @@ const LV2UI_Descriptor* lv2ui_descriptor(uint32_t index) {
     }
     return descriptors + index;
 }
-#ifdef __cplusplus
-}
-#endif
 

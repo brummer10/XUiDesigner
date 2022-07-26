@@ -1909,12 +1909,13 @@ int main (int argc, char ** argv) {
 #ifdef ENABLE_NLS
     // set Message type to locale to fetch localisation support
     setlocale (LC_MESSAGES, "");
-    // set Ctype to C to avoid symbol clashes from different locales
-    setlocale (LC_CTYPE, "C");
     bindtextdomain(GETTEXT_PACKAGE, LOCAL_DIR);
     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
     textdomain(GETTEXT_PACKAGE);
 #endif
+
+    // set Ctype to C to avoid symbol clashes from different locales
+    setlocale (LC_CTYPE, "C");
 
     extern char *optarg;
     char *path = NULL;

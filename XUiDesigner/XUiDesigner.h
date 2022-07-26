@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
+#include <locale.h>
 
 #include <lilv/lilv.h>
 #include "lv2/lv2plug.in/ns/ext/presets/presets.h"
