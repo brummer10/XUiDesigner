@@ -42,7 +42,8 @@
 	# set compile flags
 	LDFLAGS += -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../libxputty/libxputty/include/ \
 	`pkg-config --cflags --libs cairo x11 lilv-0` -lm
-	CXXFLAGS += -O3 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector -DSHARE_DIR=\"$(SHARE_DIR)\"
+	CXXFLAGS += -O3 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector -fno-ident \
+	-fno-asynchronous-unwind-tables -s -DNDEBUG -DSHARE_DIR=\"$(SHARE_DIR)\"
 	DEBUG_CXXFLAGS += -g -D DEBUG -DSHARE_DIR=\"$(SHARE_DIR)\"
 	# invoke build files
 	OBJECTS = $(wildcard *.c)

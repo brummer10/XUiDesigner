@@ -442,12 +442,12 @@ void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_des
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
     if (set_designer) {
         set_designer_callbacks(designer, wid);
+        widget_show_all(designer->ui);
     }
     designer->wid_counter++;
     Cursor c = XCreateFontCursor(wid->app->dpy, XC_hand2);
     XDefineCursor (wid->app->dpy, wid->widget, c);
     XFreeCursor(wid->app->dpy, c);
-    widget_show_all(designer->ui);
 }
 
 char *getUserName() {
@@ -1696,6 +1696,32 @@ static void parse_faust_file (XUiDesigner *designer, char* filename) {
     //print_plugin(designer);
 }
 
+static void parse_c_file (XUiDesigner *designer, char* filename) {
+    fprintf(stderr, "Parse C file\n");
+    char buf[128];
+    FILE *fp;
+    if((fp = fopen(filename, "r")) == NULL) {
+        printf("Error opening pipe!\n");
+        return;
+    }
+
+    designer->lv2c.audio_input = 0;
+    designer->lv2c.audio_output = 0;
+    while (fgets(buf, 128, fp) != NULL) {
+        if (strstr(buf, "input") != NULL) {
+            designer->lv2c.audio_input += 1;
+        } else if (strstr(buf, "output") != NULL) {
+            designer->lv2c.audio_output += 1;
+        }
+        fprintf(stderr, buf);
+    }
+  
+    if (pclose(fp)) {
+        printf("Command not found or exited with error status\n");
+        return;
+    }
+}
+
 static void dnd_load_response(void *w_, void* user_data) {
     if(user_data !=NULL) {
         Widget_t *w = (Widget_t*)w_;
@@ -1706,6 +1732,8 @@ static void dnd_load_response(void *w_, void* user_data) {
         while (dndfile != NULL) {
             if (strstr(dndfile, ".dsp") ) {
                 parse_faust_file (designer, dndfile);
+            } else if (strstr(dndfile, ".c") ) {
+                parse_c_file (designer, dndfile);
             }
             dndfile = strtok(NULL, "\r\n");
         }
