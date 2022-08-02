@@ -62,10 +62,6 @@ static void draw_systray(void *w_, void* user_data) {
 
 static void draw_ui(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    XWindowAttributes attrs;
-    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
-    int width = attrs.width;
-    int height = attrs.height;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     use_bg_color_scheme(w, NORMAL_);
     cairo_paint (w->crb);
@@ -77,23 +73,8 @@ static void draw_ui(void *w_, void* user_data) {
         widget_reset_scale(w);
     }
     if (designer->grid_view) {
-        cairo_set_line_width(w->crb, 1.0);
-        use_frame_color_scheme(w, INSENSITIVE_);
-        int i = 0;
-        cairo_move_to(w->crb, 0, 0);
-        for (;i<width;i +=designer->grid_width) {
-            cairo_move_to(w->crb, i, 0);
-            cairo_line_to(w->crb,i, height);
-            cairo_stroke_preserve(w->crb);
-        }
-        i = 0;
-        cairo_move_to(w->crb, 0, 0);
-        for (;i<height;i +=designer->grid_height) {
-            cairo_move_to(w->crb, 0, i);
-            cairo_line_to(w->crb,width, i);
-            cairo_stroke_preserve(w->crb);
-        }
-        cairo_stroke(w->crb);
+        cairo_set_source_surface (w->crb, designer->grid_image, 0, 0);
+        cairo_paint (w->crb);
     }
     if (designer->drag_icon.is_active) {
         use_shadow_color_scheme(w, SELECTED_);
@@ -2099,6 +2080,9 @@ int main (int argc, char ** argv) {
     designer->ui->func.leave_callback = unset_cursor;
     designer->ui->func.motion_callback = set_drag_icon;
     designer->ui->func.map_notify_callback = transparent_draw;
+    designer->grid_image = cairo_image_surface_create ( CAIRO_FORMAT_ARGB32,
+        DisplayWidth(app.dpy, DefaultScreen(app.dpy)), DisplayHeight(app.dpy, DefaultScreen(app.dpy)));
+    draw_grid(designer->ui, designer->grid_image);
 
     designer->widgets = add_combobox(designer->w, "", 20, 25, 120, 30);
     designer->widgets->scale.gravity = CENTER;
@@ -2347,6 +2331,7 @@ int main (int argc, char ** argv) {
         XFreePixmap(designer->w->app->dpy, (*designer->icon));
     }
     main_quit(&app);
+    cairo_surface_destroy(designer->grid_image);
     int i = 0;
     for (;i<MAX_CONTROLS; i++) {
         free(designer->new_label[i]);

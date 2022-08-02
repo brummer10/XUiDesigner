@@ -21,7 +21,8 @@ clean:
 
 libxputty: check-and-reinit-submodules
 ifneq ($(MAKECMDGOALS),debug)
-	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS) CFLAGS='-O3 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector'
+	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS) CFLAGS='-O3 -D_FORTIFY_SOURCE=2 -Wall \
+	-fstack-protector -fno-ident -fno-asynchronous-unwind-tables -s -DNDEBUG'
 else
 	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS)
 endif

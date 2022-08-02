@@ -248,6 +248,7 @@ typedef struct {
     Cursor cursor;
     Colors *selected_scheme;
     DragIcon drag_icon;
+    cairo_surface_t *grid_image;
     bool run_test;
     bool grid_view;
     bool is_project;

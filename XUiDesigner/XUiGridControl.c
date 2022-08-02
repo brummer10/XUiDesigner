@@ -27,6 +27,39 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+void draw_grid(Widget_t *w, cairo_surface_t *image) {
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;    
+    int width = cairo_image_surface_get_width(image);
+    int height = cairo_image_surface_get_height(image);
+
+    cairo_t *crb = cairo_create (image);
+    cairo_set_source_rgba(crb, 0.0, 0.0, 0.0, 0.0);
+    cairo_set_operator(crb,CAIRO_OPERATOR_CLEAR);
+    cairo_paint(crb);
+    cairo_set_operator(crb,CAIRO_OPERATOR_OVER);
+
+    Colors *c = get_color_scheme(w->app, INSENSITIVE_);
+    cairo_set_source_rgba(crb, c->frame[0],  c->frame[1], c->frame[2],  c->frame[3]);
+    cairo_set_line_width(crb, 1.0);
+
+    int i = 0;
+    cairo_move_to(crb, 0, 0);
+    for (;i<width;i +=designer->grid_width) {
+        cairo_move_to(crb, i, 0);
+        cairo_line_to(crb,i, height);
+        cairo_stroke_preserve(crb);
+    }
+    i = 0;
+    cairo_move_to(crb, 0, 0);
+    for (;i<height;i +=designer->grid_height) {
+        cairo_move_to(crb, 0, i);
+        cairo_line_to(crb,width, i);
+        cairo_stroke_preserve(crb);
+    }
+    cairo_stroke(crb);
+    cairo_destroy(crb);
+}
+
 void snap_to_grid(XUiDesigner *designer) {
     int ch = childlist_has_child(designer->ui->childlist);
     if (ch) {
@@ -65,6 +98,7 @@ void set_grid_width(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     designer->grid_width = (int)adj_get_value(w->adj);
+    draw_grid(designer->ui, designer->grid_image);
     snap_to_grid(designer);
 }
 
@@ -72,6 +106,7 @@ void set_grid_height(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     designer->grid_height = (int)adj_get_value(w->adj);
+    draw_grid(designer->ui, designer->grid_image);
     snap_to_grid(designer);
 }
 

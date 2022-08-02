@@ -42,6 +42,8 @@ void use_grid(void *w_, void* user_data);
 
 void select_grid_mode(void *w_, void* user_data);
 
+void draw_grid(Widget_t *w, cairo_surface_t *image);
+
 #ifdef __cplusplus
 }
 #endif
