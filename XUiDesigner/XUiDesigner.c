@@ -888,7 +888,7 @@ static void reset_selection(XUiDesigner *designer) {
     designer->select_sy = 0;
     designer->select_width = 0;
     designer->select_height = 0;
-    designer->multi_selected = false;
+    designer->multi_selected = 0;
 }
 
 static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
@@ -908,11 +908,12 @@ static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
             widget_draw(designer->ui, NULL);
         }
         if (((xmotion->state & Button1Mask) != 0)) {
-            if (!is_in_selection(designer, xmotion->x, xmotion->y)) {
+            if (!is_in_selection(designer, xmotion->x, xmotion->y) ||
+                                    designer->multi_selected == 1) {
                 designer->select_width = xmotion->x;
                 designer->select_height = xmotion->y;
-                designer->multi_selected = true;
-            } else if (designer->multi_selected) {
+                designer->multi_selected = 1;
+            } else if (designer->multi_selected == 2) {
                 move_selection(designer, xmotion);
             }
             widget_draw(designer->ui, NULL);
@@ -1268,7 +1269,8 @@ static void button_press_callback(void *w_, void *button_, void* user_data) {
         designer->select_y = xbutton->y;
         designer->select_sx = xbutton->x;
         designer->select_sy = xbutton->y;
-    } else if (designer->multi_selected) {
+        designer->multi_selected = 0;
+    } else if (designer->multi_selected == 2) {
         designer->select_x2 = xbutton->x;
         designer->select_y2 = xbutton->y;
     }
@@ -1411,8 +1413,9 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 if (!is_in_selection(designer, xbutton->x, xbutton->y)) {
                     designer->select_width = xbutton->x;
                     designer->select_height = xbutton->y;
+                    designer->multi_selected = 2;
                     widget_draw(designer->ui, NULL);
-                } else if (designer->multi_selected) {
+                } else if (designer->multi_selected == 2) {
                     fix_pos_for_selection(designer);
                     designer->select_sx = designer->select_x;
                     designer->select_sy = designer->select_y;

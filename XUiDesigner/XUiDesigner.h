@@ -254,7 +254,7 @@ typedef struct {
     bool is_project;
     bool is_faust_file;
     bool generate_ui_only;
-    bool multi_selected;
+    int multi_selected;
     int active_widget_num;
     int pos_x;
     int pos_y;
