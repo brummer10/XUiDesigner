@@ -849,6 +849,8 @@ static void move_selection(XUiDesigner *designer, XMotionEvent *xmotion) {
     bool moveit = false;
     int pos_x = designer->select_sx + xmotion->x - designer->select_x2;
     int pos_y = designer->select_sy + xmotion->y - designer->select_y2;
+    pos_x = max(1, min(designer->ui->width - (designer->select_width -designer->select_x) , pos_x));
+    pos_y = max(1, min(designer->ui->height - (designer->select_height - designer->select_y), pos_y));
     int pos_width = designer->select_width;
     int snap_grid_x = pos_x/designer->grid_width;
     int snap_grid_y = pos_y/designer->grid_height;
@@ -908,8 +910,8 @@ static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
             widget_draw(designer->ui, NULL);
         }
         if (((xmotion->state & Button1Mask) != 0)) {
-            if (!is_in_selection(designer, xmotion->x, xmotion->y) ||
-                                    designer->multi_selected == 1) {
+            if (!is_in_selection(designer, xmotion->x, xmotion->y) &&
+                                    designer->multi_selected < 2) {
                 designer->select_width = xmotion->x;
                 designer->select_height = xmotion->y;
                 designer->multi_selected = 1;
@@ -960,6 +962,8 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
                         pos_x += designer->grid_width - pos_width;
                     }
                 }
+                pos_x = max(1, min(designer->ui->width - w->width, pos_x));
+                pos_y = max(1, min(designer->ui->height - w->height, pos_y));
                 XMoveWindow(w->app->dpy,w->widget,pos_x, pos_y);
             }
             xevfunc store = designer->x_axis->func.value_changed_callback;
@@ -1410,7 +1414,8 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 XLowerWindow(w->app->dpy, wid->widget);
             break;
             default:
-                if (!is_in_selection(designer, xbutton->x, xbutton->y)) {
+                if (!is_in_selection(designer, xbutton->x, xbutton->y) &&
+                                            designer->multi_selected < 2) {
                     designer->select_width = xbutton->x;
                     designer->select_height = xbutton->y;
                     designer->multi_selected = 2;
