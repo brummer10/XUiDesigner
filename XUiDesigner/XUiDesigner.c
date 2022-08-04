@@ -631,6 +631,7 @@ static void fix_pos_for_all(XUiDesigner *designer, WidgetType is_type) {
             wi->x = attrs.x;
             wi->y = attrs.y;
             widget_draw(wi, NULL);
+            check_reparent(designer, NULL, wi);
         }
     }
 }
@@ -642,6 +643,8 @@ static void move_all_for_type(XUiDesigner *designer, WidgetType is_type, int x, 
             Widget_t *wi = designer->controls[i].wid;
             int pos_x = wi->x + x;
             int pos_y = wi->y + y;
+            pos_x = max(1, min(designer->ui->width - wi->width, pos_x));
+            pos_y = max(1, min(designer->ui->height - wi->height, pos_y));
             int pos_width = wi->width;
             int snap_grid_x = pos_x/designer->grid_width;
             int snap_grid_y = pos_y/designer->grid_height;
@@ -825,6 +828,7 @@ static void fix_pos_for_selection(XUiDesigner *designer) {
                 wi->x = attrs.x;
                 wi->y = attrs.y;
                 widget_draw(wi, NULL);
+                check_reparent(designer, NULL, wi);
             }
         }
     }
@@ -1163,6 +1167,7 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
     if(xbutton->button == Button1) {
         if (adj_get_value(designer->move_all->adj)) {
             fix_pos_for_all(designer, designer->controls[w->data].is_type);
+            return;
         }
         w->x = x;
         w->y = y;
@@ -1199,8 +1204,11 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
         }
         if (designer->controls[designer->active_widget_num].is_type != IS_FRAME &&
             designer->controls[designer->active_widget_num].is_type != IS_IMAGE &&
-            designer->controls[designer->active_widget_num].is_type != IS_TABBOX)
-            check_reparent(designer, xbutton, w);
+            designer->controls[designer->active_widget_num].is_type != IS_TABBOX) {
+                
+                check_reparent(designer, xbutton, w);
+                
+            }
         expose_widget(designer->ui);
     } else if(xbutton->button == Button3) {
         designer->modify_mod = XUI_NONE;

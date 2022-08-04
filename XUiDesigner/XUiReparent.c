@@ -34,11 +34,11 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
                                                 int x, int y, int width, int height) {
     designer->prev_active_widget = NULL;
     Widget_t *new_wid = NULL;
-    WidgetType tp = designer->controls[designer->active_widget_num].is_type;
+    WidgetType tp = designer->controls[wid->data].is_type;
         switch (tp) {
         case IS_KNOB:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_knob(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_knob(parent, designer->new_label[wid->data],
                                                                         x, y, width, height);
             copy_widget_settings(designer, wid, new_wid);
             new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
@@ -49,16 +49,16 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
                 load_single_controller_image(designer, designer->controls[new_wid->data].image);
-                free(designer->controls[designer->active_widget_num].image);
-                designer->controls[designer->active_widget_num].image = NULL;
+                free(designer->controls[wid->data].image);
+                designer->controls[wid->data].image = NULL;
             }
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
             designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_HSLIDER:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_hslider(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_hslider(parent, designer->new_label[wid->data],
                                                                         x, y, width, height);
             copy_widget_settings(designer, wid, new_wid);
             new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
@@ -73,8 +73,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_VSLIDER:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_vslider(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_vslider(parent, designer->new_label[wid->data],
                                                                         x, y, width, height);
             copy_widget_settings(designer, wid, new_wid);
             new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
@@ -89,8 +89,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_BUTTON:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_button(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_button(parent, designer->new_label[wid->data],
                                                                         x, y, width, height);
             copy_widget_settings(designer, wid, new_wid);
             add_to_list(designer, new_wid, "add_lv2_button", false, IS_BUTTON);
@@ -99,8 +99,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
                 load_single_controller_image(designer, designer->controls[new_wid->data].image);
-                free(designer->controls[designer->active_widget_num].image);
-                designer->controls[designer->active_widget_num].image = NULL;
+                free(designer->controls[wid->data].image);
+                designer->controls[wid->data].image = NULL;
                 designer->active_widget_num = new_wid->data;
             }
             designer->active_widget_num = new_wid->data;
@@ -108,8 +108,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_TOGGLE_BUTTON:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_toggle_button(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_toggle_button(parent, designer->new_label[wid->data],
                                                                         x, y, width, height);
             copy_widget_settings(designer, wid, new_wid);
             add_to_list(designer, new_wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
@@ -118,8 +118,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
                 load_single_controller_image(designer, designer->controls[new_wid->data].image);
-                free(designer->controls[designer->active_widget_num].image);
-                designer->controls[designer->active_widget_num].image = NULL;
+                free(designer->controls[wid->data].image);
+                designer->controls[wid->data].image = NULL;
                 designer->active_widget_num = new_wid->data;
             }
             designer->active_widget_num = new_wid->data;
@@ -127,8 +127,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_COMBOBOX:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_combobox(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_combobox(parent, designer->new_label[wid->data],
                                                                         x, y, width, height);
             copy_widget_settings(designer, wid, new_wid);
             add_to_list(designer, new_wid, "add_lv2_combobox", true, IS_COMBOBOX);
@@ -141,8 +141,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_VALUE_DISPLAY:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_valuedisplay(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_valuedisplay(parent, designer->new_label[wid->data],
                                                                         x, y, width, height);
             copy_widget_settings(designer, wid, new_wid);
             new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
@@ -157,8 +157,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_LABEL:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_label(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_label(parent, designer->new_label[wid->data],
                                                                         x, y, width, height);
             set_controller_callbacks(designer, new_wid, true);
             new_wid->data = wid->data;
@@ -173,8 +173,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_VMETER:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_vmeter(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_vmeter(parent, designer->new_label[wid->data],
                                                                 false, x, y, width, height);
             copy_widget_settings(designer, wid, new_wid);
             new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
@@ -189,8 +189,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_HMETER:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_hmeter(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_hmeter(parent, designer->new_label[wid->data],
                                                                 false, x, y, width, height);
             copy_widget_settings(designer, wid, new_wid);
             new_wid->adj->type = new_wid->adj->type == CL_LOGARITHMIC ? CL_LOGARITHMIC :
@@ -205,8 +205,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->controls[new_wid->data].in_tab = v;
         break;
         case IS_IMAGE_TOGGLE:
-            asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-            new_wid = add_switch_image_button(parent, designer->new_label[designer->active_widget_num],
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_switch_image_button(parent, designer->new_label[wid->data],
                                                                         x, y, width, height);
             copy_widget_settings(designer, wid, new_wid);
             add_to_list(designer, new_wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
@@ -215,8 +215,8 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
                 load_single_controller_image(designer, designer->controls[new_wid->data].image);
-                free(designer->controls[designer->active_widget_num].image);
-                designer->controls[designer->active_widget_num].image = NULL;
+                free(designer->controls[wid->data].image);
+                designer->controls[wid->data].image = NULL;
                 designer->active_widget_num = new_wid->data;
             }
             designer->active_widget_num = new_wid->data;
@@ -251,7 +251,10 @@ void check_reparent(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t *w) {
             int fwidth = attrs.width;
             int fheight = attrs.height;
             int v = 0;
-            if (x>fx && y>fy && x+width<fx+fwidth && y+height<fy+fheight) {
+            if (x>fx && y>fy && x+width<fx+fwidth && y+height<fy+fheight &&
+                    designer->controls[p->data].is_type != IS_FRAME &&
+                    designer->controls[p->data].is_type != IS_TABBOX &&
+                    designer->controls[p->data].is_type != IS_IMAGE) {
                 if (designer->controls[i].is_type == IS_TABBOX) {
                     v = (int)adj_get_value(designer->controls[i].wid->adj);
                     frame = designer->controls[i].wid->childlist->childs[v];
