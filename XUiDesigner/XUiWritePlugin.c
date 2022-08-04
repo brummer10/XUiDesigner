@@ -43,7 +43,7 @@ void print_plugin(XUiDesigner *designer) {
     "#include <iostream>\n"
     "#include <cstring>\n"
     "#include <unistd.h>\n\n"
-    "#include <lv2.h>\n\n");
+    "#include <lv2/lv2plug.in/ns/lv2core/lv2.h>");
     if (designer->lv2c.midi_input || designer->lv2c.midi_output) {
         printf ("#include <lv2/lv2plug.in/ns/ext/atom/atom.h>\n"
         "#include <lv2/lv2plug.in/ns/ext/atom/util.h>\n"
