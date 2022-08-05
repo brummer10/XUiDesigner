@@ -44,7 +44,10 @@ void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
                                     bool have_adjustment, WidgetType is_type);
 
 void print_list(XUiDesigner *designer);
+
 void print_makefile(XUiDesigner *designer);
+
+void show_list(XUiDesigner *designer);
 
 void run_test(void *w_, void* user_data);
 

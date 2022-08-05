@@ -839,7 +839,8 @@ static void move_for_selection(XUiDesigner *designer, int x, int y) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL ) {
             Widget_t *wi = designer->controls[i].wid;
-            if (is_in_selection(designer, wi->x + x, wi->y + y)) {
+            if (is_in_selection(designer, wi->x + x, wi->y + y) &&
+                wi->parent == designer->ui) {
                 int pos_x = wi->x + x;
                 int pos_y = wi->y + y;
                 XMoveWindow(wi->app->dpy, wi->widget, pos_x, pos_y);
@@ -1383,6 +1384,8 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 designer->controls[designer->wid_counter-1].port_index = -1;
                 add_to_list(designer, wid, "add_lv2_frame", false, IS_FRAME);
                 wid->parent_struct = designer;
+                free(designer->controls[wid->data].image);
+                designer->controls[wid->data].image = NULL;
                 wid->func.expose_callback = draw_frame;
                 wid->func.enter_callback = null_callback;
                 wid->func.leave_callback = null_callback;
@@ -1396,6 +1399,8 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 designer->controls[designer->wid_counter-1].port_index = -1;
                 add_to_list(designer, wid, "add_lv2_tabbox", false, IS_TABBOX);
                 wid->parent_struct = designer;
+                free(designer->controls[wid->data].image);
+                designer->controls[wid->data].image = NULL;
                 wid->func.expose_callback = draw_tabbox;
                 wid->func.enter_callback = null_callback;
                 wid->func.leave_callback = null_callback;
@@ -1416,6 +1421,8 @@ static void button_released_callback(void *w_, void *button_, void* user_data) {
                 designer->controls[designer->wid_counter-1].port_index = -1;
                 add_to_list(designer, wid, "add_lv2_image", false, IS_IMAGE);
                 wid->parent_struct = designer;
+                free(designer->controls[wid->data].image);
+                designer->controls[wid->data].image = NULL;
                 wid->func.expose_callback = draw_image;
                 wid->func.enter_callback = null_callback;
                 wid->func.leave_callback = null_callback;
@@ -1531,6 +1538,13 @@ static void run_exit(void *w_, void* user_data) {
     }
 }
 
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                save as LV2 bundle
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+
 static void run_save_as(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -1564,6 +1578,13 @@ static void ask_save_as(void *w_, void* user_data) {
     }
 }
 
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                filter LV2 plugins (show only UI-less
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+
 static void filter_plugin_ui(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && adj_get_value(w->adj_y)) {
@@ -1580,6 +1601,13 @@ static void filter_plugin_ui(void *w_, void* user_data) {
         combobox_set_active_entry(designer->lv2_names, 0);
     }
 }
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                load faust dsp file
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
 
 static void parse_faust_file (XUiDesigner *designer, char* filename) {
     char* cmd = NULL;

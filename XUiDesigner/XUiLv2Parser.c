@@ -43,6 +43,15 @@ void reset_plugin_ui(XUiDesigner *designer) {
     int ch = childlist_has_child(designer->ui->childlist);
     if (ch) {
         for(;ch>0;ch--) {
+            int cha = childlist_has_child(designer->ui->childlist->childs[ch-1]->childlist);
+            if (cha) {
+                Widget_t * w = designer->ui->childlist->childs[ch-1];
+                int i = cha;
+                for(;i>0;i--) {
+                    remove_from_list(designer, w->childlist->childs[i-1]);
+                    destroy_widget(w->childlist->childs[i-1],designer->ui->app);
+                }
+            }
             remove_from_list(designer, designer->ui->childlist->childs[ch-1]);
             destroy_widget(designer->ui->childlist->childs[ch-1],designer->ui->app);
         }

@@ -58,6 +58,19 @@ void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
     designer->controls[wid->data].type = type;
     designer->controls[wid->data].have_adjustment = have_adjustment;
     designer->controls[wid->data].is_type = is_type;
+    //show_list(designer);
+}
+
+void show_list(XUiDesigner *designer) {
+    int i = 0;
+    printf("### LIST START ###\n");
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].image != NULL ) {
+            printf("%s %s %i\n", designer->controls[i].type, designer->controls[i].image, i);
+        }
+    }
+    printf("### LIST END ###\n");
+
 }
 
 /*---------------------------------------------------------------------
