@@ -236,11 +236,12 @@ static void load_for_all_global(XUiDesigner *designer, WidgetType is_type, cairo
     }
 }
 
-void load_single_controller_image (XUiDesigner *designer, const char* filename) {
-    if (!designer->active_widget) return;
+void load_single_controller_image (XUiDesigner *designer, Widget_t *wid, const char* filename) {
+    //if (!designer->active_widget) return;
     if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON) {
         set_image_button(designer);
     }
+    char *tmp = strdup(filename);
     cairo_surface_t *getpng = NULL;
     if (strstr(filename, ".png")) {
         getpng = cairo_image_surface_create_from_png (filename);
@@ -263,8 +264,7 @@ void load_single_controller_image (XUiDesigner *designer, const char* filename) 
     expose_widget(designer->active_widget);
     free(designer->controls[designer->active_widget_num].image);
     designer->controls[designer->active_widget_num].image = NULL;
-    designer->controls[designer->active_widget_num].image = strdup(filename);
-    char *tmp = strdup(filename);
+    designer->controls[designer->active_widget_num].image = strdup(tmp);
     free(designer->image_path);
     designer->image_path = NULL;
     designer->image_path = strdup(dirname(tmp));

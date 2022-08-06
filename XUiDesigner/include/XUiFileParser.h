@@ -25,28 +25,19 @@
 
 #pragma once
 
-#ifndef XUIIMAGELOADER_H_
-#define XUIIMAGELOADER_H_
+#ifndef XUIFILEPARSER_H_
+#define XUIFILEPARSER_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-Widget_t *add_image_button(Widget_t *parent, int x, int y, int width, int height,
-                           const char *path, const char *filter);
+void parse_faust_file (XUiDesigner *designer, const char* filename);
 
-void image_load_response(void *w_, void* user_data);
-
-void unload_background_image(void *w_, void* user_data);
-
-void controller_image_load_response(void *w_, void* user_data);
-
-void pop_menu_response(void *w_, void* item_, void* user_data);
-
-void load_single_controller_image (XUiDesigner *designer, const char* filename);
+void dnd_load_response(void *w_, void* user_data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //XUIIMAGELOADER_H_
+#endif //XUIFILEPARSER_H_

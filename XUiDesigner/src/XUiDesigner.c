@@ -31,294 +31,13 @@
 #include "XUiWriteTurtle.h"
 #include "XUiTurtleView.h"
 #include "XUiWritePlugin.h"
+#include "XUiSystray.h"
+#include "XUiConfig.h"
+#include "XUiFileParser.h"
+#include "XUiDraw.h"
+#include "XUiMultiSelect.h"
+
 #include "xtabbox_private.h"
-
-
-/*---------------------------------------------------------------------
------------------------------------------------------------------------    
-                designer drawing calls
------------------------------------------------------------------------
-----------------------------------------------------------------------*/
-
-
-void draw_window(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    //use_bg_color_scheme(w, NORMAL_);
-    cairo_set_source_rgba(w->crb,  0.13, 0.13, 0.13, 1.0);
-    cairo_paint (w->crb);
-}
-
-static void draw_systray(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    use_bg_color_scheme(w, NORMAL_);
-    cairo_paint (w->crb);
-    if (w->image) {
-        widget_set_scale(w);
-        cairo_set_source_surface (w->crb, w->image, 0, 0);
-        cairo_mask_surface (w->crb, w->image, 0, 0);
-        widget_reset_scale(w);
-    }
-}
-
-static void draw_ui(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    use_bg_color_scheme(w, NORMAL_);
-    cairo_paint (w->crb);
-    cairo_paint (w->cr);
-    if (w->image) {
-        widget_set_scale(w);
-        cairo_set_source_surface (w->crb, w->image, 0, 0);
-        cairo_paint (w->crb);
-        widget_reset_scale(w);
-    }
-    if (designer->grid_view) {
-        cairo_set_source_surface (w->crb, designer->grid_image, 0, 0);
-        cairo_paint (w->crb);
-    }
-    if (designer->drag_icon.is_active) {
-        use_shadow_color_scheme(w, SELECTED_);
-        cairo_rectangle(w->crb, designer->drag_icon.x, designer->drag_icon.y,
-                                designer->drag_icon.w, designer->drag_icon.h);
-        cairo_fill(w->crb);
-    }
-    if (designer->active_widget && designer->active_widget->parent == w) {
-        XWindowAttributes attrs;
-        XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
-        int x = attrs.x -1;
-        int y = attrs.y -1;
-        int width = attrs.width +2;
-        int height = attrs.height +2;
-        cairo_set_line_width(w->crb, 1.0);
-        use_frame_color_scheme(w, ACTIVE_);
-        cairo_rectangle(w->crb, x, y, width, height);
-        cairo_stroke(w->crb);        
-    }
-    if (!designer->drag_icon.is_active && designer->multi_selected) {
-        use_frame_color_scheme(w, ACTIVE_);
-        static const double dashed3[] = {2.0};
-        cairo_set_dash(w->crb, dashed3, 1, 0);
-        cairo_rectangle(w->crb, designer->select_x, designer->select_y,
-                                designer->select_width-designer->select_x, designer->select_height-designer->select_y);
-        cairo_stroke(w->crb);
-    }
-}
-
-static void rounded_frame(cairo_t *cr,float x, float y, float w, float h, float lsize) {
-    cairo_new_path (cr);
-    float r = 20.0;
-    cairo_move_to(cr, x+lsize+r,y);
-    cairo_line_to(cr, x+w-r,y);
-    cairo_curve_to(cr, x+w,y,x+w,y,x+w,y+r);
-    cairo_line_to(cr, x+w,y+h-r);
-    cairo_curve_to(cr, x+w,y+h,x+w,y+h,x+w-r,y+h);
-    cairo_line_to(cr, x+r,y+h);
-    cairo_curve_to(cr, x,y+h,x,y+h,x,y+h-r);
-    cairo_line_to(cr, x,y+r);
-    cairo_curve_to(cr, x,y,x,y,x+r,y);
-}
-
-static void draw_frame(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
-    XWindowAttributes attrs;
-    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
-    int width_t = attrs.width;
-    int height_t = attrs.height;
-
-    if (w->image) {
-        int width = cairo_xlib_surface_get_width(w->image);
-        int height = cairo_xlib_surface_get_height(w->image);
-        double x = (double)width_t/(double)(width);
-        double y = (double)height_t/(double)height;
-        double x1 = (double)(width)/(double)width_t;
-        double y1 = (double)height/(double)height_t;
-        cairo_scale(w->crb, x,y);
-        cairo_set_source_surface (w->crb, w->image, 0, 0);
-        rounded_frame(w->crb, 5/x, 5/y, (width_t-10)/x, (height_t-10)/y, 0);
-        cairo_close_path (w->crb);
-        cairo_fill (w->crb);
-        cairo_scale(w->crb, x1,y1);
-    }
-
-    cairo_text_extents_t extents;
-    use_text_color_scheme(w, get_color_state(w));
-    cairo_set_font_size (w->crb, w->app->normal_font/w->scale.ascale);
-    cairo_text_extents(w->crb,w->label , &extents);
-    cairo_move_to (w->crb, 30, extents.height);
-    cairo_show_text(w->crb, w->label);
-    cairo_new_path (w->crb);
-
-    cairo_set_line_width(w->crb,3);
-    use_frame_color_scheme(w, INSENSITIVE_);
-    rounded_frame(w->crb, 5, 5, width_t-10, height_t-10, extents.width+10);
-    cairo_stroke(w->crb);
-
-    if (designer->active_widget && designer->active_widget->parent == w) {
-        XWindowAttributes attrs;
-        XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
-        int x = attrs.x -1;
-        int y = attrs.y -1;
-        int width = attrs.width +2;
-        int height = attrs.height +2;
-        cairo_set_line_width(w->crb, 1.0);
-        use_frame_color_scheme(w, ACTIVE_);
-        cairo_rectangle(w->crb, x, y, width, height);
-        cairo_stroke(w->crb);        
-    }
-}
-
-static void draw_image(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
-    XWindowAttributes attrs;
-    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
-    int width_t = attrs.width;
-    int height_t = attrs.height;
-
-    if (!w->image) {
-        cairo_text_extents_t extents;
-        use_base_color_scheme(w, get_color_state(w));
-        cairo_set_font_size (w->crb, w->app->big_font/w->scale.ascale);
-        cairo_text_extents(w->crb,"Missing Image" , &extents);
-        cairo_move_to (w->crb, (w->width -extents.width)*0.5, (w->height - extents.height)*0.5);
-        cairo_show_text(w->crb, "Missing Image");
-        cairo_new_path (w->crb);
-
-        cairo_set_line_width(w->crb,3);
-        rounded_frame(w->crb, 5, 5, width_t-10, height_t-10, 0);
-        cairo_stroke(w->crb);
-    }
-
-    if (w->image) {
-        int width = cairo_xlib_surface_get_width(w->image);
-        int height = cairo_xlib_surface_get_height(w->image);
-        double x = (double)width_t/(double)(width);
-        double y = (double)height_t/(double)height;
-        double x1 = (double)(width)/(double)width_t;
-        double y1 = (double)height/(double)height_t;
-        cairo_scale(w->crb, x,y);
-        cairo_set_source_surface (w->crb, w->image, 0, 0);
-        cairo_paint (w->crb);
-        cairo_scale(w->crb, x1,y1);
-    } 
-
-    if (designer->active_widget && designer->active_widget->parent == w) {
-        XWindowAttributes attrs;
-        XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
-        int x = attrs.x -1;
-        int y = attrs.y -1;
-        int width = attrs.width +2;
-        int height = attrs.height +2;
-        cairo_set_line_width(w->crb, 1.0);
-        use_frame_color_scheme(w, ACTIVE_);
-        cairo_rectangle(w->crb, x, y, width, height);
-        cairo_stroke(w->crb);        
-    }
-}
-
-static void rounded_box(cairo_t *cr,float x, float y, float w, float h, float lsize) {
-    cairo_new_path (cr);
-    float r = 10.0;
-    cairo_move_to(cr, x+lsize,y);
-    cairo_line_to(cr, x+w,y);
-    cairo_curve_to(cr, x+w,y,x+w,y,x+w,y);
-    cairo_line_to(cr, x+w,y+h-r);
-    cairo_curve_to(cr, x+w,y+h,x+w,y+h,x+w-r,y+h);
-    cairo_line_to(cr, x+r,y+h);
-    cairo_curve_to(cr, x,y+h,x,y+h,x,y+h-r);
-    cairo_line_to(cr, x,y+r);
-    cairo_curve_to(cr, x,y,x,y,x,y);
-}
-
-static void draw_tabbox(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
-    XWindowAttributes attrs;
-    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
-    int width_t = attrs.width;
-    int height_t = attrs.height;
-
-    cairo_set_source_surface (w->crb, p->buffer, -attrs.x, -attrs.y);
-    cairo_paint (w->crb);
-
-    int tabsize = 1;
-    int elem = w->childlist->elem;
-    if (elem) tabsize = width_t/elem;
-    int v = (int)adj_get_value(w->adj);
-
-    cairo_new_path (w->crb);
-    cairo_set_line_width(w->crb,1);
-    use_frame_color_scheme(w, NORMAL_);
-    rounded_box(w->crb, 1, 21, width_t-2, height_t-22, (v+1)*tabsize);
-    cairo_stroke(w->crb);
-
-    cairo_text_extents_t extents;
-    use_text_color_scheme(w, get_color_state(w));
-    cairo_set_font_size (w->crb, w->app->normal_font/w->scale.ascale);
-    int i = 0;
-    int t = 0;
-    for(;i<elem;i++) {
-        Widget_t *wi = w->childlist->childs[i];
-        if(v == i) {
-            cairo_move_to (w->crb, t+1, 21);
-            cairo_line_to(w->crb, t+1, 1);
-            cairo_line_to(w->crb, t+tabsize-1, 1);
-            cairo_line_to(w->crb, t+tabsize-1, 21);
-            use_frame_color_scheme(w, NORMAL_);
-            cairo_stroke(w->crb);
-            if (designer->active_widget && designer->active_widget->parent == wi) {
-                XWindowAttributes attrs;
-                XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
-                int x = attrs.x +1;
-                int y = attrs.y +20;
-                int width = attrs.width +2;
-                int height = attrs.height +2;
-                cairo_set_line_width(w->crb, 1.0);
-                use_frame_color_scheme(w, ACTIVE_);
-                cairo_rectangle(w->crb, x, y, width, height);
-                cairo_stroke(w->crb);        
-            }
-            use_text_color_scheme(w, ACTIVE_);
-            widget_show_all(wi);
-        } else {
-            use_bg_color_scheme(w, ACTIVE_);
-            cairo_rectangle(w->crb, t+2, 1, tabsize-4, 20);
-            cairo_fill_preserve(w->crb);
-            use_frame_color_scheme(w, NORMAL_);
-            cairo_stroke(w->crb);
-            use_text_color_scheme(w, INSENSITIVE_);
-            widget_hide(wi);
-        }
-
-        cairo_text_extents(w->crb,"Äy" , &extents);
-        cairo_move_to (w->crb, 5+t, 2+extents.height);
-        cairo_show_text(w->crb, wi->label);
-        cairo_new_path (w->crb);
-        t += tabsize;
-    }
-}
-
-static void draw_tab(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    draw_tabbox(p, NULL);
-}
-
-
-/*---------------------------------------------------------------------
------------------------------------------------------------------------    
-                designer dummy callback
------------------------------------------------------------------------
-----------------------------------------------------------------------*/
-
-
-static void null_callback(void *w_, void* user_data) {
-    
-}
 
 
 /*---------------------------------------------------------------------
@@ -599,17 +318,8 @@ static void set_widget_callback(void *w_, void* user_data) {
             designer->drag_icon.h = 10;
         break;
         case 11:
-            designer->drag_icon.w = 120;
-            designer->drag_icon.h = 120;
-        break;
         case 12:
-            designer->drag_icon.w = 120;
-            designer->drag_icon.h = 120;
-        break;
         case 13:
-            designer->drag_icon.w = 120;
-            designer->drag_icon.h = 120;
-        break;
         case 14:
             designer->drag_icon.w = 120;
             designer->drag_icon.h = 120;
@@ -620,104 +330,6 @@ static void set_widget_callback(void *w_, void* user_data) {
         break;
     }
  }
-
-static void fix_pos_for_all(XUiDesigner *designer, WidgetType is_type) {
-    int i = 0;
-    for (;i<MAX_CONTROLS;i++) {
-        if (designer->controls[i].wid != NULL && designer->controls[i].is_type == is_type) {
-            Widget_t *wi = designer->controls[i].wid;
-            XWindowAttributes attrs;
-            XGetWindowAttributes(wi->app->dpy, (Window)wi->widget, &attrs);
-            wi->x = attrs.x;
-            wi->y = attrs.y;
-            widget_draw(wi, NULL);
-            check_reparent(designer, NULL, wi);
-        }
-    }
-}
-
-static void move_all_for_type(XUiDesigner *designer, WidgetType is_type, int x, int y) {
-    int i = 0;
-    for (;i<MAX_CONTROLS;i++) {
-        if (designer->controls[i].wid != NULL && designer->controls[i].is_type == is_type) {
-            Widget_t *wi = designer->controls[i].wid;
-            int pos_x = wi->x + x;
-            int pos_y = wi->y + y;
-            pos_x = max(1, min(designer->ui->width - wi->width, pos_x));
-            pos_y = max(1, min(designer->ui->height - wi->height, pos_y));
-            int pos_width = wi->width;
-            int snap_grid_x = pos_x/designer->grid_width;
-            int snap_grid_y = pos_y/designer->grid_height;
-            if (designer->grid_view) {
-                pos_x = snap_grid_x * designer->grid_width;
-                pos_y = snap_grid_y * designer->grid_height;
-                if (designer->controls[wi->data].grid_snap_option == 1) {
-                    for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
-                    if (wi->width > designer->grid_width) {
-                        pos_x += designer->grid_width - pos_width/2;
-                    } else {
-                        pos_x += designer->grid_width - pos_width * 2;
-                    }
-                } else if (designer->controls[wi->data].grid_snap_option == 2) {
-                    for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
-                    pos_x += designer->grid_width - pos_width;
-                }
-            }
-            XMoveWindow(wi->app->dpy, wi->widget, pos_x, pos_y);
-        }
-    }
-}
-
-static void resize_all_for_type(XUiDesigner *designer, Widget_t *wi, WidgetType is_type, int w, int h) {
-    int i = 0;
-    for (;i<MAX_CONTROLS;i++) {
-        if (designer->controls[i].wid != NULL && designer->controls[i].is_type == is_type) {
-            Widget_t *wid = designer->controls[i].wid;
-            XResizeWindow(wi->app->dpy, wid->widget, max(10,wi->width + w), max(10,wi->height + h));
-            if (is_type == IS_TABBOX) {
-                int elem = wid->childlist->elem;
-                int i = 0;
-                for(;i<elem;i++) {
-                    Widget_t *win = wid->childlist->childs[i];
-                    XResizeWindow(wi->app->dpy, win->widget, max(10,win->width + w),
-                                                           max(10,win->height + h));
-                }
-            }
-            wid->scale.ascale = 1.0;
-        }
-    }
-}
-
-static void set_ratio(Widget_t *w) {
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (designer->active_widget == NULL) return;
-    XWindowAttributes attrs;
-    XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
-    if (attrs.map_state != IsViewable) return;
-    int width = attrs.width;
-    int height = attrs.height;
-    int v = 0;
-    if (w == designer->w_axis) {
-        v = adj_get_value(designer->w_axis->adj) - width;
-        xevfunc store = designer->h_axis->func.value_changed_callback;
-        designer->h_axis->func.value_changed_callback = null_callback;
-        adj_set_value(designer->h_axis->adj, adj_get_value(designer->h_axis->adj) + v);
-        designer->h_axis->func.value_changed_callback = store;
-    } else if (w == designer->h_axis) {
-        v = adj_get_value(designer->h_axis->adj) - height;
-        xevfunc store = designer->w_axis->func.value_changed_callback;
-        designer->w_axis->func.value_changed_callback = null_callback;
-        adj_set_value(designer->w_axis->adj, adj_get_value(designer->w_axis->adj) + v);
-        designer->w_axis->func.value_changed_callback = store;
-    }
-    if (adj_get_value(designer->resize_all->adj)) {
-        resize_all_for_type(designer, designer->active_widget,
-            designer->controls[designer->active_widget_num].is_type, v , v);
-    } else {
-        XResizeWindow(designer->active_widget->app->dpy, designer->active_widget->widget,
-            (int)adj_get_value(designer->w_axis->adj), (int)adj_get_value(designer->h_axis->adj));
-    }
-}
 
 void x_axis_release_callback(void *w_, void* button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
@@ -809,95 +421,6 @@ static void set_h_axis_callback(void *w_, void* user_data) {
     }
 }
 
-static int is_in_selection(XUiDesigner *designer, int x, int y) {
-    if (x > designer->select_x && x < designer->select_width && y >
-                designer->select_y && y < designer->select_height) {
-        return 1;
-    }
-    return 0;
-}
-
-static void fix_pos_for_selection(XUiDesigner *designer) {
-    int i = 0;
-    for (;i<MAX_CONTROLS;i++) {
-        if (designer->controls[i].wid != NULL) {
-            Widget_t *wi = designer->controls[i].wid;
-            XWindowAttributes attrs;
-            XGetWindowAttributes(wi->app->dpy, (Window)wi->widget, &attrs);
-            if (is_in_selection(designer, attrs.x, attrs.y)) {
-                wi->x = attrs.x;
-                wi->y = attrs.y;
-                widget_draw(wi, NULL);
-                check_reparent(designer, NULL, wi);
-            }
-        }
-    }
-}
-
-static void move_for_selection(XUiDesigner *designer, int x, int y) {
-    int i = 0;
-    for (;i<MAX_CONTROLS;i++) {
-        if (designer->controls[i].wid != NULL ) {
-            Widget_t *wi = designer->controls[i].wid;
-            if (is_in_selection(designer, wi->x + x, wi->y + y) &&
-                wi->parent == designer->ui) {
-                int pos_x = wi->x + x;
-                int pos_y = wi->y + y;
-                XMoveWindow(wi->app->dpy, wi->widget, pos_x, pos_y);
-            }
-        }
-    }
-}
-
-static void move_selection(XUiDesigner *designer, XMotionEvent *xmotion) {
-    designer->ui->flags |= DONT_PROPAGATE;
-    bool moveit = false;
-    int pos_x = designer->select_sx + xmotion->x - designer->select_x2;
-    int pos_y = designer->select_sy + xmotion->y - designer->select_y2;
-    pos_x = max(1, min(designer->ui->width - (designer->select_width -designer->select_x) , pos_x));
-    pos_y = max(1, min(designer->ui->height - (designer->select_height - designer->select_y), pos_y));
-    int pos_width = designer->select_width;
-    int snap_grid_x = pos_x/designer->grid_width;
-    int snap_grid_y = pos_y/designer->grid_height;
-    if (designer->grid_view) {
-        pos_x = snap_grid_x * designer->grid_width;
-        pos_y = snap_grid_y * designer->grid_height;
-        for (;pos_width > designer->grid_width; pos_width -=designer->grid_width);
-        if ((designer->select_width - designer->select_x) > designer->grid_width) {
-            pos_x += designer->grid_width - pos_width/2;
-        } else {
-            pos_x += designer->grid_width - pos_width * 2;
-        }
-        if (abs(pos_x - designer->select_x) >= designer->grid_width ||
-            abs(pos_y - designer->select_y) >= designer->grid_height) {
-            moveit = true;
-        }
-    } else {
-        moveit = true;
-    }
-    if (!moveit) return;
-    int move_x = pos_x - designer->select_x;
-    int move_y = pos_y - designer->select_y;
-    designer->select_x = pos_x;
-    designer->select_y = pos_y;
-    designer->select_width += move_x;
-    designer->select_height += move_y;
-    move_for_selection(designer, pos_x - designer->select_sx,
-        pos_y - designer->select_sy);
-}
-
-static void reset_selection(XUiDesigner *designer) {
-    designer->select_x = 0;
-    designer->select_y = 0;
-    designer->select_x2 = 0;
-    designer->select_y2 = 0;
-    designer->select_sx = 0;
-    designer->select_sy = 0;
-    designer->select_width = 0;
-    designer->select_height = 0;
-    designer->multi_selected = 0;
-}
-
 static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -915,8 +438,7 @@ static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
             widget_draw(designer->ui, NULL);
         }
         if (((xmotion->state & Button1Mask) != 0)) {
-            if (!is_in_selection(designer, xmotion->x, xmotion->y) &&
-                                    designer->multi_selected < 2) {
+            if (designer->multi_selected < 2) {
                 designer->select_width = xmotion->x;
                 designer->select_height = xmotion->y;
                 designer->multi_selected = 1;
@@ -1009,6 +531,10 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
             w->scale.ascale = 1.0;
             designer->pos_x = xmotion->x_root;
             designer->pos_y = xmotion->y_root;
+            if (designer->controls[w->data].is_type == IS_TABBOX ||
+                    designer->controls[w->data].is_type == IS_FRAME) {
+                expose_widget(designer->ui);
+            }
         break;
         case XUI_WIDTH:
             if (adj_get_value(designer->resize_all->adj)) {
@@ -1032,7 +558,10 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
             designer->w_axis->func.value_changed_callback = store;
             w->scale.ascale = 1.0;
             designer->pos_x = xmotion->x_root;
-            //expose_widget(designer->ui);
+            if (designer->controls[w->data].is_type == IS_TABBOX ||
+                    designer->controls[w->data].is_type == IS_FRAME) {
+                expose_widget(designer->ui);
+            }
         break;
         case XUI_HEIGHT:
             if (adj_get_value(designer->resize_all->adj)) {
@@ -1056,7 +585,10 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
             designer->h_axis->func.value_changed_callback = store;
             w->scale.ascale = 1.0;
             designer->pos_y = xmotion->y_root;
-            //expose_widget(designer->ui);
+            if (designer->controls[w->data].is_type == IS_TABBOX ||
+                    designer->controls[w->data].is_type == IS_FRAME) {
+                expose_widget(designer->ui);
+            }
         break;
         case XUI_NONE:
             if (xmotion->x > w->width-10 && xmotion->y > w->height-10 && is_curser != 1) {
@@ -1210,7 +742,7 @@ void fix_pos_wid(void *w_, void *button_, void* user_data) {
                 check_reparent(designer, xbutton, w);
                 
             }
-        expose_widget(designer->ui);
+        expose_widget(p);
     } else if(xbutton->button == Button3) {
         designer->modify_mod = XUI_NONE;
         designer->active_widget = (Widget_t*)w_;
@@ -1289,169 +821,31 @@ static void button_press_callback(void *w_, void *button_, void* user_data) {
     }
 }
 
-static void button_released_callback(void *w_, void *button_, void* user_data) {
+static void button_release_callback(void *w_, void *button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (designer->wid_counter >= MAX_CONTROLS) {
-        Widget_t *dia = open_message_dialog(w, INFO_BOX, _("INFO"), _("MAX CONTROL COUNTER OVERFLOW"),NULL);
+        Widget_t *dia = open_message_dialog(w, INFO_BOX, _("INFO"),
+                            _("MAX CONTROL COUNTER OVERFLOW"),NULL);
         XSetTransientForHint(w->app->dpy, dia->widget, w->widget);
         return;
     }
     //fprintf(stderr, "%i\n", designer->select_widget_num);
     XButtonEvent *xbutton = (XButtonEvent*)button_;
-    Widget_t *wid = NULL;
     if(xbutton->button == Button1) {
-        switch(designer->select_widget_num) {
-            case 1:
-                asprintf(&designer->controls[designer->wid_counter].name, "Knob%i", designer->wid_counter);
-                wid = add_knob(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-40, 60, 80);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
-                if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
-                    load_single_controller_image(designer, designer->global_knob_image_file);
-            break;
-            case 2:
-                asprintf(&designer->controls[designer->wid_counter].name, "HSlider%i", designer->wid_counter);
-                wid = add_hslider(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-15, 120, 30);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_hslider", true, IS_HSLIDER);
-            break;
-            case 3:
-                asprintf(&designer->controls[designer->wid_counter].name, "VSlider%i", designer->wid_counter);
-                wid = add_vslider(w, designer->controls[designer->wid_counter].name, xbutton->x-15, xbutton->y-60, 30, 120);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_vslider", true, IS_VSLIDER);
-            break;
-            case 4:
-                asprintf(&designer->controls[designer->wid_counter].name, "Button%i", designer->wid_counter);
-                wid = add_button(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-30, 60, 60);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
-                if (designer->global_button_image_file != NULL && adj_get_value(designer->global_button_image->adj))
-                    load_single_controller_image(designer, designer->global_button_image_file);
-            break;
-            case 5:
-                asprintf(&designer->controls[designer->wid_counter].name, "Switch%i", designer->wid_counter);
-                wid = add_toggle_button(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-30, 60, 60);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
-                if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
-                    load_single_controller_image(designer, designer->global_switch_image_file);
-            break;
-            case 6:
-                asprintf(&designer->controls[designer->wid_counter].name, "Combobox%i", designer->wid_counter);
-                wid = add_combobox(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-15, 120, 30);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
-            break;
-            case 7:
-                asprintf(&designer->controls[designer->wid_counter].name, "ValueDisply%i", designer->wid_counter);
-                wid = add_valuedisplay(w, "designer->controls[designer->wid_counter].name", xbutton->x-20, xbutton->y-15, 40, 30);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
-            break;
-            case 8:
-                asprintf(&designer->controls[designer->wid_counter].name, "Label%i", designer->wid_counter);
-                wid = add_label(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-15, 60, 30);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_label", false, IS_LABEL);
-            break;
-            case 9:
-                asprintf(&designer->controls[designer->wid_counter].name, "VMeter%i", designer->wid_counter);
-                wid = add_vmeter(w, designer->controls[designer->wid_counter].name, false, xbutton->x-5, xbutton->y-60, 10, 120);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
-            break;
-            case 10:
-                asprintf(&designer->controls[designer->wid_counter].name, "HMeter%i", designer->wid_counter);
-                wid = add_hmeter(w, designer->controls[designer->wid_counter].name, false, xbutton->x-60, xbutton->y-5, 120, 10);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
-            break;
-            case 11:
-                asprintf(&designer->controls[designer->wid_counter].name, "WaveView%i", designer->wid_counter);
-                wid = add_waveview(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
-                set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_waveview", false, IS_WAVEVIEW);
-                float v[9] = { 0.0,-0.5, 0.0, 0.5, 0.0, -0.5, 0.0, 0.5, 0.0};
-                update_waveview(wid, &v[0],9);
-            break;
-            case 12:
-                asprintf(&designer->controls[designer->wid_counter].name, "Frame%i", designer->wid_counter);
-                wid = add_frame(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
-                set_controller_callbacks(designer, wid, true);
-                adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
-                designer->controls[designer->wid_counter-1].port_index = -1;
-                add_to_list(designer, wid, "add_lv2_frame", false, IS_FRAME);
-                wid->parent_struct = designer;
-                free(designer->controls[wid->data].image);
-                designer->controls[wid->data].image = NULL;
-                wid->func.expose_callback = draw_frame;
-                wid->func.enter_callback = null_callback;
-                wid->func.leave_callback = null_callback;
-                XLowerWindow(w->app->dpy, wid->widget);
-            break;
-            case 13:
-                asprintf(&designer->controls[designer->wid_counter].name, "Tab%i", designer->wid_counter);
-                wid = add_tabbox(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
-                set_controller_callbacks(designer, wid, true);
-                adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
-                designer->controls[designer->wid_counter-1].port_index = -1;
-                add_to_list(designer, wid, "add_lv2_tabbox", false, IS_TABBOX);
-                wid->parent_struct = designer;
-                free(designer->controls[wid->data].image);
-                designer->controls[wid->data].image = NULL;
-                wid->func.expose_callback = draw_tabbox;
-                wid->func.enter_callback = null_callback;
-                wid->func.leave_callback = null_callback;
-                XLowerWindow(w->app->dpy, wid->widget);
-                Widget_t *tab = tabbox_add_tab(wid, "Tab 1");
-                tab->parent_struct = designer;
-                tab->func.expose_callback = draw_tab;
-                tab->func.button_press_callback = set_pos_tab;
-                tab->func.button_release_callback = fix_pos_tab;
-                tab->func.motion_callback = move_tab;
-            break;
-            case 14:
-                asprintf(&designer->controls[designer->wid_counter].name, "Image%i", designer->wid_counter);
-                wid = add_image(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
-                wid->label = designer->controls[designer->wid_counter].name;
-                set_controller_callbacks(designer, wid, true);
-                adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
-                designer->controls[designer->wid_counter-1].port_index = -1;
-                add_to_list(designer, wid, "add_lv2_image", false, IS_IMAGE);
-                wid->parent_struct = designer;
-                free(designer->controls[wid->data].image);
-                designer->controls[wid->data].image = NULL;
-                wid->func.expose_callback = draw_image;
-                wid->func.enter_callback = null_callback;
-                wid->func.leave_callback = null_callback;
-                XLowerWindow(w->app->dpy, wid->widget);
-            break;
-            default:
-                if (!is_in_selection(designer, xbutton->x, xbutton->y) &&
-                                            designer->multi_selected < 2) {
-                    designer->select_width = xbutton->x;
-                    designer->select_height = xbutton->y;
-                    designer->multi_selected = 2;
-                    widget_draw(designer->ui, NULL);
-                } else if (designer->multi_selected == 2) {
-                    fix_pos_for_selection(designer);
-                    designer->select_sx = designer->select_x;
-                    designer->select_sy = designer->select_y;
-                }
-            break;
-        }
-        if (designer->controls[designer->active_widget_num].have_adjustment &&
-                designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
-            widget_show_all(designer->controller_settings);
-            box_entry_set_value(designer->controller_entry[0], designer->active_widget->adj->min_value);
-            box_entry_set_value(designer->controller_entry[1], designer->active_widget->adj->max_value);
-            box_entry_set_value(designer->controller_entry[2], designer->active_widget->adj->std_value);
-            box_entry_set_value(designer->controller_entry[3], designer->active_widget->adj->step);
-
-        } else {
-            widget_hide(designer->controller_settings);
+        Widget_t *wid = NULL;
+        if ((wid = add_controller(designer, xbutton, wid)) == NULL) {
+            if (!is_in_selection(designer, xbutton->x, xbutton->y) &&
+                                        designer->multi_selected < 2) {
+                designer->select_width = xbutton->x;
+                designer->select_height = xbutton->y;
+                designer->multi_selected = 2;
+                widget_draw(designer->ui, NULL);
+            } else if (designer->multi_selected == 2) {
+                fix_pos_for_selection(designer);
+                designer->select_sx = designer->select_x;
+                designer->select_sy = designer->select_y;
+            }
         }
         hide_show_as_needed(designer);
         designer->prev_active_widget = wid;
@@ -1499,35 +893,6 @@ static void update_clabel(void *w_, void* user_data) {
         designer->active_widget->label = (const char*)designer->new_label[designer->active_widget_num];
     }
     expose_widget(designer->active_widget);
-}
-
-static void run_settings(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-        XWindowAttributes attrs;
-        XGetWindowAttributes(w->app->dpy, (Window)designer->set_project->widget, &attrs);
-        if (attrs.map_state != IsViewable) {
-            adj_set_value(designer->project_bypass->adj, (float)designer->lv2c.bypass);
-            adj_set_value(designer->project_audio_input->adj, (float)designer->lv2c.audio_input);
-            adj_set_value(designer->project_audio_output->adj, (float)designer->lv2c.audio_output);
-            adj_set_value(designer->project_midi_input->adj, (float)designer->lv2c.midi_input);
-            adj_set_value(designer->project_midi_output->adj, (float)designer->lv2c.midi_output);
-            widget_show_all(designer->set_project);
-            char *name = NULL;
-            XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
-            if (name != NULL)
-                box_entry_set_text(designer->project_title, name);
-            if (designer->lv2c.uri != NULL)
-                box_entry_set_text(designer->project_uri, designer->lv2c.uri);
-            if (designer->lv2c.ui_uri != NULL)
-                box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
-            if (designer->lv2c.author != NULL)
-                box_entry_set_text(designer->project_author, designer->lv2c.author);
-        } else {
-            widget_hide(designer->set_project);
-        }
-    }
 }
 
 static void run_exit(void *w_, void* user_data) {
@@ -1580,7 +945,7 @@ static void ask_save_as(void *w_, void* user_data) {
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
-                filter LV2 plugins (show only UI-less
+                filter LV2 plugins, show only UI-less
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
@@ -1601,326 +966,6 @@ static void filter_plugin_ui(void *w_, void* user_data) {
         combobox_set_active_entry(designer->lv2_names, 0);
     }
 }
-
-/*---------------------------------------------------------------------
------------------------------------------------------------------------    
-                load faust dsp file
------------------------------------------------------------------------
-----------------------------------------------------------------------*/
-
-
-static void parse_faust_file (XUiDesigner *designer, char* filename) {
-    char* cmd = NULL;
-    char* outname = strdup(filename);
-    strdecode(outname, ".dsp", ".cc");
-    if (access("./tools/dsp2cc", F_OK) == 0) {
-        asprintf(&cmd, "./tools/dsp2cc -d %s -b -o %s", filename, outname);
-    } else {
-        asprintf(&cmd, "dsp2cc -d %s -b -o %s", filename, outname);
-    }
-
-    int ret = system(cmd);
-    if (ret) {
-        open_message_dialog(designer->ui, ERROR_BOX, "",
-            "Fail to parse faust file", NULL);        
-        free(outname);
-        outname = NULL;
-        free(cmd);
-        cmd = NULL;
-        return;
-    }
-    asprintf(&designer->faust_file, "%s", outname);
-    free(cmd);
-    cmd = NULL;
-    char buf[128];
-    FILE *fp;
-    asprintf(&cmd, "cat %s | sed -n '/enum/,/PortIndex/p' |  sed '/enum/d;/PortIndex/d;/{/d;/}/d'", outname);
-    if((fp = popen(cmd, "r")) == NULL) {
-        printf("Error opening pipe!\n");
-        return;
-    }
-    int p = 1;
-    designer->lv2c.audio_input = 0;
-    designer->lv2c.audio_output = 0;
-    while (fgets(buf, 128, fp) != NULL) {
-        if (strstr(buf, "input") != NULL) {
-            designer->lv2c.audio_input += 1;
-        } else if (strstr(buf, "output") != NULL) {
-            designer->lv2c.audio_output += 1;
-        } else if (strstr(buf, "bypass") != NULL) {
-            designer->lv2c.bypass = 1;
-            if (designer->lv2c.bypass) {
-                Widget_t *wid = add_toggle_button(designer->ui, "Bypass", 60*p, 60, 60, 60);
-                set_controller_callbacks(designer, wid, true);
-                designer->controls[designer->active_widget_num].destignation_enabled = true;
-                add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
-                if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
-                    load_single_controller_image(designer, designer->global_switch_image_file);
-                designer->prev_active_widget = wid;
-                p++;
-            }
-        } else {
-            char *ptr = strtok(buf, ",");
-            strdecode(ptr, " ", "");
-            char *label;
-            float v[8] = {0,0,0,0};
-            int i = 0;
-            asprintf(&label, "%s", ptr);
-            while(ptr != NULL) {
-                ptr = strtok(NULL, ",");
-                if (ptr != NULL) {
-                    if (strstr(ptr, "//") == NULL) {
-                        v[i] = strtod(ptr, NULL);
-                        i++;
-                    }
-                }
-            }
-            
-            asprintf(&designer->controls[designer->wid_counter].name, "%s", label);
-            Widget_t *wid = add_knob(designer->ui, designer->controls[designer->wid_counter].name, 60*p + 10*p, 60, 60, 80);
-            set_adjustment(wid->adj, v[0], v[0], v[1], v[2], v[3], CL_CONTINUOS);
-            set_controller_callbacks(designer, wid, true);
-            tooltip_set_text(wid, wid->label);
-            add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
-            if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
-                load_single_controller_image(designer, designer->global_knob_image_file);
-            p++;
-
-            free(label);
-            label = NULL;
-        }
-        //printf("OUTPUT: %s", buf);
-    }
-    if (pclose(fp)) {
-        printf("Command not found or exited with error status\n");
-        return;
-    }
-    designer->ui->width = min(1200, 60 + 70*p);
-    designer->ui->height = 120;
-    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
-
-    strdecode(outname, ".cc", "");
-    widget_set_title(designer->ui,basename(outname));
-    free(designer->lv2c.ui_uri);
-    designer->lv2c.ui_uri = NULL;
-    asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), basename(outname),"_ui");
-    free(designer->lv2c.uri);
-    designer->lv2c.uri = NULL;
-    asprintf(&designer->lv2c.uri, "urn:%s:%s", getUserName(), basename(outname));
-    designer->is_faust_file = true;
-    free(cmd);
-    cmd = NULL;    
-    free(outname);
-    outname = NULL;
-    XWindowAttributes attrs;
-    XGetWindowAttributes(designer->ttlfile_view->app->dpy, (Window)designer->ttlfile_view->widget, &attrs);
-    if (attrs.map_state == IsViewable) {
-        run_generate_ttl(designer->ttlfile, NULL);
-    }
-    //print_ttl(designer);
-    //print_plugin(designer);
-}
-
-static void parse_c_file (XUiDesigner *designer, char* filename) {
-    fprintf(stderr, "Parse C file\n");
-    char buf[128];
-    FILE *fp;
-    if((fp = fopen(filename, "r")) == NULL) {
-        printf("Error opening pipe!\n");
-        return;
-    }
-
-    designer->lv2c.audio_input = 0;
-    designer->lv2c.audio_output = 0;
-    while (fgets(buf, 128, fp) != NULL) {
-        if (strstr(buf, "input") != NULL) {
-            designer->lv2c.audio_input += 1;
-        } else if (strstr(buf, "output") != NULL) {
-            designer->lv2c.audio_output += 1;
-        }
-        fprintf(stderr, buf);
-    }
-  
-    if (pclose(fp)) {
-        printf("Command not found or exited with error status\n");
-        return;
-    }
-}
-
-static void dnd_load_response(void *w_, void* user_data) {
-    if(user_data !=NULL) {
-        Widget_t *w = (Widget_t*)w_;
-        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-        reset_plugin_ui(designer);
-        char* dndfile = NULL;
-        dndfile = strtok(*(char**)user_data, "\r\n");
-        while (dndfile != NULL) {
-            if (strstr(dndfile, ".dsp") ) {
-                parse_faust_file (designer, dndfile);
-            } else if (strstr(dndfile, ".c") ) {
-                parse_c_file (designer, dndfile);
-            }
-            dndfile = strtok(NULL, "\r\n");
-        }
-    }
-}
-
-/*---------------------------------------------------------------------
------------------------------------------------------------------------    
-                systray responses
------------------------------------------------------------------------
-----------------------------------------------------------------------*/
-
-
-static void systray_menu_response(void *w_, void* item_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    switch (*(int*)item_) {
-        case 0:
-        {
-            const char* home = getenv("HOME");
-            Widget_t* tmp = open_directory_dialog(designer->ui, home);
-            Atom wmStateAbove = XInternAtom(w->app->dpy, "_NET_WM_STATE_ABOVE", 1 );
-            Atom wmNetWmState = XInternAtom(w->app->dpy, "_NET_WM_STATE", 1 );
-            XChangeProperty(w->app->dpy, tmp->widget, wmNetWmState, XA_ATOM, 32, 
-                PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
-            XSetTransientForHint(w->app->dpy, tmp->widget, designer->ui->widget);
-            designer->ui->func.dialog_callback = run_save;
-        }
-        break;
-        case 1:
-        {
-            widget_show_all(designer->set_project);
-            char *name = NULL;
-            XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
-            if (name != NULL)
-                box_entry_set_text(designer->project_title, name);
-            if (designer->lv2c.uri != NULL)
-                box_entry_set_text(designer->project_uri, designer->lv2c.uri);
-            if (designer->lv2c.ui_uri != NULL)
-                box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
-            if (designer->lv2c.author != NULL)
-                box_entry_set_text(designer->project_author, designer->lv2c.author);
-        }
-        break;
-        case 2:
-            quit(designer->w);
-        break;
-        default:
-        break;
-    }
-}
-
-static void systray_released(void *w_, void* button_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    XButtonEvent *xbutton = (XButtonEvent*)button_;
-    if (w->flags & HAS_POINTER) {
-        if (xbutton->button == Button1) {
-            XWindowAttributes attrs;
-            XGetWindowAttributes(w->app->dpy, (Window)designer->w->widget, &attrs);
-            if (attrs.map_state == IsViewable) {
-                if ((int)adj_get_value(designer->color_chooser->adj)) {
-                    adj_set_value(designer->color_chooser->adj, 0.0);
-                }
-                widget_hide(designer->w);
-                widget_hide(designer->ui);
-                widget_hide(designer->set_project);
-                XFlush(designer->w->app->dpy);
-            } else {
-                widget_show_all(designer->w);
-                widget_show_all(designer->ui);
-                hide_show_as_needed(designer);
-            }
-        } else if (xbutton->button == Button3) {
-            pop_menu_show(w,designer->systray_menu,3,true);
-        }
-    }
-}
-
-/*---------------------------------------------------------------------
------------------------------------------------------------------------    
-                save/load config file
------------------------------------------------------------------------
-----------------------------------------------------------------------*/
-
-
-static void save_config(XUiDesigner *designer) {
-    char* config_file = NULL;
-    asprintf(&config_file, "%s/.config/xuidesigner.conf", getenv("HOME"));
-    FILE *fpm;
-    if((fpm=freopen(config_file, "w" ,stdout))==NULL) {
-        printf("Error opening config file\n");
-        return;
-    }
-    if (designer->global_knob_image_file) {
-        printf("[Global Knob Image]=%s\n", designer->global_knob_image_file);
-    }
-    if (designer->global_button_image_file) {
-        printf("[Global Button Image]=%s\n", designer->global_button_image_file);
-    }
-    if (designer->global_switch_image_file) {
-        printf("[Global Switch Image]=%s\n", designer->global_switch_image_file);
-    }
-    printf("[Use Global Knob Image]=%f\n", adj_get_value(designer->global_knob_image->adj));
-    printf("[Use Global Button Image]=%f\n", adj_get_value(designer->global_button_image->adj));
-    printf("[Use Global Switch Image]=%f\n", adj_get_value(designer->global_switch_image->adj));
-    printf("[Keep Aspect Ratio]=%f\n", adj_get_value(designer->aspect_ratio->adj));
-    printf("[Use Global Size]=%f\n", adj_get_value(designer->resize_all->adj));
-    fclose(fpm);
-    free(config_file);
-}
-
-static void read_config(XUiDesigner *designer) {
-    char* config_file = NULL;
-    asprintf(&config_file, "%s/.config/xuidesigner.conf", getenv("HOME"));
-    FILE *fpm;
-    char buf[128];
-    if((fpm = fopen(config_file, "r")) == NULL) {
-        printf("Error opening config file!\n");
-        return;
-    }
-    while (fgets(buf, 128, fpm) != NULL) {
-        char *ptr = strtok(buf, "=");
-        while(ptr != NULL) {
-            if (strstr(ptr, "[Global Knob Image]") != NULL) {
-                free(designer->global_knob_image_file);
-                designer->global_knob_image_file = NULL;
-                ptr = strtok(NULL, "\n");
-                asprintf(&designer->global_knob_image_file, "%s", ptr);
-            } else if (strstr(ptr, "[Global Button Image]") != NULL) {
-                free(designer->global_button_image_file);
-                designer->global_button_image_file = NULL;
-                ptr = strtok(NULL, "\n");
-                asprintf(&designer->global_button_image_file, "%s", ptr);
-            } else if (strstr(ptr, "[Global Switch Image]") != NULL) {
-                free(designer->global_switch_image_file);
-                designer->global_switch_image_file = NULL;
-                ptr = strtok(NULL, "\n");
-                asprintf(&designer->global_switch_image_file, "%s", ptr);
-            } else if (strstr(ptr, "[Use Global Knob Image]") != NULL) {
-                ptr = strtok(NULL, "\n");
-                adj_set_value(designer->global_knob_image->adj, strtod(ptr, NULL));
-            } else if (strstr(ptr, "[Use Global Button Image]") != NULL) {
-                ptr = strtok(NULL, "\n");
-                adj_set_value(designer->global_button_image->adj, strtod(ptr, NULL));
-            } else if (strstr(ptr, "[Use Global Switch Image]") != NULL) {
-                ptr = strtok(NULL, "\n");
-                adj_set_value(designer->global_switch_image->adj, strtod(ptr, NULL));
-            } else if (strstr(ptr, "[Keep Aspect Ratio]") != NULL) {
-                ptr = strtok(NULL, "\n");
-                adj_set_value(designer->aspect_ratio->adj, strtod(ptr, NULL));
-            } else if (strstr(ptr, "[Use Global Size]") != NULL) {
-                ptr = strtok(NULL, "\n");
-                adj_set_value(designer->resize_all->adj, strtod(ptr, NULL));
-            }
-            ptr = strtok(NULL, "=");
-        }
-    }
-    fclose(fpm);
-    free(config_file);
-}
-
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -2073,12 +1118,7 @@ int main (int argc, char ** argv) {
     designer->w->func.dnd_notify_callback = dnd_load_response;
     designer->w->func.configure_notify_callback = win_configure_callback;
 
-    designer->systray = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 240, 240);
-    designer->systray->parent_struct = designer;
-    designer->systray->func.expose_callback = draw_systray;
-    widget_get_png(designer->systray, LDVAR(gear_png));
-    designer->systray->func.button_release_callback = systray_released;
-    send_systray_message(designer->systray);
+    create_systray_widget(designer, 0, 0, 240, 240);
 
     designer->world = lilv_world_new();
     if (path !=NULL) set_path(designer->world, path);
@@ -2119,7 +1159,7 @@ int main (int argc, char ** argv) {
     designer->ui->flags |= HIDE_ON_DELETE | NO_PROPAGATE;
     designer->ui->func.expose_callback = draw_ui;
     designer->ui->func.button_press_callback = button_press_callback;
-    designer->ui->func.button_release_callback = button_released_callback;
+    designer->ui->func.button_release_callback = button_release_callback;
     designer->ui->func.enter_callback = set_cursor;
     designer->ui->func.leave_callback = unset_cursor;
     designer->ui->func.motion_callback = set_drag_icon;
@@ -2315,13 +1355,6 @@ int main (int argc, char ** argv) {
     designer->tabbox_entry[1] = add_button(designer->tabbox_settings, _("Remove Tab"), 40, 80, 100, 30);
     designer->tabbox_entry[1]->parent_struct = designer;
     designer->tabbox_entry[1]->func.value_changed_callback = remove_tabbox_entry;
-
-    designer->systray_menu = create_menu(designer->w,25);
-    designer->systray_menu->parent_struct = designer;
-    menu_add_item(designer->systray_menu,_("Save as:"));
-    menu_add_item(designer->systray_menu,_("Setup Project"));
-    menu_add_item(designer->systray_menu,_("Quit"));
-    designer->systray_menu->func.button_release_callback = systray_menu_response;
 
     designer->context_menu = create_menu(designer->w,25);
     designer->context_menu->parent_struct = designer;

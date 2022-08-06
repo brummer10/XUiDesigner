@@ -32,6 +32,8 @@
 extern "C" {
 #endif
 
+void run_settings(void *w_, void* user_data);
+
 void create_project_settings_window(XUiDesigner *designer);
 
 void set_project_type_by_name (Widget_t *w, const char* name);

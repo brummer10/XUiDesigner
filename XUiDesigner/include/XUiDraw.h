@@ -25,19 +25,27 @@
 
 #pragma once
 
-#ifndef XUICONTROLLERTYPE_H_
-#define XUICONTROLLERTYPE_H_
+#ifndef XUIDRAW_H_
+#define XUIDRAW_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wid);
+void draw_window(void *w_, void* user_data);
 
-void switch_controller_type(void *w_, void* user_data);
+void draw_ui(void *w_, void* user_data);
+
+void draw_frame(void *w_, void* user_data);
+
+void draw_image(void *w_, void* user_data);
+
+void draw_tabbox(void *w_, void* user_data);
+
+void draw_tab(void *w_, void* user_data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //XUICONTROLLERTYPE_H_
+#endif //XUIDRAW_H_

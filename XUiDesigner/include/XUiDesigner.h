@@ -109,8 +109,10 @@ typedef enum {
 
 typedef struct {
     Widget_t * wid;
+    const char* type;
     char* image;
-    WidgetType is_type;
+    char* name;
+    char* symbol;
     uint32_t port_index;
     bool destignation_enabled;
     bool is_atom_patch;
@@ -119,13 +121,11 @@ typedef struct {
     bool is_atom_output;
     bool is_atom_input;
     bool have_adjustment;
+    WidgetType is_type;
     int grid_snap_option;
-    const char* type;
     int in_frame;
     int in_tab;
     int tab_box;
-    char* name;
-    char* symbol;
 } Controller;
 
 /*---------------------------------------------------------------------
@@ -148,6 +148,7 @@ typedef struct {
     int atom_output_port;
     int atom_input_port;
     int bypass;
+    int Port_Index;
     bool is_audio_port;
     bool is_input_port;
     bool is_output_port;
@@ -160,7 +161,6 @@ typedef struct {
     bool is_trigger_port;
     bool is_log_port;
     bool have_adjustment;
-    int Port_Index;
     float min;
     float max;
     float def;
@@ -191,8 +191,6 @@ typedef struct {
     Widget_t *prev_active_widget;
     Widget_t *w;
     Widget_t *ui;
-    Widget_t *systray;
-    Widget_t *systray_menu;
     Widget_t *settings;
     Widget_t *ttlfile;
     Widget_t *ttlfile_view;
@@ -254,6 +252,8 @@ typedef struct {
     bool is_project;
     bool is_faust_file;
     bool generate_ui_only;
+    bool run;
+    bool skipit;
     int multi_selected;
     int active_widget_num;
     int pos_x;
@@ -271,8 +271,6 @@ typedef struct {
     int grid_width;
     int grid_height;
     int modify_mod;
-    bool run;
-    bool skipit;
     int wid_counter;
     int select_widget_num;
     char** new_label;
@@ -286,8 +284,6 @@ typedef struct {
     LV2_CONTROLLER lv2c;
     Controller controls[MAX_CONTROLS];
 } XUiDesigner;
-
-void draw_window(void *w_, void* user_data);
 
 void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer);
 

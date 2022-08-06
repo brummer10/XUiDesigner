@@ -21,6 +21,19 @@
 #include "XUiControllerType.h"
 #include "XUiGenerator.h"
 #include "XUiImageLoader.h"
+#include "XUiDraw.h"
+
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                designer controller dummy callback
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+
+void null_callback(void *w_, void* user_data) {
+    
+}
 
 
 /*---------------------------------------------------------------------
@@ -84,7 +97,7 @@ void switch_controller_type(void *w_, void* user_data) {
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
-                load_single_controller_image(designer, designer->global_knob_image_file);
+                load_single_controller_image(designer, new_wid, designer->global_knob_image_file);
         break;
         case 1:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -126,7 +139,7 @@ void switch_controller_type(void *w_, void* user_data) {
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             if (designer->global_button_image_file != NULL && adj_get_value(designer->global_button_image->adj))
-                load_single_controller_image(designer, designer->global_button_image_file);
+                load_single_controller_image(designer, new_wid, designer->global_button_image_file);
         break;
         case 4:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -142,7 +155,7 @@ void switch_controller_type(void *w_, void* user_data) {
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
-                load_single_controller_image(designer, designer->global_switch_image_file);
+                load_single_controller_image(designer, new_wid, designer->global_switch_image_file);
         break;
         case 5:
             if (designer->controls[designer->active_widget_num].is_type == -1 ) {
@@ -215,5 +228,140 @@ void switch_controller_type(void *w_, void* user_data) {
         default:
         break;
     }
-    
+}
+
+Widget_t *add_controller(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t *wid) {
+    Widget_t *w = designer->ui;
+    switch(designer->select_widget_num) {
+        case 1:
+            asprintf(&designer->controls[designer->wid_counter].name, "Knob%i", designer->wid_counter);
+            wid = add_knob(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-40, 60, 80);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
+            if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
+                load_single_controller_image(designer, wid, designer->global_knob_image_file);
+        break;
+        case 2:
+            asprintf(&designer->controls[designer->wid_counter].name, "HSlider%i", designer->wid_counter);
+            wid = add_hslider(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-15, 120, 30);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_hslider", true, IS_HSLIDER);
+        break;
+        case 3:
+            asprintf(&designer->controls[designer->wid_counter].name, "VSlider%i", designer->wid_counter);
+            wid = add_vslider(w, designer->controls[designer->wid_counter].name, xbutton->x-15, xbutton->y-60, 30, 120);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_vslider", true, IS_VSLIDER);
+        break;
+        case 4:
+            asprintf(&designer->controls[designer->wid_counter].name, "Button%i", designer->wid_counter);
+            wid = add_button(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-30, 60, 60);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
+            if (designer->global_button_image_file != NULL && adj_get_value(designer->global_button_image->adj))
+                load_single_controller_image(designer, wid, designer->global_button_image_file);
+        break;
+        case 5:
+            asprintf(&designer->controls[designer->wid_counter].name, "Switch%i", designer->wid_counter);
+            wid = add_toggle_button(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-30, 60, 60);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+            if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
+                load_single_controller_image(designer, wid, designer->global_switch_image_file);
+        break;
+        case 6:
+            asprintf(&designer->controls[designer->wid_counter].name, "Combobox%i", designer->wid_counter);
+            wid = add_combobox(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-15, 120, 30);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
+        break;
+        case 7:
+            asprintf(&designer->controls[designer->wid_counter].name, "ValueDisply%i", designer->wid_counter);
+            wid = add_valuedisplay(w, "designer->controls[designer->wid_counter].name", xbutton->x-20, xbutton->y-15, 40, 30);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
+        break;
+        case 8:
+            asprintf(&designer->controls[designer->wid_counter].name, "Label%i", designer->wid_counter);
+            wid = add_label(w, designer->controls[designer->wid_counter].name, xbutton->x-30, xbutton->y-15, 60, 30);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_label", false, IS_LABEL);
+        break;
+        case 9:
+            asprintf(&designer->controls[designer->wid_counter].name, "VMeter%i", designer->wid_counter);
+            wid = add_vmeter(w, designer->controls[designer->wid_counter].name, false, xbutton->x-5, xbutton->y-60, 10, 120);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
+        break;
+        case 10:
+            asprintf(&designer->controls[designer->wid_counter].name, "HMeter%i", designer->wid_counter);
+            wid = add_hmeter(w, designer->controls[designer->wid_counter].name, false, xbutton->x-60, xbutton->y-5, 120, 10);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
+        break;
+        case 11:
+            asprintf(&designer->controls[designer->wid_counter].name, "WaveView%i", designer->wid_counter);
+            wid = add_waveview(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
+            set_controller_callbacks(designer, wid, true);
+            add_to_list(designer, wid, "add_lv2_waveview", false, IS_WAVEVIEW);
+            float v[9] = { 0.0,-0.5, 0.0, 0.5, 0.0, -0.5, 0.0, 0.5, 0.0};
+            update_waveview(wid, &v[0],9);
+        break;
+        case 12:
+            asprintf(&designer->controls[designer->wid_counter].name, "Frame%i", designer->wid_counter);
+            wid = add_frame(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
+            set_controller_callbacks(designer, wid, true);
+            adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
+            designer->controls[designer->wid_counter-1].port_index = -1;
+            add_to_list(designer, wid, "add_lv2_frame", false, IS_FRAME);
+            wid->parent_struct = designer;
+            free(designer->controls[wid->data].image);
+            designer->controls[wid->data].image = NULL;
+            wid->func.expose_callback = draw_frame;
+            wid->func.enter_callback = null_callback;
+            wid->func.leave_callback = null_callback;
+            XLowerWindow(w->app->dpy, wid->widget);
+        break;
+        case 13:
+            asprintf(&designer->controls[designer->wid_counter].name, "Tab%i", designer->wid_counter);
+            wid = add_tabbox(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
+            set_controller_callbacks(designer, wid, true);
+            adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
+            designer->controls[designer->wid_counter-1].port_index = -1;
+            add_to_list(designer, wid, "add_lv2_tabbox", false, IS_TABBOX);
+            wid->parent_struct = designer;
+            free(designer->controls[wid->data].image);
+            designer->controls[wid->data].image = NULL;
+            wid->func.expose_callback = draw_tabbox;
+            wid->func.enter_callback = null_callback;
+            wid->func.leave_callback = null_callback;
+            XLowerWindow(w->app->dpy, wid->widget);
+            Widget_t *tab = tabbox_add_tab(wid, "Tab 1");
+            tab->parent_struct = designer;
+            tab->func.expose_callback = draw_tab;
+            tab->func.button_press_callback = set_pos_tab;
+            tab->func.button_release_callback = fix_pos_tab;
+            tab->func.motion_callback = move_tab;
+        break;
+        case 14:
+            asprintf(&designer->controls[designer->wid_counter].name, "Image%i", designer->wid_counter);
+            wid = add_image(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-60, 120, 120);
+            wid->label = designer->controls[designer->wid_counter].name;
+            set_controller_callbacks(designer, wid, true);
+            adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
+            designer->controls[designer->wid_counter-1].port_index = -1;
+            add_to_list(designer, wid, "add_lv2_image", false, IS_IMAGE);
+            wid->parent_struct = designer;
+            free(designer->controls[wid->data].image);
+            designer->controls[wid->data].image = NULL;
+            wid->func.expose_callback = draw_image;
+            wid->func.enter_callback = null_callback;
+            wid->func.leave_callback = null_callback;
+            XLowerWindow(w->app->dpy, wid->widget);
+        break;
+        default:
+            return NULL;
+        break;
+    }
+    return wid;
 }

@@ -23,6 +23,7 @@
 #include "XUiGenerator.h"
 #include "XUiTextInput.h"
 #include "XUiWritePlugin.h"
+#include "XUiDraw.h"
 
 
 static void set_project_title(void *w_, void* user_data) {
@@ -125,7 +126,6 @@ static void set_project_bypass_switch(void *w_, void* user_data) {
     }
 }
 
-
 static void set_project(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -144,7 +144,6 @@ static void set_project(void *w_, void* user_data) {
     }
 }
 
-
 void set_project_type_by_name (Widget_t *w, const char* name) {
     Widget_t* menu =  w->childlist->childs[1];
     Widget_t* view_port =  menu->childlist->childs[0];
@@ -158,6 +157,34 @@ void set_project_type_by_name (Widget_t *w, const char* name) {
     }
 }
 
+void run_settings(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        XWindowAttributes attrs;
+        XGetWindowAttributes(w->app->dpy, (Window)designer->set_project->widget, &attrs);
+        if (attrs.map_state != IsViewable) {
+            adj_set_value(designer->project_bypass->adj, (float)designer->lv2c.bypass);
+            adj_set_value(designer->project_audio_input->adj, (float)designer->lv2c.audio_input);
+            adj_set_value(designer->project_audio_output->adj, (float)designer->lv2c.audio_output);
+            adj_set_value(designer->project_midi_input->adj, (float)designer->lv2c.midi_input);
+            adj_set_value(designer->project_midi_output->adj, (float)designer->lv2c.midi_output);
+            widget_show_all(designer->set_project);
+            char *name = NULL;
+            XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
+            if (name != NULL)
+                box_entry_set_text(designer->project_title, name);
+            if (designer->lv2c.uri != NULL)
+                box_entry_set_text(designer->project_uri, designer->lv2c.uri);
+            if (designer->lv2c.ui_uri != NULL)
+                box_entry_set_text(designer->project_ui_uri, designer->lv2c.ui_uri);
+            if (designer->lv2c.author != NULL)
+                box_entry_set_text(designer->project_author, designer->lv2c.author);
+        } else {
+            widget_hide(designer->set_project);
+        }
+    }
+}
 
 void create_project_settings_window(XUiDesigner *designer) {
     Atom wmStateAbove = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE_ABOVE", 1 );

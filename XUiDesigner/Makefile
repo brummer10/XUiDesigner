@@ -38,15 +38,16 @@
 	PIXMAPS_DIR ?= $(SHARE_DIR)/pixmaps
 	MAN_DIR ?= $(SHARE_DIR)/man/man1
 	LOCAL_DIR ?= $(SHARE_DIR)/locale
+	SOURCE_DIR := ./src/
 
 	# set compile flags
-	LDFLAGS += -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./ -I../libxputty/libxputty/include/ \
+	LDFLAGS += -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./include/ -I../libxputty/libxputty/include/ \
 	`pkg-config --cflags --libs cairo x11 lilv-0` -lm
 	CXXFLAGS += -O3 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector -fno-ident \
 	-fno-asynchronous-unwind-tables -s -DNDEBUG -DSHARE_DIR=\"$(SHARE_DIR)\"
 	DEBUG_CXXFLAGS += -g -D DEBUG -DSHARE_DIR=\"$(SHARE_DIR)\"
 	# invoke build files
-	OBJECTS = $(wildcard *.c)
+	OBJECTS = $(wildcard $(SOURCE_DIR)*.c)
 	LOCALIZE = $(LOCALIZE_DIR)xfile-dialog.c $(LOCALIZE_DIR)xmessage-dialog.c $(LOCALIZE_DIR)xsavefile-dialoge.c
 	## output style (bash colours)
 	BLUE = "\033[1;34m"
