@@ -40,6 +40,10 @@ Most Control widgets could be replaced with images you could select from a inclu
 
 XUIDesigner have a test-mode as well, which will build and run the created GUI, and give some useful information out in the terminal.
 
+## Workflow
+Here is a short introducion 
+[Wiki](https://github.com/brummer10/XUiDesigner/wiki/XUiDesigner)
+
 ## Currently supported widget types
 
  - Knob          -> support horizontal framed png
