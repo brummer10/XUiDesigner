@@ -78,9 +78,9 @@ void hide_show_as_needed(XUiDesigner *designer) {
             designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
         widget_hide(designer->tabbox_settings);
         widget_show_all(designer->controller_settings);
-        box_entry_set_value(designer->controller_entry[0], designer->active_widget->adj->min_value);
-        box_entry_set_value(designer->controller_entry[1], designer->active_widget->adj->max_value);
-        box_entry_set_value(designer->controller_entry[2], designer->active_widget->adj->std_value);
+        box_entry_set_value(designer->controller_entry[0], adj_get_min_value(designer->active_widget->adj));
+        box_entry_set_value(designer->controller_entry[1], adj_get_max_value(designer->active_widget->adj));
+        box_entry_set_value(designer->controller_entry[2], adj_get_std_value(designer->active_widget->adj));
         box_entry_set_value(designer->controller_entry[3], designer->active_widget->adj->step);
     } else if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
         widget_hide(designer->controller_settings);
@@ -217,16 +217,16 @@ static void set_controller_adjustment(void *w_, void* UNUSED(user_data)) {
         if (designer->controls[designer->active_widget_num].have_adjustment) {
             TextBox_t *text_box = (TextBox_t*)designer->controller_entry[0]->private_struct;
             if (strlen(text_box->input_label)>1) {
-                designer->active_widget->adj->min_value = atof(text_box->input_label);
+                adj_set_min_value(designer->active_widget->adj, atof(text_box->input_label));
             }
             text_box = (TextBox_t*)designer->controller_entry[1]->private_struct;
             if (strlen(text_box->input_label)>1) {
-                designer->active_widget->adj->max_value = atof(text_box->input_label);
+                adj_set_max_value(designer->active_widget->adj, atof(text_box->input_label));
             }
             text_box = (TextBox_t*)designer->controller_entry[2]->private_struct;
             if (strlen(text_box->input_label)>1) {
-                designer->active_widget->adj->value = atof(text_box->input_label);
-                designer->active_widget->adj->std_value = atof(text_box->input_label);
+                adj_set_value(designer->active_widget->adj, atof(text_box->input_label));
+                adj_set_std_value(designer->active_widget->adj, atof(text_box->input_label));
             }
             text_box = (TextBox_t*)designer->controller_entry[3]->private_struct;
             if (strlen(text_box->input_label)>1) {

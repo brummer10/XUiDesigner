@@ -123,8 +123,8 @@ void print_ttl(XUiDesigner *designer) {
                     printf(" ;\n"
                            "        lv2:default %f ;\n"
                            "        lv2:minimum %f ;\n"
-                           "        lv2:maximum %f .\n", wid->adj->std_value,
-                                    wid->adj->min_value, wid->adj->max_value);
+                           "        lv2:maximum %f .\n", adj_get_std_value(wid->adj),
+                                    adj_get_min_value(wid->adj), adj_get_max_value(wid->adj));
                 } else {
                     printf(" .\n");
                 }
@@ -225,11 +225,11 @@ void print_ttl(XUiDesigner *designer) {
                                 "      lv2:portProperty lv2:integer ;\n"
                                 "      lv2:portProperty lv2:enumeration ;\n"
                                     , add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
-                                    designer->controls[i].symbol, xldl, wid->adj->std_value,
-                                    wid->adj->min_value, wid->adj->max_value);
+                                    designer->controls[i].symbol, xldl, adj_get_std_value(wid->adj),
+                                    adj_get_min_value(wid->adj), adj_get_max_value(wid->adj));
                                 add_comma = true;
                             unsigned int k = 0;
-                            int l = (int)wid->adj->min_value;
+                            int l = (int)adj_get_min_value(wid->adj);
                             for(; k<comboboxlist->list_size;k++) {
                                 printf ("      lv2:scalePoint [rdfs:label \"%s\"; rdf:value %i];\n", comboboxlist->list_names[k],l);
                                 l++;
@@ -247,8 +247,8 @@ void print_ttl(XUiDesigner *designer) {
                                 "      lv2:minimum %f ;\n"
                                 "      lv2:maximum %f ;\n"
                                 "   ]", add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
-                                    designer->controls[i].symbol, xldl, wid->adj->std_value,
-                                    wid->adj->min_value, wid->adj->max_value);
+                                    designer->controls[i].symbol, xldl, adj_get_std_value(wid->adj),
+                                    adj_get_min_value(wid->adj), adj_get_max_value(wid->adj));
                                 add_comma = true;
                         } else {
                             printf ("%s [\n"
@@ -261,8 +261,8 @@ void print_ttl(XUiDesigner *designer) {
                                 "      lv2:minimum %f ;\n"
                                 "      lv2:maximum %f ;\n"
                                 "   ]", add_comma ? ",": "", designer->is_project ? p : designer->controls[i].port_index,
-                                    designer->controls[i].symbol, xldl, wid->adj->std_value,
-                                    wid->adj->min_value, wid->adj->max_value);
+                                    designer->controls[i].symbol, xldl, adj_get_std_value(wid->adj),
+                                    adj_get_min_value(wid->adj), adj_get_max_value(wid->adj));
                                 add_comma = true;
                         }
                     } else if (designer->controls[i].is_audio_input) {
