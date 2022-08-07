@@ -637,7 +637,7 @@ void show_color_chooser(void *w_, void* user_data) {
         widget_show_all(designer->color_widget);
         int x1, y1;
         Window child;
-        XTranslateCoordinates( designer->w->app->dpy, designer->color_chooser->widget, DefaultRootWindow(
+        XTranslateCoordinates( designer->w->app->dpy, w->widget, DefaultRootWindow(
                         designer->w->app->dpy), 0, 60, &x1, &y1, &child );
         XMoveWindow(designer->w->app->dpy, designer->color_widget->widget,x1,y1);
     } else if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {

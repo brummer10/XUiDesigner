@@ -504,6 +504,7 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
         }
         break;
         case XUI_SIZE:
+        {
             int v = fabs(xmotion->x_root-designer->pos_x) > fabs(xmotion->y_root-designer->pos_y) ? 
                 xmotion->x_root-designer->pos_x : xmotion->y_root-designer->pos_y;
             if (adj_get_value(designer->resize_all->adj)) {
@@ -535,8 +536,10 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
                     designer->controls[w->data].is_type == IS_FRAME) {
                 expose_widget(designer->ui);
             }
+        }
         break;
         case XUI_WIDTH:
+        {
             if (adj_get_value(designer->resize_all->adj)) {
                 resize_all_for_type(designer, w, designer->controls[w->data].is_type,
                             xmotion->x_root-designer->pos_x, 0);
@@ -552,7 +555,7 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
                     }
                 }
             }
-            store = designer->w_axis->func.value_changed_callback;
+            xevfunc store = designer->w_axis->func.value_changed_callback;
             designer->w_axis->func.value_changed_callback = null_callback;
             adj_set_value(designer->w_axis->adj, w->width + ((xmotion->x_root-designer->pos_x)));
             designer->w_axis->func.value_changed_callback = store;
@@ -562,8 +565,10 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
                     designer->controls[w->data].is_type == IS_FRAME) {
                 expose_widget(designer->ui);
             }
+        }
         break;
         case XUI_HEIGHT:
+        {
             if (adj_get_value(designer->resize_all->adj)) {
                 resize_all_for_type(designer, w, designer->controls[w->data].is_type,
                             0, xmotion->y_root-designer->pos_y);
@@ -579,7 +584,7 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
                     }
                 }
             }
-            store = designer->h_axis->func.value_changed_callback;
+            xevfunc store = designer->h_axis->func.value_changed_callback;
             designer->h_axis->func.value_changed_callback = null_callback;
             adj_set_value(designer->h_axis->adj, w->height + (xmotion->y_root-designer->pos_y));
             designer->h_axis->func.value_changed_callback = store;
@@ -589,8 +594,10 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
                     designer->controls[w->data].is_type == IS_FRAME) {
                 expose_widget(designer->ui);
             }
+        }
         break;
         case XUI_NONE:
+        {
             if (xmotion->x > w->width-10 && xmotion->y > w->height-10 && is_curser != 1) {
                 is_curser = 1;
                 Cursor c = XCreateFontCursor(w->app->dpy, XC_bottom_right_corner);
@@ -614,6 +621,7 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
             } else {
                 is_curser = 0;
             }
+        }
         break;
         default:
         break;
