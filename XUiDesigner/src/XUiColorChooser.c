@@ -104,7 +104,6 @@ static void draw_lum_slider(void *w_, void* user_data) {
 
 static void draw_color_widget(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     cairo_set_source_rgba(w->crb,  0.13, 0.13, 0.13, 1.0);
     cairo_paint (w->crb);
@@ -191,54 +190,54 @@ static void draw_color_widget(void *w_, void* user_data) {
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "bg");
     cairo_rectangle(w->crb, 10,w->height-20,  20, 20);
-    use_bg_color_scheme(w, (int)adj_get_value(designer->color_scheme_select->adj));
+    use_bg_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 45,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "fg");
     cairo_rectangle(w->crb, 45, w->height-20, 20, 20);
-    use_fg_color_scheme(w, (int)adj_get_value(designer->color_scheme_select->adj));
+    use_fg_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 80,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "base");
     cairo_rectangle(w->crb, 80, w->height-20, 20, 20);
-    use_base_color_scheme(w, (int)adj_get_value(designer->color_scheme_select->adj));
+    use_base_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 115,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "text");
     cairo_rectangle(w->crb, 115, w->height-20, 20, 20);
-    use_text_color_scheme(w, (int)adj_get_value(designer->color_scheme_select->adj));
+    use_text_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 140,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "shadow");
     cairo_rectangle(w->crb, 150, w->height-20, 20, 20);
-    use_shadow_color_scheme(w, (int)adj_get_value(designer->color_scheme_select->adj));
+    use_shadow_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 185,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "frame");
     cairo_rectangle(w->crb, 185, w->height-20, 20, 20);
-    use_frame_color_scheme(w, (int)adj_get_value(designer->color_scheme_select->adj));
+    use_frame_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 220,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "light");
     cairo_rectangle(w->crb, 220, w->height-20, 20, 20);
-    use_light_color_scheme(w, (int)adj_get_value(designer->color_scheme_select->adj));
+    use_light_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
     cairo_fill(w->crb);
 }
 
-static void set_costum_color(XUiDesigner *designer, int a, float v) {
-    int s = (int)adj_get_value(designer->color_sel->adj);
+static void set_costum_color(XUiDesigner *designer, ColorChooser_t *color_chooser, int a, float v) {
+    int s = (int)adj_get_value(color_chooser->color_sel->adj);
     switch (s) {
         case 0:
             designer->selected_scheme->bg[a] = v;
@@ -272,8 +271,8 @@ static void a_callback(void *w_, void* user_data) {
     ColorChooser_t *color_chooser = (ColorChooser_t*)p->private_struct;
     color_chooser->alpha = adj_get_value(w->adj);
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    set_costum_color(designer, 3, color_chooser->alpha);
-    expose_widget(designer->color_widget);
+    set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+    expose_widget(color_chooser->color_widget);
     expose_widget(designer->ui);
 }
 
@@ -282,7 +281,7 @@ static void set_selected_color(void *w_, void* user_data) {
     Widget_t *p = (Widget_t*)w->parent;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)p->private_struct;
-    int s = (int)adj_get_value(designer->color_sel->adj);
+    int s = (int)adj_get_value(color_chooser->color_sel->adj);
     double *use = NULL;
     switch (s) {
         case 0: use = designer->selected_scheme->bg;
@@ -305,8 +304,8 @@ static void set_selected_color(void *w_, void* user_data) {
     if (use) {
         color_chooser->alpha = use[3];
         adj_set_value(color_chooser->al->adj, color_chooser->alpha);
-        expose_widget(designer->color_widget);
-        set_focus_by_color(designer->color_widget, use[0], use[1], use[2]);
+        expose_widget(color_chooser->color_widget);
+        set_focus_by_color(color_chooser->color_widget, use[0], use[1], use[2]);
     }
 }
 
@@ -314,7 +313,7 @@ static void set_selected_color_on_map(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
-    int s = (int)adj_get_value(designer->color_sel->adj);
+    int s = (int)adj_get_value(color_chooser->color_sel->adj);
     double *use = NULL;
     switch (s) {
         case 0: use = designer->selected_scheme->bg;
@@ -337,14 +336,15 @@ static void set_selected_color_on_map(void *w_, void* user_data) {
     if (use) {
         color_chooser->alpha = use[3];
         adj_set_value(color_chooser->al->adj, color_chooser->alpha);
-        expose_widget(designer->color_widget);
-        set_focus_by_color(designer->color_widget, use[0], use[1], use[2]);
+        expose_widget(color_chooser->color_widget);
+        set_focus_by_color(color_chooser->color_widget, use[0], use[1], use[2]);
     }
 }
 
 static void set_selected_scheme(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;    
     Xputty *main = designer->w->app;
     int s = (int)adj_get_value(w->adj);
     switch (s) {
@@ -361,7 +361,7 @@ static void set_selected_scheme(void *w_, void* user_data) {
         default:
         break;
     }
-    set_selected_color(designer->color_sel,NULL);
+    set_selected_color(color_chooser->color_sel,NULL);
 }
 
 static void get_pixel(Widget_t *w, int x, int y, XColor *color) {
@@ -392,11 +392,11 @@ static void get_color(void *w_, void* button_, void* user_data) {
             double g = (double)c.green/65535.0;
             double b = (double)c.blue/65535.0;
             //fprintf(stderr, "%f %f %f %f\n", r, g, b, color_chooser->alpha);
-            set_costum_color(designer, 0, r);
-            set_costum_color(designer, 1, g);
-            set_costum_color(designer, 2, b);
-            set_costum_color(designer, 3, color_chooser->alpha);
-            expose_widget(designer->color_widget);
+            set_costum_color(designer, color_chooser, 0, r);
+            set_costum_color(designer, color_chooser, 1, g);
+            set_costum_color(designer, color_chooser, 2, b);
+            set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+            expose_widget(color_chooser->color_widget);
             expose_widget(designer->ui);
         }
         
@@ -414,11 +414,11 @@ static void lum_callback(void *w_, void* user_data) {
     double r = (double)c.red/65535.0;
     double g = (double)c.green/65535.0;
     double b = (double)c.blue/65535.0;
-    set_costum_color(designer, 0, r);
-    set_costum_color(designer, 1, g);
-    set_costum_color(designer, 2, b);
-    set_costum_color(designer, 3, color_chooser->alpha);
-    expose_widget(designer->color_widget);
+    set_costum_color(designer, color_chooser, 0, r);
+    set_costum_color(designer, color_chooser, 1, g);
+    set_costum_color(designer, color_chooser, 2, b);
+    set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+    expose_widget(color_chooser->color_widget);
     expose_widget(designer->ui);
 }
 
@@ -441,7 +441,7 @@ void set_focus_by_color(Widget_t* wid, const double r, const double g, const dou
     color_chooser->alpha = 1.0;
     color_chooser->focus_x = -10.0;
     color_chooser->focus_y = -10.0;
-    transparent_draw(designer->color_widget, NULL);
+    transparent_draw(color_chooser->color_widget, NULL);
     color_chooser->lu->func.value_changed_callback = store;
     color_chooser->alpha = alpha;
     // convert cairo color to true color
@@ -464,10 +464,10 @@ void set_focus_by_color(Widget_t* wid, const double r, const double g, const dou
                 ((pixel & 0xFF) - _B) < 2 ) {
                 color_chooser->focus_x = (double)i;
                 color_chooser->focus_y = (double)j;
-                set_costum_color(designer, 0, r);
-                set_costum_color(designer, 1, g);
-                set_costum_color(designer, 2, b);
-                expose_widget(designer->color_widget);
+                set_costum_color(designer, color_chooser, 0, r);
+                set_costum_color(designer, color_chooser, 1, g);
+                set_costum_color(designer, color_chooser, 2, b);
+                expose_widget(color_chooser->color_widget);
                 expose_widget(designer->ui);
                 //fprintf(stderr,"found %ld,%ld,%ld ", (pixel >> 0x10) & 0xFF, (pixel >> 0x08) & 0xFF, pixel & 0xFF);
                 j = wid->height-121;
@@ -493,11 +493,11 @@ static void set_focus_motion(void *w_, void *xmotion_, void* user_data) {
         double r = (double)c.red/65535.0;
         double g = (double)c.green/65535.0;
         double b = (double)c.blue/65535.0;
-        set_costum_color(designer, 0, r);
-        set_costum_color(designer, 1, g);
-        set_costum_color(designer, 2, b);
-        set_costum_color(designer, 3, color_chooser->alpha);
-        expose_widget(designer->color_widget);
+        set_costum_color(designer, color_chooser, 0, r);
+        set_costum_color(designer, color_chooser, 1, g);
+        set_costum_color(designer, color_chooser, 2, b);
+        set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+        expose_widget(color_chooser->color_widget);
         expose_widget(designer->ui);
     }
 }
@@ -505,13 +505,12 @@ static void set_focus_motion(void *w_, void *xmotion_, void* user_data) {
 // set the curser to the mouse pointer
 static void set_focus(void *w_, void* button_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     if(xbutton->button == Button1 && is_in_circle (color_chooser, xbutton->x, xbutton->y)) {
         color_chooser->focus_x = xbutton->x;
         color_chooser->focus_y = xbutton->y;
-        expose_widget(designer->color_widget);
+        expose_widget(color_chooser->color_widget);
     }
 }
 
@@ -546,11 +545,11 @@ static void set_focus_on_key(void *w_, void *key_, void *user_data) {
         double r = (double)c.red/65535.0;
         double g = (double)c.green/65535.0;
         double b = (double)c.blue/65535.0;
-        set_costum_color(designer, 0, r);
-        set_costum_color(designer, 1, g);
-        set_costum_color(designer, 2, b);
-        set_costum_color(designer, 3, color_chooser->alpha);
-        expose_widget(designer->color_widget);
+        set_costum_color(designer, color_chooser, 0, r);
+        set_costum_color(designer, color_chooser, 1, g);
+        set_costum_color(designer, color_chooser, 2, b);
+        set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+        expose_widget(color_chooser->color_widget);
         expose_widget(designer->ui);
     }
 }
@@ -561,7 +560,7 @@ void color_chooser_mem_free(void *w_, void* user_data) {
     free(color_chooser);
 }
 
-void create_color_chooser (XUiDesigner *designer) {
+Widget_t *create_color_chooser (XUiDesigner *designer) {
     Xputty *main = designer->w->app;
     designer->selected_scheme = &main->color_scheme->normal;
     ColorChooser_t *color_chooser = (ColorChooser_t*)malloc(sizeof(ColorChooser_t));
@@ -570,25 +569,25 @@ void create_color_chooser (XUiDesigner *designer) {
     color_chooser->focus_x = 10.0;
     color_chooser->focus_y = 10.0;
 
-    designer->color_widget = create_window(designer->w->app, DefaultRootWindow(designer->w->app->dpy), 0, 0, 260, 340);
+    color_chooser->color_widget = create_window(designer->w->app, DefaultRootWindow(designer->w->app->dpy), 0, 0, 260, 340);
     Atom wmStateAbove = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE_ABOVE", 1 );
     Atom wmNetWmState = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE", 1 );
-    XChangeProperty(designer->w->app->dpy, designer->color_widget->widget, wmNetWmState, XA_ATOM, 32, 
+    XChangeProperty(designer->w->app->dpy, color_chooser->color_widget->widget, wmNetWmState, XA_ATOM, 32, 
         PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
-    XSetTransientForHint(designer->w->app->dpy, designer->color_widget->widget, designer->w->widget);
-    widget_set_title(designer->color_widget, _("cairo-color-mixer"));
-    designer->color_widget->func.expose_callback = draw_color_widget;
-    designer->color_widget->func.button_press_callback = set_focus;
-    designer->color_widget->func.button_release_callback = get_color;
-    designer->color_widget->func.motion_callback = set_focus_motion;
-    designer->color_widget->func.key_press_callback = set_focus_on_key;
-    designer->color_widget->func.mem_free_callback = color_chooser_mem_free;
-    designer->color_widget->func.configure_notify_callback = set_selected_color_on_map;
-    designer->color_widget->func.visibiliy_change_callback = set_selected_color_on_map;
-    designer->color_widget->parent_struct = designer;
-    designer->color_widget->private_struct = color_chooser;
+    XSetTransientForHint(designer->w->app->dpy, color_chooser->color_widget->widget, designer->w->widget);
+    widget_set_title(color_chooser->color_widget, _("cairo-color-mixer"));
+    color_chooser->color_widget->func.expose_callback = draw_color_widget;
+    color_chooser->color_widget->func.button_press_callback = set_focus;
+    color_chooser->color_widget->func.button_release_callback = get_color;
+    color_chooser->color_widget->func.motion_callback = set_focus_motion;
+    color_chooser->color_widget->func.key_press_callback = set_focus_on_key;
+    color_chooser->color_widget->func.mem_free_callback = color_chooser_mem_free;
+    color_chooser->color_widget->func.configure_notify_callback = set_selected_color_on_map;
+    color_chooser->color_widget->func.visibiliy_change_callback = set_selected_color_on_map;
+    color_chooser->color_widget->parent_struct = designer;
+    color_chooser->color_widget->private_struct = color_chooser;
 
-    color_chooser->al = add_vslider(designer->color_widget, _("A"), 200, 40, 40, 200);
+    color_chooser->al = add_vslider(color_chooser->color_widget, _("A"), 200, 40, 40, 200);
     set_adjustment(color_chooser->al->adj, 1.0, 1.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
     adj_set_value(color_chooser->al->adj,designer->selected_scheme->bg[3]);
     color_chooser->al->data = 4;
@@ -596,7 +595,7 @@ void create_color_chooser (XUiDesigner *designer) {
     color_chooser->al->parent_struct = designer;
     color_chooser->al->func.value_changed_callback = a_callback;
 
-    color_chooser->lu = add_hslider(designer->color_widget, _("luminescent"), 10, 210, 200, 40);
+    color_chooser->lu = add_hslider(color_chooser->color_widget, _("luminescent"), 10, 210, 200, 40);
     set_adjustment(color_chooser->lu->adj, 0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
     adj_set_value(color_chooser->lu->adj, color_chooser->lum);
     color_chooser->lu->scale.gravity = SOUTHEAST;
@@ -604,30 +603,31 @@ void create_color_chooser (XUiDesigner *designer) {
     color_chooser->lu->func.expose_callback = draw_lum_slider;
     color_chooser->lu->func.value_changed_callback = lum_callback;
 
-    designer->color_scheme_select = add_combobox(designer->color_widget, _("Scheme"), 20, 260, 120,30);
-    combobox_add_entry(designer->color_scheme_select,_("normal"));
-    combobox_add_entry(designer->color_scheme_select,_("prelight"));
-    combobox_add_entry(designer->color_scheme_select,_("selected"));
-    combobox_add_entry(designer->color_scheme_select,_("active"));
-    combobox_add_entry(designer->color_scheme_select,_("insensitive"));
-    combobox_set_active_entry(designer->color_scheme_select, 0);
-    designer->color_scheme_select->scale.gravity = SOUTHEAST;
-    designer->color_scheme_select->parent_struct = designer;
-    designer->color_scheme_select->func.value_changed_callback = set_selected_scheme;
+    color_chooser->color_scheme_select = add_combobox(color_chooser->color_widget, _("Scheme"), 20, 260, 120,30);
+    combobox_add_entry(color_chooser->color_scheme_select,_("normal"));
+    combobox_add_entry(color_chooser->color_scheme_select,_("prelight"));
+    combobox_add_entry(color_chooser->color_scheme_select,_("selected"));
+    combobox_add_entry(color_chooser->color_scheme_select,_("active"));
+    combobox_add_entry(color_chooser->color_scheme_select,_("insensitive"));
+    combobox_set_active_entry(color_chooser->color_scheme_select, 0);
+    color_chooser->color_scheme_select->scale.gravity = SOUTHEAST;
+    color_chooser->color_scheme_select->parent_struct = designer;
+    color_chooser->color_scheme_select->private_struct = color_chooser;
+    color_chooser->color_scheme_select->func.value_changed_callback = set_selected_scheme;
 
-    designer->color_sel = add_combobox(designer->color_widget, _("Colors"), 160, 260, 80,30);
-    combobox_add_entry(designer->color_sel,_("bg"));
-    combobox_add_entry(designer->color_sel,_("fg"));
-    combobox_add_entry(designer->color_sel,_("base"));
-    combobox_add_entry(designer->color_sel,_("text"));
-    combobox_add_entry(designer->color_sel,_("shadow"));
-    combobox_add_entry(designer->color_sel,_("frame"));
-    combobox_add_entry(designer->color_sel,_("light"));
-    combobox_set_active_entry(designer->color_sel, 0);
-    designer->color_sel->scale.gravity = SOUTHEAST;
-    designer->color_sel->parent_struct = designer;
-    designer->color_sel->func.value_changed_callback = set_selected_color;
-   
+    color_chooser->color_sel = add_combobox(color_chooser->color_widget, _("Colors"), 160, 260, 80,30);
+    combobox_add_entry(color_chooser->color_sel,_("bg"));
+    combobox_add_entry(color_chooser->color_sel,_("fg"));
+    combobox_add_entry(color_chooser->color_sel,_("base"));
+    combobox_add_entry(color_chooser->color_sel,_("text"));
+    combobox_add_entry(color_chooser->color_sel,_("shadow"));
+    combobox_add_entry(color_chooser->color_sel,_("frame"));
+    combobox_add_entry(color_chooser->color_sel,_("light"));
+    combobox_set_active_entry(color_chooser->color_sel, 0);
+    color_chooser->color_sel->scale.gravity = SOUTHEAST;
+    color_chooser->color_sel->parent_struct = designer;
+    color_chooser->color_sel->func.value_changed_callback = set_selected_color;
+    return color_chooser->color_widget;
 }
 
 void show_color_chooser(void *w_, void* user_data) {

@@ -1214,7 +1214,7 @@ int main (int argc, char ** argv) {
     widget_get_png(designer->color_chooser, LDVAR(colors_png));
     tooltip_set_text(designer->color_chooser,_("Show/Hide Color Chooser"));
     designer->color_chooser->parent_struct = designer;
-    create_color_chooser (designer);
+    designer->color_widget = create_color_chooser (designer);
     designer->color_chooser->func.value_changed_callback = show_color_chooser;
 
     designer->grid = add_toggle_button(designer->w, "", 80, 135, 40, 40);

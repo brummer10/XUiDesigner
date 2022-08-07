@@ -45,9 +45,12 @@ typedef struct {
     double focus_y;
     Widget_t* al;
     Widget_t* lu;
+    Widget_t* color_scheme_select;
+    Widget_t* color_sel;
+    Widget_t* color_widget;
 } ColorChooser_t;
 
-void create_color_chooser (XUiDesigner *designer);
+Widget_t *create_color_chooser (XUiDesigner *designer);
 
 void show_color_chooser(void *w_, void* user_data);
 
