@@ -505,7 +505,7 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
         break;
         case XUI_SIZE:
         {
-            int v = fabs(xmotion->x_root-designer->pos_x) > fabs(xmotion->y_root-designer->pos_y) ? 
+            int v = abs(xmotion->x_root-designer->pos_x) > abs(xmotion->y_root-designer->pos_y) ? 
                 xmotion->x_root-designer->pos_x : xmotion->y_root-designer->pos_y;
             if (adj_get_value(designer->resize_all->adj)) {
                 resize_all_for_type(designer, w, designer->controls[w->data].is_type, v, v);
