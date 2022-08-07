@@ -55,7 +55,7 @@ static void idialog_response(void *w_, void* user_data) {
     adj_set_value(w->adj,0.0);
 }
 
-static void ibutton_callback(void *w_, void* user_data) {
+static void ibutton_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     ImageButton *imagebutton = (ImageButton *)w->parent_struct;
     if (w->flags & HAS_POINTER && adj_get_value(w->adj)){
@@ -71,7 +71,7 @@ static void ibutton_callback(void *w_, void* user_data) {
     }
 }
 
-static void ibutton_mem_free(void *w_, void* user_data) {
+static void ibutton_mem_free(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     ImageButton *imagebutton = (ImageButton *)w->parent_struct;
     free(imagebutton->last_path);
@@ -150,7 +150,7 @@ void image_load_response(void *w_, void* user_data) {
     }
 }
 
-void unload_background_image(void *w_, void* user_data) {
+void unload_background_image(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -236,7 +236,7 @@ static void load_for_all_global(XUiDesigner *designer, WidgetType is_type, cairo
     }
 }
 
-void load_single_controller_image (XUiDesigner *designer, Widget_t *wid, const char* filename) {
+void load_single_controller_image (XUiDesigner *designer, const char* filename) {
     //if (!designer->active_widget) return;
     if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON) {
         set_image_button(designer);
@@ -397,7 +397,7 @@ void background_image_load_response(void *w_, void* user_data) {
     }
 }
 
-static void unload_controller_image(void *w_, void* user_data) {
+static void unload_controller_image(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
     Widget_t *p = (Widget_t*)w->parent;
@@ -419,7 +419,7 @@ static void unload_controller_image(void *w_, void* user_data) {
     }
 }
 
-void pop_menu_response(void *w_, void* item_, void* user_data) {
+void pop_menu_response(void *w_, void* item_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     switch (*(int*)item_) {

@@ -58,6 +58,17 @@ extern "C" {
 #define LV2_CORE__enabled LV2_CORE_PREFIX "enabled"
 #endif
 
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                macro to mark unused variables in function calls 
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+#ifdef __GNUC__
+#  define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
+#else
+#  define UNUSED(x) UNUSED_ ## x
+#endif
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -82,6 +93,7 @@ enum {
 };
  
 typedef enum {
+    IS_NONE       = -1,
     IS_KNOB           ,
     IS_HSLIDER        ,
     IS_VSLIDER        ,
@@ -113,7 +125,6 @@ typedef struct {
     char* image;
     char* name;
     char* symbol;
-    uint32_t port_index;
     bool destignation_enabled;
     bool is_atom_patch;
     bool is_audio_output;
@@ -122,6 +133,7 @@ typedef struct {
     bool is_atom_input;
     bool have_adjustment;
     WidgetType is_type;
+    int port_index;
     int grid_snap_option;
     int in_frame;
     int in_tab;

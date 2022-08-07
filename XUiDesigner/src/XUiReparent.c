@@ -48,7 +48,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             widget_show(new_wid);
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
-                load_single_controller_image(designer, new_wid, designer->controls[new_wid->data].image);
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
             }
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
@@ -96,7 +96,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             widget_show(new_wid);
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
-                load_single_controller_image(designer, new_wid, designer->controls[new_wid->data].image);
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
             }
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
@@ -112,7 +112,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             widget_show(new_wid);
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
-                load_single_controller_image(designer, new_wid, designer->controls[new_wid->data].image);
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
             }
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
@@ -206,7 +206,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             widget_show(new_wid);
             designer->active_widget = new_wid;
             if (designer->controls[new_wid->data].image != NULL) {
-                load_single_controller_image(designer, new_wid, designer->controls[new_wid->data].image);
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
             }
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
@@ -217,7 +217,7 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
     expose_widget(parent);
 }
 
-void check_reparent(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t *w) {
+void check_reparent(XUiDesigner *designer, XButtonEvent* UNUSED(xbutton), Widget_t *w) {
     Widget_t *p = (Widget_t*)w->parent;
     Widget_t *pp = (Widget_t*)p->parent;
     XWindowAttributes attrs;

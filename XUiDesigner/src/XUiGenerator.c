@@ -125,6 +125,7 @@ void print_makefile(XUiDesigner *designer) {
     if (name == NULL) asprintf(&name, "%s", "noname");
     strdecode(name, " ", "_");
     char* cmd = NULL;
+    char* cmd2 = NULL;
     bool use_atom = false;
     int i = 0;
     for (;i<MAX_CONTROLS;i++) {
@@ -155,9 +156,9 @@ void print_makefile(XUiDesigner *designer) {
             "		USE_LDD = 1\n"
             "	else ifneq ($(shell gold --version 2>&1 | head -n 1 | grep gold),)\n"
             "		LD = gold\n"
-            "	endif\n"
+            "	endif\n");
 
-            "\n\n	NAME = %s\n"
+        asprintf(&cmd2,"\n\n	NAME = %s\n"
             "	space := $(subst ,, )\n"
             "	EXEC_NAME := $(subst $(space),_,$(NAME))\n"
             "	BUNDLE = $(EXEC_NAME).lv2\n"
@@ -256,9 +257,9 @@ void print_makefile(XUiDesigner *designer) {
             "		USE_LDD = 1\n"
             "	else ifneq ($(shell gold --version 2>&1 | head -n 1 | grep gold),)\n"
             "		LD = gold\n"
-            "	endif\n"
+            "	endif\n");
 
-            "\n\n	NAME = %s\n"
+        asprintf(&cmd2,"\n\n	NAME = %s\n"
             "	space := $(subst ,, )\n"
             "	EXEC_NAME := $(subst $(space),_,$(NAME))\n"
             "	BUNDLE = $(EXEC_NAME)_ui.lv2\n"
@@ -346,8 +347,11 @@ void print_makefile(XUiDesigner *designer) {
                 "%%","%%","\\r\\n","%%","%%","%%","%%","%%","%%","%%","%%", use_atom ? "-DUSE_ATOM" : "");
     }
     printf(cmd);
+    printf(cmd2);
     free(cmd);
     cmd = NULL;
+    free(cmd2);
+    cmd2 = NULL;
     free(name);
     name = NULL;
 }
@@ -719,7 +723,7 @@ void run_save(void *w_, void* user_data) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-void run_test(void *w_, void* user_data) {
+void run_test(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {

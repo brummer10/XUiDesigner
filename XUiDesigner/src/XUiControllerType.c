@@ -31,7 +31,7 @@
 ----------------------------------------------------------------------*/
 
 
-void null_callback(void *w_, void* user_data) {
+void null_callback(void* UNUSED(w_), void* UNUSED(user_data)) {
     
 }
 
@@ -48,7 +48,7 @@ void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wi
             Widget_t *menu = wid->childlist->childs[1];
             Widget_t* view_port =  menu->childlist->childs[0];
             ComboBox_t *comboboxlist = (ComboBox_t*)view_port->parent_struct;
-            int i = 0;
+            unsigned int i = 0;
             for (;i<comboboxlist->list_size;i++) {
                 combobox_add_entry(new_wid, comboboxlist->list_names[i]);
             }
@@ -72,7 +72,7 @@ void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wi
     adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
 }
 
-void switch_controller_type(void *w_, void* user_data) {
+void switch_controller_type(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     Widget_t *wid = designer->active_widget;
@@ -97,7 +97,7 @@ void switch_controller_type(void *w_, void* user_data) {
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
-                load_single_controller_image(designer, new_wid, designer->global_knob_image_file);
+                load_single_controller_image(designer, designer->global_knob_image_file);
         break;
         case 1:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -139,7 +139,7 @@ void switch_controller_type(void *w_, void* user_data) {
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             if (designer->global_button_image_file != NULL && adj_get_value(designer->global_button_image->adj))
-                load_single_controller_image(designer, new_wid, designer->global_button_image_file);
+                load_single_controller_image(designer, designer->global_button_image_file);
         break;
         case 4:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -155,7 +155,7 @@ void switch_controller_type(void *w_, void* user_data) {
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
             if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
-                load_single_controller_image(designer, new_wid, designer->global_switch_image_file);
+                load_single_controller_image(designer, designer->global_switch_image_file);
         break;
         case 5:
             if (designer->controls[designer->active_widget_num].is_type == -1 ) {
@@ -239,7 +239,7 @@ Widget_t *add_controller(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t 
             set_controller_callbacks(designer, wid, true);
             add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
             if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
-                load_single_controller_image(designer, wid, designer->global_knob_image_file);
+                load_single_controller_image(designer, designer->global_knob_image_file);
         break;
         case 2:
             asprintf(&designer->controls[designer->wid_counter].name, "HSlider%i", designer->wid_counter);
@@ -259,7 +259,7 @@ Widget_t *add_controller(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t 
             set_controller_callbacks(designer, wid, true);
             add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
             if (designer->global_button_image_file != NULL && adj_get_value(designer->global_button_image->adj))
-                load_single_controller_image(designer, wid, designer->global_button_image_file);
+                load_single_controller_image(designer, designer->global_button_image_file);
         break;
         case 5:
             asprintf(&designer->controls[designer->wid_counter].name, "Switch%i", designer->wid_counter);
@@ -267,7 +267,7 @@ Widget_t *add_controller(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t 
             set_controller_callbacks(designer, wid, true);
             add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
             if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
-                load_single_controller_image(designer, wid, designer->global_switch_image_file);
+                load_single_controller_image(designer, designer->global_switch_image_file);
         break;
         case 6:
             asprintf(&designer->controls[designer->wid_counter].name, "Combobox%i", designer->wid_counter);

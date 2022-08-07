@@ -94,7 +94,7 @@ void snap_to_grid(XUiDesigner *designer) {
     }
 }
 
-void set_grid_width(void *w_, void* user_data) {
+void set_grid_width(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     designer->grid_width = (int)adj_get_value(w->adj);
@@ -102,7 +102,7 @@ void set_grid_width(void *w_, void* user_data) {
     snap_to_grid(designer);
 }
 
-void set_grid_height(void *w_, void* user_data) {
+void set_grid_height(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     designer->grid_height = (int)adj_get_value(w->adj);
@@ -110,7 +110,7 @@ void set_grid_height(void *w_, void* user_data) {
     snap_to_grid(designer);
 }
 
-void use_grid(void *w_, void* user_data) {
+void use_grid(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     designer->grid_view = (bool)adj_get_value(w->adj);
@@ -125,7 +125,7 @@ void use_grid(void *w_, void* user_data) {
     expose_widget(designer->ui);
 }
 
-void select_grid_mode(void *w_, void* user_data) {
+void select_grid_mode(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     int v = (int) adj_get_value(w->adj);

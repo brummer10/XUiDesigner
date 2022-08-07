@@ -36,7 +36,7 @@ typedef struct {
 ----------------------------------------------------------------------*/
 
 
-static void draw_systray(void *w_, void* user_data) {
+static void draw_systray(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     use_bg_color_scheme(w, NORMAL_);
     cairo_paint (w->crb);
@@ -48,7 +48,7 @@ static void draw_systray(void *w_, void* user_data) {
     }
 }
 
-static void systray_menu_response(void *w_, void* item_, void* user_data) {
+static void systray_menu_response(void *w_, void* item_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     switch (*(int*)item_) {
@@ -87,7 +87,7 @@ static void systray_menu_response(void *w_, void* item_, void* user_data) {
     }
 }
 
-static void systray_released(void *w_, void* button_, void* user_data) {
+static void systray_released(void *w_, void* button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     Systray_t *systray = (Systray_t*)w->private_struct;
@@ -125,7 +125,7 @@ static void create_systray_menu(XUiDesigner *designer, Systray_t *systray) {
     systray->systray_menu->func.button_release_callback = systray_menu_response;
 }
 
-static void systray_mem_free(void *w_, void* user_data) {
+static void systray_mem_free(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Systray_t *systray = (Systray_t*)w->private_struct;
     free(systray);

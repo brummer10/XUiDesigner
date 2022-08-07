@@ -167,7 +167,7 @@ char *getUserName() {
 ----------------------------------------------------------------------*/
 
 
-static void set_port_index(void *w_, void* user_data) {
+static void set_port_index(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
@@ -178,7 +178,7 @@ static void set_port_index(void *w_, void* user_data) {
     }
 }
 
-static void set_combobox_entry(void *w_, void* user_data) {
+static void set_combobox_entry(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
@@ -193,7 +193,7 @@ static void set_combobox_entry(void *w_, void* user_data) {
     }
 }
 
-static void add_combobox_entry(void *w_, void* user_data) {
+static void add_combobox_entry(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)designer->combobox_entry->private_struct;
@@ -210,7 +210,7 @@ static void add_combobox_entry(void *w_, void* user_data) {
     }
 }
 
-static void set_controller_adjustment(void *w_, void* user_data) {
+static void set_controller_adjustment(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
@@ -236,7 +236,7 @@ static void set_controller_adjustment(void *w_, void* user_data) {
     }
 }
 
-static void add_tabbox_entry(void *w_, void* user_data) {
+static void add_tabbox_entry(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
@@ -253,7 +253,7 @@ static void add_tabbox_entry(void *w_, void* user_data) {
     }
 }
 
-static void remove_tabbox_entry(void *w_, void* user_data) {
+static void remove_tabbox_entry(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
@@ -272,7 +272,7 @@ static void remove_tabbox_entry(void *w_, void* user_data) {
     }
 }
 
-static void set_widget_callback(void *w_, void* user_data) {
+static void set_widget_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     designer->select_widget_num = (int)adj_get_value(w->adj);
@@ -331,7 +331,7 @@ static void set_widget_callback(void *w_, void* user_data) {
     }
  }
 
-void x_axis_release_callback(void *w_, void* button_, void* user_data) {
+void x_axis_release_callback(void *w_, void* UNUSED(button_), void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     expose_widget(w);
@@ -340,7 +340,7 @@ void x_axis_release_callback(void *w_, void* button_, void* user_data) {
     }
 }
 
-void y_axis_release_callback(void *w_, void* button_, void* user_data) {
+void y_axis_release_callback(void *w_, void* UNUSED(button_), void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     expose_widget(w);
@@ -349,7 +349,7 @@ void y_axis_release_callback(void *w_, void* button_, void* user_data) {
     }
 }
 
-static void set_x_axis_callback(void *w_, void* user_data) {
+static void set_x_axis_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     int v = (int)adj_get_value(w->adj);
@@ -365,7 +365,7 @@ static void set_x_axis_callback(void *w_, void* user_data) {
     }
 }
 
-static void set_y_axis_callback(void *w_, void* user_data) {
+static void set_y_axis_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     int v = (int)adj_get_value(w->adj);
@@ -381,7 +381,7 @@ static void set_y_axis_callback(void *w_, void* user_data) {
     }
 }
 
-static void set_w_axis_callback(void *w_, void* user_data) {
+static void set_w_axis_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (adj_get_value(designer->aspect_ratio->adj)) {
@@ -401,7 +401,7 @@ static void set_w_axis_callback(void *w_, void* user_data) {
     }
 }
 
-static void set_h_axis_callback(void *w_, void* user_data) {
+static void set_h_axis_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (adj_get_value(designer->aspect_ratio->adj)) {
@@ -421,7 +421,7 @@ static void set_h_axis_callback(void *w_, void* user_data) {
     }
 }
 
-static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
+static void set_drag_icon(void *w_, void *xmotion_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     XMotionEvent *xmotion = (XMotionEvent*)xmotion_;
@@ -453,7 +453,7 @@ static void set_drag_icon(void *w_, void *xmotion_, void* user_data) {
     //designer->ui->flags &= ~DONT_PROPAGATE;
 }
 
-void move_wid(void *w_, void *xmotion_, void* user_data) {
+void move_wid(void *w_, void *xmotion_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
@@ -628,7 +628,7 @@ void move_wid(void *w_, void *xmotion_, void* user_data) {
     }
 }
 
-static void set_cursor(void *w_, void* user_data) {
+static void set_cursor(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (adj_get_value(designer->widgets->adj)) {
@@ -637,7 +637,7 @@ static void set_cursor(void *w_, void* user_data) {
     }
 }
 
-static void unset_cursor(void *w_, void* user_data) {
+static void unset_cursor(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (designer->cursor) {
@@ -651,7 +651,7 @@ static void unset_cursor(void *w_, void* user_data) {
     }
 }
 
-void set_pos_wid(void *w_, void *button_, void* user_data) {
+void set_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XWindowAttributes attrs;
@@ -694,7 +694,7 @@ void set_pos_wid(void *w_, void *button_, void* user_data) {
     designer->prev_active_widget = w;
 }
 
-void fix_pos_wid(void *w_, void *button_, void* user_data) {
+void fix_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XWindowAttributes attrs;
@@ -813,7 +813,7 @@ void move_tab(void *w_, void *xmotion_, void* user_data) {
     move_wid(p, xmotion_, user_data);
 }
 
-static void button_press_callback(void *w_, void *button_, void* user_data) {
+static void button_press_callback(void *w_, void *button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
@@ -829,7 +829,7 @@ static void button_press_callback(void *w_, void *button_, void* user_data) {
     }
 }
 
-static void button_release_callback(void *w_, void *button_, void* user_data) {
+static void button_release_callback(void *w_, void *button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (designer->wid_counter >= MAX_CONTROLS) {
@@ -874,7 +874,7 @@ static void button_release_callback(void *w_, void *button_, void* user_data) {
     }
 }
 
-static void update_clabel(void *w_, void* user_data) {
+static void update_clabel(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
@@ -903,7 +903,7 @@ static void update_clabel(void *w_, void* user_data) {
     expose_widget(designer->active_widget);
 }
 
-static void run_exit(void *w_, void* user_data) {
+static void run_exit(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -918,7 +918,7 @@ static void run_exit(void *w_, void* user_data) {
 ----------------------------------------------------------------------*/
 
 
-static void run_save_as(void *w_, void* user_data) {
+static void run_save_as(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     const char* home = getenv("HOME");
@@ -940,7 +940,7 @@ static void save_response(void *w_, void* user_data) {
     }
 }
 
-static void ask_save_as(void *w_, void* user_data) {
+static void ask_save_as(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -958,7 +958,7 @@ static void ask_save_as(void *w_, void* user_data) {
 ----------------------------------------------------------------------*/
 
 
-static void filter_plugin_ui(void *w_, void* user_data) {
+static void filter_plugin_ui(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -981,7 +981,7 @@ static void filter_plugin_ui(void *w_, void* user_data) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-static void win_configure_callback(void *w_, void* user_data) {
+static void win_configure_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     XWindowAttributes attrs;

@@ -79,7 +79,7 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
                 designer->controls[designer->active_widget_num].destignation_enabled = true;
                 add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
                 if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
-                    load_single_controller_image(designer, wid, designer->global_switch_image_file);
+                    load_single_controller_image(designer, designer->global_switch_image_file);
                 designer->prev_active_widget = wid;
                 p++;
             }
@@ -107,7 +107,7 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
             if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
-                load_single_controller_image(designer, wid, designer->global_knob_image_file);
+                load_single_controller_image(designer, designer->global_knob_image_file);
             p++;
 
             free(label);

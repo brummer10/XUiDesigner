@@ -27,7 +27,7 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-static void draw_lum_slider(void *w_, void* user_data) {
+static void draw_lum_slider(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XWindowAttributes attrs;
     XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
@@ -102,7 +102,7 @@ static void draw_lum_slider(void *w_, void* user_data) {
     cairo_pattern_destroy (pat);
 }
 
-static void draw_color_widget(void *w_, void* user_data) {
+static void draw_color_widget(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     cairo_set_source_rgba(w->crb,  0.13, 0.13, 0.13, 1.0);
@@ -265,7 +265,7 @@ static void set_costum_color(XUiDesigner *designer, ColorChooser_t *color_choose
     }
 }
 
-static void a_callback(void *w_, void* user_data) {
+static void a_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     ColorChooser_t *color_chooser = (ColorChooser_t*)p->private_struct;
@@ -276,7 +276,7 @@ static void a_callback(void *w_, void* user_data) {
     expose_widget(designer->ui);
 }
 
-static void set_selected_color(void *w_, void* user_data) {
+static void set_selected_color(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -309,7 +309,7 @@ static void set_selected_color(void *w_, void* user_data) {
     }
 }
 
-static void set_selected_color_on_map(void *w_, void* user_data) {
+static void set_selected_color_on_map(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
@@ -341,7 +341,7 @@ static void set_selected_color_on_map(void *w_, void* user_data) {
     }
 }
 
-static void set_selected_scheme(void *w_, void* user_data) {
+static void set_selected_scheme(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;    
@@ -379,7 +379,7 @@ static bool is_in_circle(ColorChooser_t *color_chooser, int x, int y) {
     return (((a*a) + (b*b)) < (c * c));
 }
 
-static void get_color(void *w_, void* button_, void* user_data) {
+static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
@@ -403,7 +403,7 @@ static void get_color(void *w_, void* button_, void* user_data) {
     }
 }
 
-static void lum_callback(void *w_, void* user_data) {
+static void lum_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XColor c;
@@ -422,7 +422,7 @@ static void lum_callback(void *w_, void* user_data) {
     expose_widget(designer->ui);
 }
 
-static void null_callback(void *w_, void* user_data) {
+static void null_callback(void* UNUSED(w_), void* UNUSED(user_data)) {
     
 }
 
@@ -479,7 +479,7 @@ void set_focus_by_color(Widget_t* wid, const double r, const double g, const dou
     XFree (image);
 }
 
-static void set_focus_motion(void *w_, void *xmotion_, void* user_data) {
+static void set_focus_motion(void *w_, void *xmotion_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
@@ -503,7 +503,7 @@ static void set_focus_motion(void *w_, void *xmotion_, void* user_data) {
 }
 
 // set the curser to the mouse pointer
-static void set_focus(void *w_, void* button_, void* user_data) {
+static void set_focus(void *w_, void* button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
@@ -514,7 +514,7 @@ static void set_focus(void *w_, void* button_, void* user_data) {
     }
 }
 
-static void set_focus_on_key(void *w_, void *key_, void *user_data) {
+static void set_focus_on_key(void *w_, void *key_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
@@ -554,7 +554,7 @@ static void set_focus_on_key(void *w_, void *key_, void *user_data) {
     }
 }
 
-void color_chooser_mem_free(void *w_, void* user_data) {
+void color_chooser_mem_free(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     free(color_chooser);
@@ -576,6 +576,7 @@ Widget_t *create_color_chooser (XUiDesigner *designer) {
         PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
     XSetTransientForHint(designer->w->app->dpy, color_chooser->color_widget->widget, designer->w->widget);
     widget_set_title(color_chooser->color_widget, _("cairo-color-mixer"));
+    color_chooser->color_widget->flags |= HIDE_ON_DELETE | HAS_MEM;
     color_chooser->color_widget->func.expose_callback = draw_color_widget;
     color_chooser->color_widget->func.button_press_callback = set_focus;
     color_chooser->color_widget->func.button_release_callback = get_color;
@@ -630,7 +631,7 @@ Widget_t *create_color_chooser (XUiDesigner *designer) {
     return color_chooser->color_widget;
 }
 
-void show_color_chooser(void *w_, void* user_data) {
+void show_color_chooser(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && adj_get_value(w->adj_y)) {

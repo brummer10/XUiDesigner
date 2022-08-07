@@ -177,7 +177,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 asprintf (&designer->controls[designer->active_widget_num].symbol, "%s",designer->lv2c.symbol);
             }
             if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
-                load_single_controller_image(designer, wid, designer->global_switch_image_file);
+                load_single_controller_image(designer, designer->global_switch_image_file);
             x += 80;
         } else if (designer->lv2c.is_trigger_port) {
             if (x+70 >= 1200) {
@@ -199,7 +199,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 asprintf (&designer->controls[designer->active_widget_num].symbol, "%s",designer->lv2c.symbol);
             }
             if (designer->global_button_image_file != NULL && adj_get_value(designer->global_button_image->adj))
-                load_single_controller_image(designer, wid, designer->global_button_image_file);
+                load_single_controller_image(designer, designer->global_button_image_file);
             x += 80;
         } else if (designer->lv2c.is_enum_port) {
             if (x+130 >= 1200) {
@@ -299,7 +299,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
                 asprintf (&designer->controls[designer->active_widget_num].symbol, "%s",designer->lv2c.symbol);
             }
             if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj))
-                load_single_controller_image(designer, wid, designer->global_knob_image_file);
+                load_single_controller_image(designer, designer->global_knob_image_file);
             x += 80;
         }
     } else if (designer->lv2c.is_output_port) {
@@ -359,7 +359,7 @@ Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, con
     return wid;
 }
 
-void load_plugin_ui(void* w_, void* user_data) {
+void load_plugin_ui(void* w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     combobox_set_active_entry(designer->lv2_uris, adj_get_value(w->adj));
@@ -554,7 +554,7 @@ void load_plugin_ui(void* w_, void* user_data) {
             designer->lv2c.is_atom_patch = false;
             designer->lv2c.is_patch_path = false;
 
-            unsigned int num_ports = lilv_plugin_get_num_ports(plugin);
+            int num_ports = lilv_plugin_get_num_ports(plugin);
 
             int ena_port = -1;
             const LilvPort* enabled_port = lilv_plugin_get_port_by_designation(plugin, lv2_ControlPort, is_ena);
@@ -562,7 +562,7 @@ void load_plugin_ui(void* w_, void* user_data) {
                 ena_port = lilv_port_get_index(plugin, enabled_port);
             }
 
-            for (unsigned int n = 0; n < num_ports; n++) {
+            for (int n = 0; n < num_ports; n++) {
                 if (designer->active_widget_num >= MAX_CONTROLS) {
                     Widget_t *dia = open_message_dialog(designer->ui, INFO_BOX, _("INFO"),
                                                     _("MAX CONTROL COUNTER OVERFLOW"),NULL);

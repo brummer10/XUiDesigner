@@ -26,7 +26,7 @@
 #include "XUiDraw.h"
 
 
-static void set_project_title(void *w_, void* user_data) {
+static void set_project_title(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
@@ -36,7 +36,7 @@ static void set_project_title(void *w_, void* user_data) {
     }
 }
 
-static void set_project_author(void *w_, void* user_data) {
+static void set_project_author(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
@@ -47,7 +47,7 @@ static void set_project_author(void *w_, void* user_data) {
     }
 }
 
-static void set_project_uri(void *w_, void* user_data) {
+static void set_project_uri(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
@@ -58,7 +58,7 @@ static void set_project_uri(void *w_, void* user_data) {
     }
 }
 
-static void set_project_ui_uri(void *w_, void* user_data) {
+static void set_project_ui_uri(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
@@ -69,7 +69,7 @@ static void set_project_ui_uri(void *w_, void* user_data) {
     }
 }
 
-static void set_project_type(void *w_, void* user_data) {
+static void set_project_type(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     Widget_t* menu =  w->childlist->childs[1];
@@ -80,19 +80,19 @@ static void set_project_type(void *w_, void* user_data) {
     asprintf(&designer->lv2c.plugintype, "%s", comboboxlist->list_names[(int)adj_get_value(w->adj)]);
 }
 
-static void set_project_audio_input(void *w_, void* user_data) {
+static void set_project_audio_input(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     designer->lv2c.audio_input = (int)adj_get_value(w->adj);
 }
 
-static void set_project_audio_output(void *w_, void* user_data) {
+static void set_project_audio_output(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     designer->lv2c.audio_output = (int)adj_get_value(w->adj);
 }
 
-static void set_project_bypass_switch(void *w_, void* user_data) {
+static void set_project_bypass_switch(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER) {
@@ -126,7 +126,7 @@ static void set_project_bypass_switch(void *w_, void* user_data) {
     }
 }
 
-static void set_project(void *w_, void* user_data) {
+static void set_project(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
@@ -157,7 +157,7 @@ void set_project_type_by_name (Widget_t *w, const char* name) {
     }
 }
 
-void run_settings(void *w_, void* user_data) {
+void run_settings(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;

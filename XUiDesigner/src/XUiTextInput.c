@@ -53,7 +53,7 @@ void entry_set_text(XUiDesigner *designer, const char* label) {
     expose_widget(designer->controller_label);
 }
 
-static void draw_entry(void *w_, void* user_data) {
+static void draw_entry(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
     XWindowAttributes attrs;
@@ -165,7 +165,7 @@ static void update_label(XUiDesigner *designer, Widget_t *w) {
     }
 }
 
-void entry_get_text(void *w_, void *key_, void *user_data) {
+void entry_get_text(void *w_, void *key_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -277,7 +277,7 @@ static void get_pos_for_x(Widget_t *w, int x, int *width, int *pos) {
     cairo_text_extents_t extents;
     cairo_text_extents(w->cr, text_box->input_label , &extents);
     cairo_set_font_size (w->cr, 12.0);
-    int i = 0;
+    unsigned int i = 0;
     int j = 0;
     for (;i<=strlen(text_box->input_label);i++) {
         j = findpos(text_box->input_label, i);
@@ -299,7 +299,7 @@ static void get_pos_for_x(Widget_t *w, int x, int *width, int *pos) {
 }
 
 // set the curser mark position to the mouse pointer
-static void text_box_button_pressed(void *w_, void* button_, void* user_data) {
+static void text_box_button_pressed(void *w_, void* button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
@@ -327,7 +327,7 @@ static void text_box_button_pressed(void *w_, void* button_, void* user_data) {
 }
 
 // set the curser to the mouse pointer
-static void text_box_button_released(void *w_, void* button_, void* user_data) {
+static void text_box_button_released(void *w_, void* button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
@@ -352,7 +352,7 @@ static void text_box_button_released(void *w_, void* button_, void* user_data) {
 }
 
 // maark the complete string on double click and set curser to end position
-static void text_box_double_click(void *w_, void* button_, void* user_data) {
+static void text_box_double_click(void *w_, void* UNUSED(button_), void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     text_box->set_selection = 1;
@@ -368,7 +368,7 @@ static void text_box_double_click(void *w_, void* button_, void* user_data) {
     //copy_to_clipboard(w, text_box->input_label, (int)text_box->mark2_pos);
 }
 
-void text_box_pop_menu(void *w_, void* item_, void* user_data) {
+void text_box_pop_menu(void *w_, void* item_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t* p = (Widget_t*)w->parent;
     TextBox_t *text_box = (TextBox_t*)w->parent_struct;
@@ -399,7 +399,7 @@ void text_box_pop_menu(void *w_, void* item_, void* user_data) {
 
 
 // mark the part of string were the mouse pointer hover over while pressed
-static void text_box_button_motion(void *w_, void *xmotion_, void* user_data) {
+static void text_box_button_motion(void *w_, void *xmotion_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     text_box->set_selection = 1;
@@ -421,7 +421,7 @@ static void text_box_button_motion(void *w_, void *xmotion_, void* user_data) {
 }
 
 // draw the background of the textbox
-static void draw_box_entry(void *w_, void* user_data) {
+static void draw_box_entry(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
@@ -546,7 +546,7 @@ static void box_entry_clip(Widget_t *w) {
 }
 
 // textbox receive a keypress
-static void box_entry_get_text(void *w_, void *key_, void *user_data) {
+static void box_entry_get_text(void *w_, void *key_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (!w) return;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
@@ -606,7 +606,7 @@ static void text_box_paste(void *w_, void* user_data) {
 
 
 // free the internal used memory of the textbox
-static void text_box_mem_free(void *w_, void* user_data) {
+static void text_box_mem_free(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     free(text_box);

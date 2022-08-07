@@ -28,14 +28,14 @@
 ----------------------------------------------------------------------*/
 
 
-void draw_window(void *w_, void* user_data) {
+void draw_window(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     //use_bg_color_scheme(w, NORMAL_);
     cairo_set_source_rgba(w->crb,  0.13, 0.13, 0.13, 1.0);
     cairo_paint (w->crb);
 }
 
-void draw_ui(void *w_, void* user_data) {
+void draw_ui(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     use_bg_color_scheme(w, NORMAL_);
@@ -93,7 +93,7 @@ static void rounded_frame(cairo_t *cr,float x, float y, float w, float h, float 
     cairo_curve_to(cr, x,y,x,y,x+r,y);
 }
 
-void draw_frame(void *w_, void* user_data) {
+void draw_frame(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
@@ -144,7 +144,7 @@ void draw_frame(void *w_, void* user_data) {
     }
 }
 
-void draw_image(void *w_, void* user_data) {
+void draw_image(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
@@ -208,7 +208,7 @@ static void rounded_box(cairo_t *cr,float x, float y, float w, float h, float ls
     cairo_curve_to(cr, x,y,x,y,x,y);
 }
 
-void draw_tabbox(void *w_, void* user_data) {
+void draw_tabbox(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
@@ -277,7 +277,7 @@ void draw_tabbox(void *w_, void* user_data) {
     }
 }
 
-void draw_tab(void *w_, void* user_data) {
+void draw_tab(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     draw_tabbox(p, NULL);

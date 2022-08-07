@@ -28,7 +28,7 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-static void adjust_viewport(void *w_, void* user_data) {
+static void adjust_viewport(void *w_, void* UNUSED(user_data)) {
     Widget_t *parent = (Widget_t*)w_;
     Widget_t *w = parent->childlist->childs[1];
     XWindowAttributes attrs;
@@ -43,7 +43,7 @@ static void adjust_viewport(void *w_, void* user_data) {
     if (max_value < value) adj_set_value(w->adj,value);
 }
 
-static void draw_ttlview(void *w_, void* user_data) {
+static void draw_ttlview(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     FILE *fp;
@@ -78,7 +78,7 @@ static void draw_ttlview(void *w_, void* user_data) {
     
 }
 
-static void draw_viewslider(void *w_, void* user_data) {
+static void draw_viewslider(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     int v = (int)w->adj->max_value;
     if (!v) return;
@@ -98,7 +98,7 @@ static void draw_viewslider(void *w_, void* user_data) {
     cairo_fill(w->crb);
 }
 
-static void set_viewpoint(void *w_, void* user_data) {
+static void set_viewpoint(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     Widget_t *slider = p->childlist->childs[0];
@@ -107,7 +107,7 @@ static void set_viewpoint(void *w_, void* user_data) {
     XMoveWindow(w->app->dpy,w->widget,0, -10*v);
 }
 
-static void set_viewport(void *w_, void* user_data) {
+static void set_viewport(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     Widget_t *viewport = p->childlist->childs[1];
@@ -164,7 +164,7 @@ void create_text_view_window(XUiDesigner *designer) {
     add_viewport(designer->ttlfile_view, 610, 800);
 }
 
-void run_generate_ttl(void *w_, void* user_data) {
+void run_generate_ttl(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
