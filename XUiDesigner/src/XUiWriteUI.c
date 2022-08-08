@@ -669,22 +669,9 @@ void print_list(XUiDesigner *designer) {
                 }
             }
             if (designer->controls[i].have_adjustment) {
-                if (wid->adj->type == CL_LOGARITHMIC) {
-                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %s);\n", 
-                        j, powf(10,wid->adj->std_value), powf(10,wid->adj->std_value), powf(10,wid->adj->min_value),
-                        powf(10,wid->adj->max_value), wid->adj->step, parse_adjusment_type(wid->adj->type));
-                    
-                } else if (wid->adj->type == CL_LOGSCALE) {
-                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %s);\n", 
-                        j, log10(wid->adj->std_value)*wid->adj->log_scale, log10(wid->adj->std_value)*wid->adj->log_scale,
-                        log10(wid->adj->min_value)*wid->adj->log_scale, log10(wid->adj->max_value)*wid->adj->log_scale,
-                        wid->adj->step, parse_adjusment_type(wid->adj->type));
-                    
-                } else {
-                    printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %s);\n", 
-                        j, wid->adj->std_value, wid->adj->std_value, wid->adj->min_value, wid->adj->max_value,
-                        wid->adj->step, parse_adjusment_type(wid->adj->type));
-                }
+                printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %s);\n", 
+                    j, adj_get_std_value(wid->adj), adj_get_std_value(wid->adj), adj_get_min_value(wid->adj),
+                    adj_get_max_value(wid->adj), wid->adj->step, parse_adjusment_type(wid->adj->type));
             }
             printf ("\n");
             if (designer->controls[i].is_type != IS_FRAME) {

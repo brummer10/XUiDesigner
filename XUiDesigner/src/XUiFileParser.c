@@ -165,7 +165,7 @@ static void parse_c_file (XUiDesigner *designer, char* filename) {
         fprintf(stderr, buf);
     }
   
-    if (pclose(fp)) {
+    if (fclose(fp)) {
         printf("Command not found or exited with error status\n");
         return;
     }
