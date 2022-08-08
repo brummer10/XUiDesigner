@@ -311,6 +311,9 @@ static void set_selected_color(void *w_, void* UNUSED(user_data)) {
 
 static void set_selected_color_on_map(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+    if (attrs.map_state != IsViewable) return;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     int s = (int)adj_get_value(color_chooser->color_sel->adj);
