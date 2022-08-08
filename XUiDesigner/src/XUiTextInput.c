@@ -199,7 +199,7 @@ void entry_get_text(void *w_, void *key_, void* UNUSED(user_data)) {
 ----------------------------------------------------------------------*/
 
 // replace or insert a string at position pos. size is the size of string to be removed, could be zero.
-void strreplace(char *target, size_t pos, size_t size, const char *replacement) {
+static void strreplace(char *target, size_t pos, size_t size, const char *replacement) {
     char buffer[256] = { 0 };
     char *insert_point = &buffer[0];
     const char *tmp = target;
@@ -368,7 +368,7 @@ static void text_box_double_click(void *w_, void* UNUSED(button_), void* UNUSED(
     //copy_to_clipboard(w, text_box->input_label, (int)text_box->mark2_pos);
 }
 
-void text_box_pop_menu(void *w_, void* item_, void* UNUSED(user_data)) {
+static void text_box_pop_menu(void *w_, void* item_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t* p = (Widget_t*)w->parent;
     TextBox_t *text_box = (TextBox_t*)w->parent_struct;

@@ -45,6 +45,7 @@
 	`pkg-config --cflags --libs cairo x11 lilv-0` -lm
 	CXXFLAGS += -O3 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector -fno-ident \
 	-fno-asynchronous-unwind-tables -s -DNDEBUG -DSHARE_DIR=\"$(SHARE_DIR)\"
+	# -pedantic -Wextra -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes
 	DEBUG_CXXFLAGS += -g -D DEBUG -DSHARE_DIR=\"$(SHARE_DIR)\"
 	# invoke build files
 	OBJECTS = $(wildcard $(SOURCE_DIR)*.c)

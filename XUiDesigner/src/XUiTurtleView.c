@@ -114,7 +114,7 @@ static void set_viewport(void *w_, void* UNUSED(user_data)) {
     adj_set_state(viewport->adj, adj_get_state(w->adj));
 }
 
-Widget_t* add_viewport(Widget_t *parent, int width, int height) {
+static Widget_t* add_viewport(Widget_t *parent, int width, int height) {
     Widget_t *slider = add_vslider(parent, "", width, 0, 10, height);
     slider->func.expose_callback = draw_viewslider;
     slider->adj_y = add_adjustment(slider,0.0, 0.0, 0.0, 1.0,0.0085, CL_VIEWPORTSLIDER);

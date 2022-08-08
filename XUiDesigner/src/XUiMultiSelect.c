@@ -79,9 +79,9 @@ void resize_all_for_type(XUiDesigner *designer, Widget_t *wi, WidgetType is_type
             XResizeWindow(wi->app->dpy, wid->widget, max(10,wi->width + w), max(10,wi->height + h));
             if (is_type == IS_TABBOX) {
                 int elem = wid->childlist->elem;
-                int i = 0;
-                for(;i<elem;i++) {
-                    Widget_t *win = wid->childlist->childs[i];
+                int ic = 0;
+                for(;ic<elem;ic++) {
+                    Widget_t *win = wid->childlist->childs[ic];
                     XResizeWindow(wi->app->dpy, win->widget, max(10,win->width + w),
                                                            max(10,win->height + h));
                 }

@@ -384,9 +384,9 @@ void run_save(void *w_, void* user_data) {
             XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
             return;
         }
-        Window w = (Window)designer->ui->widget;
+        Window wi = (Window)designer->ui->widget;
         char *name = NULL;
-        XFetchName(designer->ui->app->dpy, w, &name);
+        XFetchName(designer->ui->app->dpy, wi, &name);
         if (name == NULL) asprintf(&name, "%s", "noname");
         strdecode(name, " ", "_");
         char* filepath = NULL;
@@ -547,12 +547,12 @@ void run_save(void *w_, void* user_data) {
             if (!ret) {
                 makefile = NULL;
                 asprintf(&makefile, "%s/makefile",filepath);
-                FILE *fpm;
-                if((fpm=freopen(makefile, "w" ,stdout))==NULL) {
+                FILE *fpmu;
+                if((fpmu=freopen(makefile, "w" ,stdout))==NULL) {
                     printf("open failed\n");
                 }
                 print_makefile(designer);
-                fclose(fpm);
+                fclose(fpmu);
                 free(makefile);
                 free(cmd);
                 cmd = NULL;
@@ -575,8 +575,8 @@ void run_save(void *w_, void* user_data) {
                 mkdir(filepath, 0700);
             } else {
                 asprintf(&cmd, "rm -rf \'%s\'", filepath);
-                int ret = system(cmd);
-                if (!ret) {
+                int retu = system(cmd);
+                if (!retu) {
                     free(cmd);
                     cmd = NULL;
                     mkdir(filepath, 0700);
@@ -597,14 +597,14 @@ void run_save(void *w_, void* user_data) {
                 char* fxldl = NULL;
                 asprintf(&fxldl, "%s/%s", filepath, xldl);
                 asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
-                int ret = system(cmd);
-                if (!ret) {
+                int retu = system(cmd);
+                if (!retu) {
                     char* xldc =  strdup(xldl);
                     strdecode(xldc, ".png", ".c");
                     free(cmd);
                     cmd = NULL;
                     asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
-                    ret = system(cmd);
+                    retu = system(cmd);
                     free(xldc);
                     free(cmd);
                     cmd = NULL;
@@ -621,14 +621,14 @@ void run_save(void *w_, void* user_data) {
                 asprintf(&fxldl, "%s/%s", filepath, xldl);
                 asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
                         fprintf(stderr, "%s  %s\n", cmd,xldl);
-                int ret = system(cmd);
-                if (!ret) {
+                int retu = system(cmd);
+                if (!retu) {
                     char* xldc =  strdup(xldl);
                     strdecode(xldc, ".svg", ".c");
                     free(cmd);
                     cmd = NULL;
                     asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s && echo '\";' >> %s", filepath, xldv, xldc, xldl, xldc, xldc);
-                    ret = system(cmd);
+                    retu = system(cmd);
                     free(xldc);
                     free(cmd);
                     cmd = NULL;
@@ -656,14 +656,14 @@ void run_save(void *w_, void* user_data) {
                         char* fxldl = NULL;
                         asprintf(&fxldl, "%s/%s", filepath, xldl);
                         asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,fxldl);
-                        int ret = system(cmd);
-                        if (!ret) {
+                        int retu = system(cmd);
+                        if (!retu) {
                             char* xldc = strdup(xldl);
                             strdecode(xldc, ".png", ".c");
                             free(cmd);
                             cmd = NULL;
                             asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
-                            ret = system(cmd);
+                            retu = system(cmd);
                             free(xldc);
                             free(cmd);
                             cmd = NULL;
@@ -679,14 +679,14 @@ void run_save(void *w_, void* user_data) {
                         char* fxldl = NULL;
                         asprintf(&fxldl, "%s/%s", filepath, xldl);
                         asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
-                        int ret = system(cmd);
-                        if (!ret) {
+                        int retu = system(cmd);
+                        if (!retu) {
                             char* xldc =  strdup(xldl);
                             strdecode(xldc, ".svg", ".c");
                             free(cmd);
                             cmd = NULL;
                             asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s && echo '\";' >> %s", filepath, xldv, xldc, xldl, xldc, xldc);
-                            ret = system(cmd);
+                            retu = system(cmd);
                             free(xldc);
                             free(cmd);
                             cmd = NULL;
@@ -705,11 +705,11 @@ void run_save(void *w_, void* user_data) {
             free(filepath);
             filepath = NULL;
             asprintf(&filepath, "%s%s_ui",*(const char**)user_data,name);
-            char* cmd = NULL;
-            asprintf(&cmd, "cd %s && git add .", filepath);
-            ret = system(cmd);
-            free(cmd);
-            cmd = NULL;
+            char* cmdc = NULL;
+            asprintf(&cmdc, "cd %s && git add .", filepath);
+            ret = system(cmdc);
+            free(cmdc);
+            cmdc = NULL;
             free(filepath);
             free(name);
         }

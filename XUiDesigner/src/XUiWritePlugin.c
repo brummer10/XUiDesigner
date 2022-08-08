@@ -29,9 +29,9 @@
 ----------------------------------------------------------------------*/
 
 void print_plugin(XUiDesigner *designer) {
-    const char * a_inputs[16];
+    char * a_inputs[16];
     int a = 0;
-    const char * a_outputs[16];
+    char * a_outputs[16];
     int o = 0;
     char *name = NULL;
     XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
@@ -43,7 +43,7 @@ void print_plugin(XUiDesigner *designer) {
     "#include <iostream>\n"
     "#include <cstring>\n"
     "#include <unistd.h>\n\n"
-    "#include <lv2/lv2plug.in/ns/lv2core/lv2.h>");
+    "#include <lv2/lv2plug.in/ns/lv2core/lv2.h>\n");
     if (designer->lv2c.midi_input || designer->lv2c.midi_output) {
         printf ("#include <lv2/lv2plug.in/ns/ext/atom/atom.h>\n"
         "#include <lv2/lv2plug.in/ns/ext/atom/util.h>\n"

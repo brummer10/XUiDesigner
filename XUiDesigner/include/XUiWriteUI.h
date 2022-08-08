@@ -32,6 +32,8 @@
 extern "C" {
 #endif
 
+void png2c(char* image_name, char* filepath);
+
 const char* parse_adjusment_type(CL_type cl_type);
 
 void print_list(XUiDesigner *designer);

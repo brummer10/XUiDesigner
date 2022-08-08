@@ -263,8 +263,8 @@ static void remove_tabbox_entry(void *w_, void* UNUSED(user_data)) {
             int el = wi->childlist->elem;
             int j = el;
             for(;j>0l;j--) {
-                Widget_t *w = wi->childlist->childs[j-1];
-                remove_from_list(designer, w);
+                Widget_t *wid = wi->childlist->childs[j-1];
+                remove_from_list(designer, wid);
             }
             tabbox_remove_tab(designer->active_widget,v);
             expose_widget(designer->active_widget);
@@ -331,7 +331,7 @@ static void set_widget_callback(void *w_, void* UNUSED(user_data)) {
     }
  }
 
-void x_axis_release_callback(void *w_, void* UNUSED(button_), void* UNUSED(user_data)) {
+static void x_axis_release_callback(void *w_, void* UNUSED(button_), void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     expose_widget(w);
@@ -340,7 +340,7 @@ void x_axis_release_callback(void *w_, void* UNUSED(button_), void* UNUSED(user_
     }
 }
 
-void y_axis_release_callback(void *w_, void* UNUSED(button_), void* UNUSED(user_data)) {
+static void y_axis_release_callback(void *w_, void* UNUSED(button_), void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     expose_widget(w);
@@ -1041,6 +1041,8 @@ int main (int argc, char ** argv) {
             case 'h':
             case '?': fprintf(stderr, usage, argv[0]);
                 exit(1);
+            break;
+            default:
             break;
         }
     }

@@ -557,7 +557,7 @@ static void set_focus_on_key(void *w_, void *key_, void* UNUSED(user_data)) {
     }
 }
 
-void color_chooser_mem_free(void *w_, void* UNUSED(user_data)) {
+static void color_chooser_mem_free(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     free(color_chooser);

@@ -148,7 +148,7 @@ void png2c(char* image_name, char* filepath) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-void print_colors(XUiDesigner *designer) {
+static void print_colors(XUiDesigner *designer) {
     Xputty * main = designer->w->app;
     Colors *c = &main->color_scheme->normal;
     printf (
@@ -663,9 +663,9 @@ void print_list(XUiDesigner *designer) {
                 Widget_t *menu = wid->childlist->childs[1];
                 Widget_t* view_port =  menu->childlist->childs[0];
                 ComboBox_t *comboboxlist = (ComboBox_t*)view_port->parent_struct;
-                unsigned int k = 0;
-                for(; k<comboboxlist->list_size;k++) {
-                    printf ("    combobox_add_entry (ui->widget[%i], \"%s\");\n", j, comboboxlist->list_names[k]);
+                unsigned int ka = 0;
+                for(; ka<comboboxlist->list_size;ka++) {
+                    printf ("    combobox_add_entry (ui->widget[%i], \"%s\");\n", j, comboboxlist->list_names[ka]);
                 }
             }
             if (designer->controls[i].have_adjustment) {

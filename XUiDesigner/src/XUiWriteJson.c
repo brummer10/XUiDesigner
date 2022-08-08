@@ -31,7 +31,7 @@
 bool need_comma = false;
 bool need_tab = false;
 
-const char* parse_type(WidgetType is_type) {
+static const char* parse_type(WidgetType is_type) {
     switch(is_type) {
         case IS_KNOB:
         return "KNOB";
@@ -87,52 +87,52 @@ const char* parse_type(WidgetType is_type) {
     } 
 }
 
-void json_start_object (char *s) {
+static void json_start_object (char *s) {
     printf ("{\n  \"%s\" :", s);
     need_comma = false;
 }
 
-void json_start_array() {
+static void json_start_array(void) {
     printf (" [");
     need_comma = false;
 }
 
-void json_close_array() {
+static void json_close_array(void) {
     printf ("] ");
     need_comma = true;
 }
 
-void json_start_value_pair() {
+static void json_start_value_pair(void) {
     printf ("\n    {\n");
     need_tab = true;
 }
 
-void json_close_value_pair() {
+static void json_close_value_pair(void) {
     printf ("\n    }\n  ");
     need_tab = false;
 }
 
-void json_add_int(int i) {
+static void json_add_int(int i) {
     printf ("%s %i ", need_comma ? "," : "", i);
     need_comma = true;
 }
 
-void json_add_float(float f) {
+static void json_add_float(float f) {
     printf ("%s %f ", need_comma ? "," : "", f);
     need_comma = true;
 }
 
-void json_add_string(const char* s) {
+static void json_add_string(const char* s) {
     printf ("%s \"%s\"", need_comma ? "," : "", s);
     need_comma = true;
 }
 
-void json_add_key(const char* s) {
+static void json_add_key(const char* s) {
     printf ("%s%s  \"%s\" :", need_comma ? ",\n" : "", need_tab ? "    " : "", s);
     need_comma = false;
 }
 
-void json_close_object() {
+static void json_close_object(void) {
     printf ("\n}\n");
     need_comma = false;
 }

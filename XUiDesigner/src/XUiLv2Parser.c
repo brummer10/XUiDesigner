@@ -119,7 +119,7 @@ static int sort_enums(int elem, int array[], int size) {
     return -1; 
 }
 
-Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, const LilvPort* port,
+static Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plugin, const LilvPort* port,
                                                                 int *xa, int *ya, int *x1a, int *y1a) {
     int x = (*xa);
     int y = (*ya);
@@ -415,10 +415,10 @@ void load_plugin_ui(void* w_, void* UNUSED(user_data)) {
             designer->is_project = false;
             free(designer->lv2c.symbol);
             designer->lv2c.symbol = NULL;
-            const LilvNode* uri = lilv_plugin_get_uri(plugin);
+            const LilvNode* uri_p = lilv_plugin_get_uri(plugin);
             free(designer->lv2c.uri);
             designer->lv2c.uri = NULL;
-            asprintf(&designer->lv2c.uri, "%s", lilv_node_as_string(uri));
+            asprintf(&designer->lv2c.uri, "%s", lilv_node_as_string(uri_p));
             const LilvPluginClass* cls = lilv_plugin_get_class(plugin);
             free(designer->lv2c.plugintype);
             designer->lv2c.plugintype = NULL;
@@ -471,6 +471,8 @@ void load_plugin_ui(void* w_, void* UNUSED(user_data)) {
             LilvNodes* readables = lilv_world_find_nodes(designer->world,
                         lilv_plugin_get_uri(plugin), patch_readable, NULL);
             bool is_w = false;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
             LILV_FOREACH(nodes, p, readables) {
                 const LilvNode* rproperty = lilv_nodes_get(readables, p);
                 LILV_FOREACH(nodes, p, writables) {
@@ -481,6 +483,7 @@ void load_plugin_ui(void* w_, void* UNUSED(user_data)) {
                         break;
                     }
                 }
+#pragma GCC diagnostic pop
                 if (!is_w) {
                     designer->lv2c.is_output_port = true;
                     designer->lv2c.is_atom_patch = true;

@@ -347,7 +347,7 @@ void controller_image_load_response(void *w_, void* user_data) {
     }
 }
 
-void background_image_load_response(void *w_, void* user_data) {
+static void background_image_load_response(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (designer->active_widget == NULL) return;
@@ -467,8 +467,8 @@ void pop_menu_response(void *w_, void* item_, void* UNUSED(user_data)) {
                     int el = wi->childlist->elem;
                     int j = el;
                     for(;j>0l;j--) {
-                        Widget_t *w = wi->childlist->childs[j-1];
-                        remove_from_list(designer, w);
+                        Widget_t *wid = wi->childlist->childs[j-1];
+                        remove_from_list(designer, wid);
                     }
                 }
             }

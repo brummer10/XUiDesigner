@@ -131,12 +131,12 @@ void draw_frame(void *w_, void* UNUSED(user_data)) {
     cairo_stroke(w->crb);
 
     if (designer->active_widget && designer->active_widget->parent == w) {
-        XWindowAttributes attrs;
-        XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
-        int x = attrs.x -1;
-        int y = attrs.y -1;
-        int width = attrs.width +2;
-        int height = attrs.height +2;
+        XWindowAttributes attr;
+        XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attr);
+        int x = attr.x -1;
+        int y = attr.y -1;
+        int width = attr.width +2;
+        int height = attr.height +2;
         cairo_set_line_width(w->crb, 1.0);
         use_frame_color_scheme(w, ACTIVE_);
         cairo_rectangle(w->crb, x, y, width, height);
@@ -181,12 +181,12 @@ void draw_image(void *w_, void* UNUSED(user_data)) {
     } 
 
     if (designer->active_widget && designer->active_widget->parent == w) {
-        XWindowAttributes attrs;
-        XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
-        int x = attrs.x -1;
-        int y = attrs.y -1;
-        int width = attrs.width +2;
-        int height = attrs.height +2;
+        XWindowAttributes attr;
+        XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attr);
+        int x = attr.x -1;
+        int y = attr.y -1;
+        int width = attr.width +2;
+        int height = attr.height +2;
         cairo_set_line_width(w->crb, 1.0);
         use_frame_color_scheme(w, ACTIVE_);
         cairo_rectangle(w->crb, x, y, width, height);
@@ -246,12 +246,12 @@ void draw_tabbox(void *w_, void* UNUSED(user_data)) {
             use_frame_color_scheme(w, NORMAL_);
             cairo_stroke(w->crb);
             if (designer->active_widget && designer->active_widget->parent == wi) {
-                XWindowAttributes attrs;
-                XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attrs);
-                int x = attrs.x +1;
-                int y = attrs.y +20;
-                int width = attrs.width +2;
-                int height = attrs.height +2;
+                XWindowAttributes attr;
+                XGetWindowAttributes(w->app->dpy, (Window)designer->active_widget->widget, &attr);
+                int x = attr.x +1;
+                int y = attr.y +20;
+                int width = attr.width +2;
+                int height = attr.height +2;
                 cairo_set_line_width(w->crb, 1.0);
                 use_frame_color_scheme(w, ACTIVE_);
                 cairo_rectangle(w->crb, x, y, width, height);
