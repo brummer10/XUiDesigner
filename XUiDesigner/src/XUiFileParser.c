@@ -162,7 +162,7 @@ static void parse_c_file (XUiDesigner *designer, char* filename) {
         } else if (strstr(buf, "output") != NULL) {
             designer->lv2c.audio_output += 1;
         }
-        fprintf(stderr, buf);
+        fprintf(stderr, "%s", buf);
     }
   
     if (fclose(fp)) {

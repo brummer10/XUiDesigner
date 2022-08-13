@@ -236,6 +236,26 @@ static void draw_color_widget(void *w_, void* UNUSED(user_data)) {
     cairo_fill(w->crb);
 }
 
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                trap xerror (XGetImage may fail)
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+
+static int (*default_error_handler) (Display *, XErrorEvent *);
+
+static int dummy_error_handler(Display *, XErrorEvent *) {
+    return 0;
+}
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                Color Chooser functions
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
 static void set_costum_color(XUiDesigner *designer, ColorChooser_t *color_chooser, int a, float v) {
     int s = (int)adj_get_value(color_chooser->color_sel->adj);
     switch (s) {
@@ -452,29 +472,34 @@ void set_focus_by_color(Widget_t* wid, const double r, const double g, const dou
     unsigned long _G = g*255;
     unsigned long _B = b*255;
     //fprintf(stderr, "RGB = %ld %ld %ld \n", _R,_G,_B);
-    XImage *image;
+    XImage *image = NULL;
+    default_error_handler = XSetErrorHandler(dummy_error_handler);
     image = XGetImage (wid->app->dpy, wid->widget, 0, 0, wid->width-60, wid->height-120, AllPlanes, ZPixmap);
+    XSetErrorHandler(default_error_handler);
+    if (!image) return;
     int i = 10;
     int j = 10;
     unsigned long pixel = 0;
     
     for (;j<wid->height-141;j++) {
         for (;i<wid->width-61;i++) {
-            pixel = XGetPixel(image, i, j);
-            //fprintf(stderr, "%lu ,",pixel);
-            if ((((pixel >> 0x10) & 0xFF) - _R) < 2 &&
-                (((pixel >> 0x08) & 0xFF) - _G) < 2 && 
-                ((pixel & 0xFF) - _B) < 2 ) {
-                color_chooser->focus_x = (double)i;
-                color_chooser->focus_y = (double)j;
-                set_costum_color(designer, color_chooser, 0, r);
-                set_costum_color(designer, color_chooser, 1, g);
-                set_costum_color(designer, color_chooser, 2, b);
-                expose_widget(color_chooser->color_widget);
-                expose_widget(designer->ui);
-                //fprintf(stderr,"found %ld,%ld,%ld ", (pixel >> 0x10) & 0xFF, (pixel >> 0x08) & 0xFF, pixel & 0xFF);
-                j = wid->height-121;
-                break;
+            if (is_in_circle(color_chooser, i, j)) {
+                pixel = XGetPixel(image, i, j);
+                //fprintf(stderr, "%lu ,",pixel);
+                if ((((pixel >> 0x10) & 0xFF) - _R) < 2 &&
+                    (((pixel >> 0x08) & 0xFF) - _G) < 2 && 
+                    ((pixel & 0xFF) - _B) < 2 ) {
+                    color_chooser->focus_x = (double)i;
+                    color_chooser->focus_y = (double)j;
+                    set_costum_color(designer, color_chooser, 0, r);
+                    set_costum_color(designer, color_chooser, 1, g);
+                    set_costum_color(designer, color_chooser, 2, b);
+                    expose_widget(color_chooser->color_widget);
+                    expose_widget(designer->ui);
+                    //fprintf(stderr,"found %ld,%ld,%ld ", (pixel >> 0x10) & 0xFF, (pixel >> 0x08) & 0xFF, pixel & 0xFF);
+                    j = wid->height-121;
+                    break;
+                }
             }
         }
         i = 10;

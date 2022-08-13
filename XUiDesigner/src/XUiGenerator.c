@@ -346,8 +346,8 @@ void print_makefile(XUiDesigner *designer) {
                 "%%","%%","\\r\\n","%%","%%",
                 "%%","%%","\\r\\n","%%","%%","%%","%%","%%","%%","%%","%%", use_atom ? "-DUSE_ATOM" : "");
     }
-    printf(cmd);
-    printf(cmd2);
+    printf("%s",cmd);
+    printf("%s",cmd2);
     free(cmd);
     cmd = NULL;
     free(cmd2);
