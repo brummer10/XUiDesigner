@@ -389,7 +389,7 @@ static void set_selected_scheme(void *w_, void* UNUSED(user_data)) {
 
 static void get_pixel(Widget_t *w, int x, int y, XColor *color) {
     XImage *image;
-    image = XGetImage (w->app->dpy, w->widget, x, y, 1, 1, AllPlanes, ZPixmap);
+    image = XGetImage (w->app->dpy, DefaultRootWindow(w->app->dpy), x, y, 1, 1, AllPlanes, ZPixmap);
     color->pixel = XGetPixel(image, 0, 0);
     XFree (image);
     XQueryColor (w->app->dpy, DefaultColormap(w->app->dpy, DefaultScreen (w->app->dpy)), color);
@@ -407,10 +407,14 @@ static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
+    XColor c;
     if (w->flags & HAS_POINTER) {
         if (xbutton->button == Button1 &&  is_in_circle(color_chooser, xbutton->x, xbutton->y)) {
-            XColor c;
-            get_pixel(w, xbutton->x, xbutton->y, &c);
+            int x1, y1;
+            Window child;
+            XTranslateCoordinates( w->app->dpy, w->widget, DefaultRootWindow(
+                            w->app->dpy), xbutton->x, xbutton->y, &x1, &y1, &child );
+            get_pixel(w, x1, y1, &c);
             double r = (double)c.red/65535.0;
             double g = (double)c.green/65535.0;
             double b = (double)c.blue/65535.0;
@@ -424,6 +428,26 @@ static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {
         }
         
     }
+    if (w->app->hold_grab == color_chooser->color_widget) {
+        int x1, y1;
+        Window child;
+        XTranslateCoordinates( w->app->dpy, xbutton->window, DefaultRootWindow(
+                            w->app->dpy), xbutton->x, xbutton->y, &x1, &y1, &child );
+        get_pixel(w, x1, y1, &c);
+        double r = (double)c.red/65535.0;
+        double g = (double)c.green/65535.0;
+        double b = (double)c.blue/65535.0;
+        //fprintf(stderr, "%f %f %f %f\n", r, g, b, color_chooser->alpha);
+        set_costum_color(designer, color_chooser, 0, r);
+        set_costum_color(designer, color_chooser, 1, g);
+        set_costum_color(designer, color_chooser, 2, b);
+        set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+        set_focus_by_color(w, r, g, b);
+        expose_widget(color_chooser->color_widget);
+        expose_widget(designer->ui);
+        XUngrabPointer(w->app->dpy,CurrentTime);
+        w->app->hold_grab = NULL;
+    }
 }
 
 static void lum_callback(void *w_, void* UNUSED(user_data)) {
@@ -433,7 +457,11 @@ static void lum_callback(void *w_, void* UNUSED(user_data)) {
     ColorChooser_t *color_chooser = (ColorChooser_t*)p->private_struct;
     color_chooser->lum = adj_get_value(w->adj);
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    get_pixel(p, color_chooser->focus_x, color_chooser->focus_y, &c);
+    int x1, y1;
+    Window child;
+    XTranslateCoordinates( w->app->dpy, color_chooser->color_widget->widget, DefaultRootWindow(
+            w->app->dpy), color_chooser->focus_x, color_chooser->focus_y, &x1, &y1, &child );
+    get_pixel(p, x1, y1, &c);
     double r = (double)c.red/65535.0;
     double g = (double)c.green/65535.0;
     double b = (double)c.blue/65535.0;
@@ -486,6 +514,12 @@ void set_focus_by_color(Widget_t* wid, const double r, const double g, const dou
             if (is_in_circle(color_chooser, i, j)) {
                 pixel = XGetPixel(image, i, j);
                 //fprintf(stderr, "%lu ,",pixel);
+                if (((pixel >> 0x10) & 0xFF) - _R < 4 &&
+                    (((pixel >> 0x08) & 0xFF) - _G) < 4 &&
+                    ((pixel & 0xFF) - _B) < 4 ) {
+                        color_chooser->focus_x = (double)i;
+                        color_chooser->focus_y = (double)j;
+                    }
                 if ((((pixel >> 0x10) & 0xFF) - _R) < 2 &&
                     (((pixel >> 0x08) & 0xFF) - _G) < 2 && 
                     ((pixel & 0xFF) - _B) < 2 ) {
@@ -517,7 +551,11 @@ static void set_focus_motion(void *w_, void *xmotion_, void* UNUSED(user_data)) 
         color_chooser->focus_y = xmotion->y;
         //fprintf(stderr, "%f %f \n", color_chooser->focus_x, color_chooser->focus_y);
         XColor c;
-        get_pixel(w, xmotion->x, xmotion->y, &c);
+        int x1, y1;
+        Window child;
+        XTranslateCoordinates( w->app->dpy, w->widget, DefaultRootWindow(
+                        w->app->dpy), xmotion->x, xmotion->y, &x1, &y1, &child );
+        get_pixel(w, x1, y1, &c);
         double r = (double)c.red/65535.0;
         double g = (double)c.green/65535.0;
         double b = (double)c.blue/65535.0;
@@ -533,12 +571,14 @@ static void set_focus_motion(void *w_, void *xmotion_, void* UNUSED(user_data)) 
 // set the curser to the mouse pointer
 static void set_focus(void *w_, void* button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
-    ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
-    XButtonEvent *xbutton = (XButtonEvent*)button_;
-    if(xbutton->button == Button1 && is_in_circle (color_chooser, xbutton->x, xbutton->y)) {
-        color_chooser->focus_x = xbutton->x;
-        color_chooser->focus_y = xbutton->y;
-        expose_widget(color_chooser->color_widget);
+    if (w->app->hold_grab == NULL) {
+        ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
+        XButtonEvent *xbutton = (XButtonEvent*)button_;
+        if(xbutton->button == Button1 && is_in_circle (color_chooser, xbutton->x, xbutton->y)) {
+            color_chooser->focus_x = xbutton->x;
+            color_chooser->focus_y = xbutton->y;
+            expose_widget(color_chooser->color_widget);
+        }
     }
 }
 
@@ -548,6 +588,12 @@ static void set_focus_on_key(void *w_, void *key_, void* UNUSED(user_data)) {
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     XKeyEvent *key = (XKeyEvent*)key_;
     if (!key) return;
+    if (key->keycode == XKeysymToKeycode(w->app->dpy,XK_Control_L) && w->app->hold_grab == NULL) {
+        int err = XGrabPointer(w->app->dpy, DefaultRootWindow(w->app->dpy), True,
+                 ButtonPressMask|ButtonReleaseMask|PointerMotionMask,
+                 GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
+        if (!err) w->app->hold_grab = w;
+    }
     int nk = key_mapping(w->app->dpy, key);
     double x = 0.0;
     double y = 0.0;
@@ -562,14 +608,21 @@ static void set_focus_on_key(void *w_, void *key_, void* UNUSED(user_data)) {
             case 6: x = -1.0;
             break;
             default:
+            return;
             break;
         }
+    } else {
+        return;
     }
     if (is_in_circle (color_chooser, color_chooser->focus_x + x, color_chooser->focus_y + y)) {
         color_chooser->focus_y +=y;
         color_chooser->focus_x +=x;
         XColor c;
-        get_pixel(w, color_chooser->focus_x, color_chooser->focus_y, &c);
+        int x1, y1;
+        Window child;
+        XTranslateCoordinates( w->app->dpy, color_chooser->color_widget->widget, DefaultRootWindow(
+                w->app->dpy), color_chooser->focus_x, color_chooser->focus_y, &x1, &y1, &child );
+        get_pixel(w, x1, y1, &c);
         double r = (double)c.red/65535.0;
         double g = (double)c.green/65535.0;
         double b = (double)c.blue/65535.0;
