@@ -285,6 +285,14 @@ static void set_costum_color(XUiDesigner *designer, ColorChooser_t *color_choose
     }
 }
 
+static void set_rgba_color(XUiDesigner *designer, ColorChooser_t *color_chooser,
+                                    float r, float g, float b, float a) {
+    set_costum_color(designer, color_chooser, 0, r);
+    set_costum_color(designer, color_chooser, 1, g);
+    set_costum_color(designer, color_chooser, 2, b);
+    set_costum_color(designer, color_chooser, 3, a);
+}
+
 static void a_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
@@ -408,26 +416,6 @@ static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     XColor c;
-    if (w->flags & HAS_POINTER) {
-        if (xbutton->button == Button1 &&  is_in_circle(color_chooser, xbutton->x, xbutton->y)) {
-            int x1, y1;
-            Window child;
-            XTranslateCoordinates( w->app->dpy, w->widget, DefaultRootWindow(
-                            w->app->dpy), xbutton->x, xbutton->y, &x1, &y1, &child );
-            get_pixel(w, x1, y1, &c);
-            double r = (double)c.red/65535.0;
-            double g = (double)c.green/65535.0;
-            double b = (double)c.blue/65535.0;
-            //fprintf(stderr, "%f %f %f %f\n", r, g, b, color_chooser->alpha);
-            set_costum_color(designer, color_chooser, 0, r);
-            set_costum_color(designer, color_chooser, 1, g);
-            set_costum_color(designer, color_chooser, 2, b);
-            set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
-            expose_widget(color_chooser->color_widget);
-            expose_widget(designer->ui);
-        }
-        
-    }
     if (w->app->hold_grab == color_chooser->color_widget) {
         int x1, y1;
         Window child;
@@ -438,15 +426,25 @@ static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {
         double g = (double)c.green/65535.0;
         double b = (double)c.blue/65535.0;
         //fprintf(stderr, "%f %f %f %f\n", r, g, b, color_chooser->alpha);
-        set_costum_color(designer, color_chooser, 0, r);
-        set_costum_color(designer, color_chooser, 1, g);
-        set_costum_color(designer, color_chooser, 2, b);
-        set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+        set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
         set_focus_by_color(w, r, g, b);
         expose_widget(color_chooser->color_widget);
         expose_widget(designer->ui);
-        XUngrabPointer(w->app->dpy,CurrentTime);
-        w->app->hold_grab = NULL;
+    } else if (w->flags & HAS_POINTER) {
+        if (xbutton->button == Button1 &&  is_in_circle(color_chooser, xbutton->x, xbutton->y)) {
+            int x1, y1;
+            Window child;
+            XTranslateCoordinates( w->app->dpy, w->widget, DefaultRootWindow(
+                            w->app->dpy), xbutton->x, xbutton->y, &x1, &y1, &child );
+            get_pixel(w, x1, y1, &c);
+            double r = (double)c.red/65535.0;
+            double g = (double)c.green/65535.0;
+            double b = (double)c.blue/65535.0;
+            //fprintf(stderr, "%f %f %f %f\n", r, g, b, color_chooser->alpha);
+            set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
+            expose_widget(color_chooser->color_widget);
+            expose_widget(designer->ui);
+        }
     }
 }
 
@@ -465,10 +463,7 @@ static void lum_callback(void *w_, void* UNUSED(user_data)) {
     double r = (double)c.red/65535.0;
     double g = (double)c.green/65535.0;
     double b = (double)c.blue/65535.0;
-    set_costum_color(designer, color_chooser, 0, r);
-    set_costum_color(designer, color_chooser, 1, g);
-    set_costum_color(designer, color_chooser, 2, b);
-    set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+    set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
     expose_widget(color_chooser->color_widget);
     expose_widget(designer->ui);
 }
@@ -525,9 +520,7 @@ void set_focus_by_color(Widget_t* wid, const double r, const double g, const dou
                     ((pixel & 0xFF) - _B) < 2 ) {
                     color_chooser->focus_x = (double)i;
                     color_chooser->focus_y = (double)j;
-                    set_costum_color(designer, color_chooser, 0, r);
-                    set_costum_color(designer, color_chooser, 1, g);
-                    set_costum_color(designer, color_chooser, 2, b);
+                    set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
                     expose_widget(color_chooser->color_widget);
                     expose_widget(designer->ui);
                     //fprintf(stderr,"found %ld,%ld,%ld ", (pixel >> 0x10) & 0xFF, (pixel >> 0x08) & 0xFF, pixel & 0xFF);
@@ -559,10 +552,7 @@ static void set_focus_motion(void *w_, void *xmotion_, void* UNUSED(user_data)) 
         double r = (double)c.red/65535.0;
         double g = (double)c.green/65535.0;
         double b = (double)c.blue/65535.0;
-        set_costum_color(designer, color_chooser, 0, r);
-        set_costum_color(designer, color_chooser, 1, g);
-        set_costum_color(designer, color_chooser, 2, b);
-        set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+        set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
         expose_widget(color_chooser->color_widget);
         expose_widget(designer->ui);
     }
@@ -571,8 +561,8 @@ static void set_focus_motion(void *w_, void *xmotion_, void* UNUSED(user_data)) 
 // set the curser to the mouse pointer
 static void set_focus(void *w_, void* button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
-    if (w->app->hold_grab == NULL) {
-        ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
+    ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
+    if (w->app->hold_grab != color_chooser->color_widget) {
         XButtonEvent *xbutton = (XButtonEvent*)button_;
         if(xbutton->button == Button1 && is_in_circle (color_chooser, xbutton->x, xbutton->y)) {
             color_chooser->focus_x = xbutton->x;
@@ -582,13 +572,28 @@ static void set_focus(void *w_, void* button_, void* UNUSED(user_data)) {
     }
 }
 
+static void reset_grab(void *w_, void *key_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
+    XKeyEvent *key = (XKeyEvent*)key_;
+    if (!key) return;
+    if ((key->keycode == XKeysymToKeycode(w->app->dpy,XK_Control_L) ||
+        key->keycode == XKeysymToKeycode(w->app->dpy,XK_Control_R)) &&
+                (w->app->hold_grab == color_chooser->color_widget)) {
+        XUngrabPointer(w->app->dpy,CurrentTime);
+        w->app->hold_grab = NULL;
+    }
+}
+
 static void set_focus_on_key(void *w_, void *key_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
     XKeyEvent *key = (XKeyEvent*)key_;
     if (!key) return;
-    if (key->keycode == XKeysymToKeycode(w->app->dpy,XK_Control_L) && w->app->hold_grab == NULL) {
+    if ((key->keycode == XKeysymToKeycode(w->app->dpy,XK_Control_L) ||
+        key->keycode == XKeysymToKeycode(w->app->dpy,XK_Control_R)) && 
+                                            w->app->hold_grab == NULL) {
         int err = XGrabPointer(w->app->dpy, DefaultRootWindow(w->app->dpy), True,
                  ButtonPressMask|ButtonReleaseMask|PointerMotionMask,
                  GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
@@ -626,10 +631,7 @@ static void set_focus_on_key(void *w_, void *key_, void* UNUSED(user_data)) {
         double r = (double)c.red/65535.0;
         double g = (double)c.green/65535.0;
         double b = (double)c.blue/65535.0;
-        set_costum_color(designer, color_chooser, 0, r);
-        set_costum_color(designer, color_chooser, 1, g);
-        set_costum_color(designer, color_chooser, 2, b);
-        set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+        set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
         expose_widget(color_chooser->color_widget);
         expose_widget(designer->ui);
     }
@@ -663,6 +665,7 @@ Widget_t *create_color_chooser (XUiDesigner *designer) {
     color_chooser->color_widget->func.button_release_callback = get_color;
     color_chooser->color_widget->func.motion_callback = set_focus_motion;
     color_chooser->color_widget->func.key_press_callback = set_focus_on_key;
+    color_chooser->color_widget->func.key_release_callback = reset_grab;
     color_chooser->color_widget->func.mem_free_callback = color_chooser_mem_free;
     color_chooser->color_widget->func.configure_notify_callback = set_selected_color_on_map;
     color_chooser->color_widget->func.visibiliy_change_callback = set_selected_color_on_map;
@@ -722,7 +725,17 @@ void show_color_chooser(void *w_, void* UNUSED(user_data)) {
         XTranslateCoordinates( designer->w->app->dpy, w->widget, DefaultRootWindow(
                         designer->w->app->dpy), 0, 60, &x1, &y1, &child );
         XMoveWindow(designer->w->app->dpy, designer->color_widget->widget,x1,y1);
+        XGrabKey(designer->w->app->dpy, XKeysymToKeycode(designer->w->app->dpy,XK_Control_L),
+            AnyModifier, DefaultRootWindow(designer->w->app->dpy), true, GrabModeAsync, GrabModeAsync);
+        XGrabKey(designer->w->app->dpy, XKeysymToKeycode(designer->w->app->dpy,XK_Control_R),
+            AnyModifier, DefaultRootWindow(designer->w->app->dpy), true, GrabModeAsync, GrabModeAsync);
+        designer->w->app->key_snooper = designer->color_widget;
     } else if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         widget_hide(designer->color_widget);
+        XUngrabKey(designer->w->app->dpy, XKeysymToKeycode(designer->w->app->dpy,XK_Control_L),
+                                        AnyModifier, DefaultRootWindow(designer->w->app->dpy));
+        XUngrabKey(designer->w->app->dpy, XKeysymToKeycode(designer->w->app->dpy,XK_Control_R),
+                                        AnyModifier, DefaultRootWindow(designer->w->app->dpy));
+        designer->w->app->key_snooper = NULL;
     }
 }
