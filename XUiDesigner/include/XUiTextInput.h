@@ -42,10 +42,10 @@ typedef struct {
     int curser_pos;
     int curser_mark;
     size_t mark_pos;
-    int curser_mark2;
     size_t mark2_pos;
-    int set_selection;
     size_t curser_size;
+    int curser_mark2;
+    int set_selection;
 } TextBox_t;
 
 

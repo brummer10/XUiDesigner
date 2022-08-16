@@ -125,6 +125,12 @@ typedef struct {
     char* image;
     char* name;
     char* symbol;
+    WidgetType is_type;
+    int port_index;
+    int grid_snap_option;
+    int in_frame;
+    int in_tab;
+    int tab_box;
     bool destignation_enabled;
     bool is_atom_patch;
     bool is_audio_output;
@@ -132,12 +138,7 @@ typedef struct {
     bool is_atom_output;
     bool is_atom_input;
     bool have_adjustment;
-    WidgetType is_type;
-    int port_index;
-    int grid_snap_option;
-    int in_frame;
-    int in_tab;
-    int tab_box;
+    bool pad;
 } Controller;
 
 /*---------------------------------------------------------------------
@@ -177,6 +178,7 @@ typedef struct {
     float max;
     float def;
     float step;
+    char pad[4];
 } LV2_CONTROLLER;
 
 typedef struct {
@@ -185,12 +187,13 @@ typedef struct {
     int w;
     int h;
     bool is_active;
+    char pad[3];
 } DragIcon;
 
 typedef struct {
     LilvWorld* world;
     const LilvPlugins* lv2_plugins;        
-
+    cairo_surface_t *grid_image;
     Pixmap *icon;
     Widget_t *x_axis;
     Widget_t *y_axis;
@@ -256,7 +259,6 @@ typedef struct {
     Cursor cursor;
     Colors *selected_scheme;
     DragIcon drag_icon;
-    cairo_surface_t *grid_image;
     bool run_test;
     bool grid_view;
     bool is_project;
@@ -264,6 +266,7 @@ typedef struct {
     bool generate_ui_only;
     bool run;
     bool skipit;
+    bool pad;
     int multi_selected;
     int active_widget_num;
     int pos_x;
