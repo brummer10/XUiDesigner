@@ -244,9 +244,9 @@ static void draw_color_widget(void *w_, void* UNUSED(user_data)) {
 ----------------------------------------------------------------------*/
 
 
-static int (*default_error_handler) (Display *, XErrorEvent *);
+static int (*default_error_handler) (Display *UNUSED(dpy), XErrorEvent *UNUSED(e));
 
-static int dummy_error_handler(Display *, XErrorEvent *) {
+static int dummy_error_handler(Display *UNUSED(dpy), XErrorEvent *UNUSED(e)) {
     return 0;
 }
 

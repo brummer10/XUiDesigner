@@ -1060,7 +1060,6 @@ int main (int argc, char ** argv) {
     designer->global_knob_image_file = NULL;
     designer->global_button_image_file = NULL;
     designer->global_switch_image_file = NULL;
-    designer->icon = NULL;
     designer->run_test = false;
     designer->lv2c.ui_uri = NULL;
     asprintf(&designer->lv2c.ui_uri, "urn:%s:%s", getUserName(), "test_ui");
@@ -1122,7 +1121,7 @@ int main (int argc, char ** argv) {
     designer->w->parent_struct = designer;
     designer->w->flags |= DONT_PROPAGATE;
     widget_set_title(designer->w, _("XUiDesigner"));
-    widget_set_icon_from_png(designer->w, designer->icon, LDVAR(gear_png));
+    widget_set_icon_from_png(designer->w, LDVAR(gear_png));
     designer->w->func.expose_callback = draw_window;
     widget_set_dnd_aware(designer->w);
     designer->w->func.dnd_notify_callback = dnd_load_response;
@@ -1414,9 +1413,6 @@ int main (int argc, char ** argv) {
     //print_ttl(designer);
     lilv_world_free(designer->world);
     fprintf(stderr, "bye, bye\n");
-    if (designer->icon) {
-        XFreePixmap(designer->w->app->dpy, (*designer->icon));
-    }
     main_quit(&app);
     cairo_surface_destroy(designer->grid_image);
     int i = 0;

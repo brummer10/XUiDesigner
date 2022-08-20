@@ -194,7 +194,6 @@ typedef struct {
     LilvWorld* world;
     const LilvPlugins* lv2_plugins;        
     cairo_surface_t *grid_image;
-    Pixmap *icon;
     Widget_t *x_axis;
     Widget_t *y_axis;
     Widget_t *w_axis;
