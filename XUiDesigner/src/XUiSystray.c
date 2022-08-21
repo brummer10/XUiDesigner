@@ -38,7 +38,7 @@ typedef struct {
 
 static void draw_systray(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
-    use_bg_color_scheme(w, NORMAL_);
+    use_systray_color(w);
     cairo_paint (w->crb);
     if (w->image) {
         widget_set_scale(w);

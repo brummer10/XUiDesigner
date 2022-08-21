@@ -1127,8 +1127,6 @@ int main (int argc, char ** argv) {
     designer->w->func.dnd_notify_callback = dnd_load_response;
     designer->w->func.configure_notify_callback = win_configure_callback;
 
-    create_systray_widget(designer, 0, 0, 240, 240);
-
     designer->world = lilv_world_new();
     if (path !=NULL) set_path(designer->world, path);
     lilv_world_load_all(designer->world);
@@ -1401,6 +1399,7 @@ int main (int argc, char ** argv) {
 
     create_project_settings_window(designer);
     create_text_view_window(designer);
+    create_systray_widget(designer, 0, 0, 240, 240);
 
     widget_show_all(designer->w);
     widget_show_all(designer->ui);

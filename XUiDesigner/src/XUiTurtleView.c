@@ -160,6 +160,7 @@ void create_text_view_window(XUiDesigner *designer) {
     //designer->set_project->func.expose_callback = draw_text_window;
     designer->ttlfile_view->flags |= HIDE_ON_DELETE;
     widget_set_title(designer->ttlfile_view, _("ttl"));
+    widget_set_icon_from_png(designer->ttlfile_view, LDVAR(file_png));
 
     add_viewport(designer->ttlfile_view, 610, 800);
 }
