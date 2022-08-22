@@ -1046,9 +1046,9 @@ static void filter_plugin_ui(void *w_, void* UNUSED(user_data)) {
     }
 }
 
-static void load_lv2_uris (XUiDesigner *designer, const char* path) {
+static void load_lv2_uris (XUiDesigner *designer) {
     designer->world = lilv_world_new();
-    if (path !=NULL) set_path(designer->world, path);
+    if (designer->path !=NULL) set_path(designer->world, designer->path);
     lilv_world_load_all(designer->world);
     designer->lv2_plugins = lilv_world_get_all_plugins(designer->world);
     load_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
@@ -1061,7 +1061,7 @@ static void load_lv2_uris (XUiDesigner *designer, const char* path) {
 static void check_world(void *w_, void* UNUSED(button_), void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (!designer->world) load_lv2_uris (designer, NULL);
+    if (!designer->world) load_lv2_uris (designer);
 }
 
 /*---------------------------------------------------------------------
@@ -1177,8 +1177,9 @@ int main (int argc, char ** argv) {
     designer->drag_icon.y = 0;
     designer->drag_icon.h = 0;
     designer->drag_icon.is_active = false;
+    designer->path = NULL;
     reset_selection(designer);
-
+    if (path !=NULL) asprintf(&designer->path, "%s", path);
     designer->new_label = NULL;
     designer->new_label = (char **)malloc(MAX_CONTROLS * sizeof(char *));
     int m = 0;
@@ -1486,6 +1487,7 @@ int main (int argc, char ** argv) {
     free(designer->lv2c.name);
     free(designer->lv2c.plugintype);
     free(designer->lv2c.symbol);
+    free(designer->path);
     m = 0;
     for (;m<MAX_CONTROLS;m++) {
         free(designer->controls[m].image);

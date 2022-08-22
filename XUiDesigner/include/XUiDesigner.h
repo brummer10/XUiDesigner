@@ -293,6 +293,7 @@ typedef struct {
     char* global_knob_image_file;
     char* global_button_image_file;
     char* global_switch_image_file;
+    char* path;
     LV2_CONTROLLER lv2c;
     Controller controls[MAX_CONTROLS];
 } XUiDesigner;
