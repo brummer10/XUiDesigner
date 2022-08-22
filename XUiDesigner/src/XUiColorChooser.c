@@ -718,6 +718,7 @@ Widget_t *create_color_chooser (XUiDesigner *designer) {
 void show_color_chooser(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (!designer->color_widget) designer->color_widget = create_color_chooser (designer);
     if (w->flags & HAS_POINTER && adj_get_value(w->adj_y)) {
         widget_show_all(designer->color_widget);
         int x1, y1;

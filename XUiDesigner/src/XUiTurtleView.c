@@ -169,6 +169,7 @@ void run_generate_ttl(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        if (!designer->ttlfile_view) create_text_view_window(designer);
 
         FILE *fp;
         if((fp=freopen("/tmp/xui.ttl", "w" ,stdout))==NULL) {

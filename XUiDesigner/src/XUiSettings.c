@@ -116,8 +116,10 @@ static void set_project_bypass_switch(void *w_, void* UNUSED(user_data)) {
                     adj_set_value(designer->y_axis->adj, 0.0);
                     adj_set_value(designer->w_axis->adj, 10.0);
                     adj_set_value(designer->h_axis->adj, 10.0);
-                    widget_hide(designer->combobox_settings);
-                    widget_hide(designer->controller_settings);                    
+                    if (designer->combobox_settings)
+                        widget_hide(designer->combobox_settings);
+                    if (designer->controller_settings)
+                        widget_hide(designer->controller_settings);                    
                     break;
                 }
             }
@@ -161,6 +163,7 @@ void run_settings(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        if (!designer->set_project) create_project_settings_window(designer);
         XWindowAttributes attrs;
         XGetWindowAttributes(w->app->dpy, (Window)designer->set_project->widget, &attrs);
         if (attrs.map_state != IsViewable) {

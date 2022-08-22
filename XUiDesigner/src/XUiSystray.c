@@ -22,6 +22,7 @@
 #include "XUiSystray.h"
 #include "XUiTextInput.h"
 #include "XUiGenerator.h"
+#include "XUiSettings.h"
 
 
 typedef struct {
@@ -66,6 +67,7 @@ static void systray_menu_response(void *w_, void* item_, void* UNUSED(user_data)
         break;
         case 1:
         {
+            if (!designer->set_project) create_project_settings_window(designer);
             widget_show_all(designer->set_project);
             char *name = NULL;
             XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
@@ -102,7 +104,8 @@ static void systray_released(void *w_, void* button_, void* UNUSED(user_data)) {
                 }
                 widget_hide(designer->w);
                 widget_hide(designer->ui);
-                widget_hide(designer->set_project);
+                if (designer->set_project)
+                    widget_hide(designer->set_project);
                 XFlush(designer->w->app->dpy);
             } else {
                 widget_show_all(designer->w);

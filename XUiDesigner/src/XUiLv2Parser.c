@@ -84,6 +84,7 @@ void reset_plugin_ui(XUiDesigner *designer) {
     free(designer->lv2c.plugintype);
     designer->lv2c.plugintype = NULL;
     asprintf(&designer->lv2c.plugintype, "%s", "MixerPlugin");
+    if (!designer->set_project) create_project_settings_window(designer);
     adj_set_value(designer->project_type->adj, designer->project_type->adj->max_value);
     free(designer->lv2c.author);
     designer->lv2c.author = NULL;
@@ -97,8 +98,10 @@ void reset_plugin_ui(XUiDesigner *designer) {
     adj_set_value(designer->y_axis->adj, 0.0);
     adj_set_value(designer->w_axis->adj, 10.0);
     adj_set_value(designer->h_axis->adj, 10.0);
-    widget_hide(designer->combobox_settings);
-    widget_hide(designer->controller_settings);
+    if (designer->combobox_settings)
+        widget_hide(designer->combobox_settings);
+    if (designer->controller_settings)
+        widget_hide(designer->controller_settings);
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
 
     adj_set_value(designer->index->adj,0.0);
@@ -761,6 +764,8 @@ void load_plugin_ui(void* w_, void* UNUSED(user_data)) {
     if (designer->active_widget != NULL)
         box_entry_set_text(designer->controller_label, designer->active_widget->label);
     widget_show_all(designer->ui);
+
+    if (!designer->ttlfile_view) create_text_view_window(designer);
     XWindowAttributes attrs;
     XGetWindowAttributes(designer->ttlfile_view->app->dpy, (Window)designer->ttlfile_view->widget, &attrs);
     if (attrs.map_state == IsViewable) {

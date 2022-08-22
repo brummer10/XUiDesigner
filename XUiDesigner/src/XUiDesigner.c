@@ -73,27 +73,191 @@ static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
     designer->h_axis->func.value_changed_callback = store;
 }
 
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                combobox
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+static void set_combobox_entry(void *w_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX ) {
+        if (strlen(text_box->input_label)>1) {
+            combobox_add_entry(designer->controls[designer->active_widget_num].wid,
+                                            text_box->input_label);
+            memset(text_box->input_label, 0, 256 *
+                (sizeof text_box->input_label[0]));
+            expose_widget(designer->combobox_entry);
+        }
+    }
+}
+
+static void add_combobox_entry(void *w_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    TextBox_t *text_box = (TextBox_t*)designer->combobox_entry->private_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX ) {
+            if (strlen(text_box->input_label)>1) {
+                combobox_add_entry(designer->controls[designer->active_widget_num].wid,
+                                                text_box->input_label);
+                memset(text_box->input_label, 0, 256 *
+                    (sizeof text_box->input_label[0]));
+                expose_widget(designer->combobox_entry);
+            }
+        }
+    }
+}
+
+static void create_combobox_settings(XUiDesigner *designer) {
+    designer->combobox_settings = create_widget(designer->w->app, designer->w, 1000, 440, 180, 200);
+    add_label(designer->combobox_settings, _("Add Combobox Entry"), 0, 0, 180, 30);
+    designer->combobox_entry = add_input_box(designer->combobox_settings, 0, 0, 40, 140, 30);
+    designer->combobox_entry->parent_struct = designer;
+    designer->combobox_entry->func.user_callback = set_combobox_entry;
+
+    designer->add_entry = add_button(designer->combobox_settings, _("Add"), 140, 40, 40, 30);
+    designer->add_entry->parent_struct = designer;
+    designer->add_entry->func.value_changed_callback = add_combobox_entry;
+}
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                knobs and sliders
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+static void set_controller_adjustment(void *w_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        if (designer->controls[designer->active_widget_num].have_adjustment) {
+            TextBox_t *text_box = (TextBox_t*)designer->controller_entry[0]->private_struct;
+            if (strlen(text_box->input_label)>1) {
+                adj_set_min_value(designer->active_widget->adj, atof(text_box->input_label));
+            }
+            text_box = (TextBox_t*)designer->controller_entry[1]->private_struct;
+            if (strlen(text_box->input_label)>1) {
+                adj_set_max_value(designer->active_widget->adj, atof(text_box->input_label));
+            }
+            text_box = (TextBox_t*)designer->controller_entry[2]->private_struct;
+            if (strlen(text_box->input_label)>1) {
+                adj_set_value(designer->active_widget->adj, atof(text_box->input_label));
+                adj_set_std_value(designer->active_widget->adj, atof(text_box->input_label));
+            }
+            text_box = (TextBox_t*)designer->controller_entry[3]->private_struct;
+            if (strlen(text_box->input_label)>1) {
+                designer->active_widget->adj->step = atof(text_box->input_label);
+            }
+        }
+    }
+}
+
+static void create_controller_settings(XUiDesigner *designer) {
+    designer->controller_settings = create_widget(designer->w->app, designer->w, 1000, 470, 180, 230);
+    add_label(designer->controller_settings, _("Controller Settings"), 0, 0, 180, 30);
+    const char* labels[4] = { "Min","Max","Default", "Step Size"};
+    int k = 0;
+    for (;k<4;k++) {
+        add_label(designer->controller_settings, labels[k], 0, (k+1)*40, 90, 30);
+        designer->controller_entry[k] = add_input_box(designer->controller_settings, 1, 100, (k+1)*40, 60, 30);
+        designer->controller_entry[k]->parent_struct = designer;
+    }
+    designer->set_adjust = add_button(designer->controller_settings, _("Set"), 100, 200, 60, 30);
+    designer->set_adjust->parent_struct = designer;
+    designer->set_adjust->func.value_changed_callback = set_controller_adjustment;
+}
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                tabbox
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
+static void add_tabbox_entry(void *w_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        if (designer->active_widget != NULL) {
+            Widget_t *tab = tabbox_add_tab(designer->active_widget,
+                (const char*)designer->new_label[designer->active_widget_num]);
+            tab->parent_struct = designer;
+            tab->func.button_press_callback = set_pos_tab;
+            tab->func.button_release_callback = fix_pos_tab;
+            tab->func.motion_callback = move_tab;
+            tab->func.expose_callback = draw_tab;
+            expose_widget(designer->active_widget);
+        }
+    }
+}
+
+static void remove_tabbox_entry(void *w_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        if (designer->active_widget != NULL) {
+            int v = (int)adj_get_value(designer->active_widget->adj);
+            Widget_t *wi = designer->active_widget->childlist->childs[v];
+            int el = wi->childlist->elem;
+            int j = el;
+            for(;j>0l;j--) {
+                Widget_t *wid = wi->childlist->childs[j-1];
+                remove_from_list(designer, wid);
+            }
+            tabbox_remove_tab(designer->active_widget,v);
+            expose_widget(designer->active_widget);
+        }
+    }
+}
+
+static void create_tabbox_settings(XUiDesigner *designer) {
+    designer->tabbox_settings = create_widget(designer->w->app, designer->w, 1000, 440, 180, 250);
+    add_label(designer->tabbox_settings, _("Tab Box Settings"), 0, 0, 180, 30);
+    designer->tabbox_entry[0] = add_button(designer->tabbox_settings, _("Add Tab"), 40, 40, 100, 30);
+    designer->tabbox_entry[0]->parent_struct = designer;
+    designer->tabbox_entry[0]->func.value_changed_callback = add_tabbox_entry;
+    designer->tabbox_entry[1] = add_button(designer->tabbox_settings, _("Remove Tab"), 40, 80, 100, 30);
+    designer->tabbox_entry[1]->parent_struct = designer;
+    designer->tabbox_entry[1]->func.value_changed_callback = remove_tabbox_entry;    
+}
+
+/*---------------------------------------------------------------------
+-----------------------------------------------------------------------    
+                hide/show widgets when needed
+-----------------------------------------------------------------------
+----------------------------------------------------------------------*/
+
 void hide_show_as_needed(XUiDesigner *designer) {
     if (designer->controls[designer->active_widget_num].have_adjustment  &&
             designer->controls[designer->active_widget_num].is_type != IS_COMBOBOX) {
-        widget_hide(designer->tabbox_settings);
+        if (!designer->controller_settings) create_controller_settings(designer);
+        if (designer->tabbox_settings)
+            widget_hide(designer->tabbox_settings);
         widget_show_all(designer->controller_settings);
         box_entry_set_value(designer->controller_entry[0], adj_get_min_value(designer->active_widget->adj));
         box_entry_set_value(designer->controller_entry[1], adj_get_max_value(designer->active_widget->adj));
         box_entry_set_value(designer->controller_entry[2], adj_get_std_value(designer->active_widget->adj));
         box_entry_set_value(designer->controller_entry[3], designer->active_widget->adj->step);
     } else if (designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
-        widget_hide(designer->controller_settings);
+        if (designer->controller_settings)
+            widget_hide(designer->controller_settings);
+        if (!designer->tabbox_settings) create_tabbox_settings(designer);
         widget_show_all(designer->tabbox_settings);
     } else {
-        widget_hide(designer->controller_settings);
-        widget_hide(designer->tabbox_settings);
+        if (designer->controller_settings)
+            widget_hide(designer->controller_settings);
+        if (designer->tabbox_settings)
+            widget_hide(designer->tabbox_settings);
     }
     if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX) {
+        if (!designer->combobox_settings) create_combobox_settings(designer);
         widget_show_all(designer->combobox_settings);
-        widget_hide(designer->tabbox_settings);
+        if (designer->tabbox_settings)
+            widget_hide(designer->tabbox_settings);
     } else {
-        widget_hide(designer->combobox_settings);
+        if (designer->combobox_settings) widget_hide(designer->combobox_settings);
     }
     if (designer->controls[designer->active_widget_num].is_type == IS_KNOB) {
         widget_show(designer->global_knob_image);
@@ -174,100 +338,6 @@ static void set_port_index(void *w_, void* UNUSED(user_data)) {
         if (designer->active_widget != NULL) {
             designer->controls[designer->active_widget_num].port_index =
                 (int)adj_get_value(designer->index->adj);
-        }
-    }
-}
-
-static void set_combobox_entry(void *w_, void* UNUSED(user_data)) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    TextBox_t *text_box = (TextBox_t*)w->private_struct;
-    if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX ) {
-        if (strlen(text_box->input_label)>1) {
-            combobox_add_entry(designer->controls[designer->active_widget_num].wid,
-                                            text_box->input_label);
-            memset(text_box->input_label, 0, 256 *
-                (sizeof text_box->input_label[0]));
-            expose_widget(designer->combobox_entry);
-        }
-    }
-}
-
-static void add_combobox_entry(void *w_, void* UNUSED(user_data)) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    TextBox_t *text_box = (TextBox_t*)designer->combobox_entry->private_struct;
-    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        if (designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX ) {
-            if (strlen(text_box->input_label)>1) {
-                combobox_add_entry(designer->controls[designer->active_widget_num].wid,
-                                                text_box->input_label);
-                memset(text_box->input_label, 0, 256 *
-                    (sizeof text_box->input_label[0]));
-                expose_widget(designer->combobox_entry);
-            }
-        }
-    }
-}
-
-static void set_controller_adjustment(void *w_, void* UNUSED(user_data)) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        if (designer->controls[designer->active_widget_num].have_adjustment) {
-            TextBox_t *text_box = (TextBox_t*)designer->controller_entry[0]->private_struct;
-            if (strlen(text_box->input_label)>1) {
-                adj_set_min_value(designer->active_widget->adj, atof(text_box->input_label));
-            }
-            text_box = (TextBox_t*)designer->controller_entry[1]->private_struct;
-            if (strlen(text_box->input_label)>1) {
-                adj_set_max_value(designer->active_widget->adj, atof(text_box->input_label));
-            }
-            text_box = (TextBox_t*)designer->controller_entry[2]->private_struct;
-            if (strlen(text_box->input_label)>1) {
-                adj_set_value(designer->active_widget->adj, atof(text_box->input_label));
-                adj_set_std_value(designer->active_widget->adj, atof(text_box->input_label));
-            }
-            text_box = (TextBox_t*)designer->controller_entry[3]->private_struct;
-            if (strlen(text_box->input_label)>1) {
-                designer->active_widget->adj->step = atof(text_box->input_label);
-            }
-        }
-    }
-}
-
-static void add_tabbox_entry(void *w_, void* UNUSED(user_data)) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        if (designer->active_widget != NULL) {
-            Widget_t *tab = tabbox_add_tab(designer->active_widget,
-                (const char*)designer->new_label[designer->active_widget_num]);
-            tab->parent_struct = designer;
-            tab->func.button_press_callback = set_pos_tab;
-            tab->func.button_release_callback = fix_pos_tab;
-            tab->func.motion_callback = move_tab;
-            tab->func.expose_callback = draw_tab;
-            expose_widget(designer->active_widget);
-        }
-    }
-}
-
-static void remove_tabbox_entry(void *w_, void* UNUSED(user_data)) {
-    Widget_t *w = (Widget_t*)w_;
-    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        if (designer->active_widget != NULL) {
-            int v = (int)adj_get_value(designer->active_widget->adj);
-            Widget_t *wi = designer->active_widget->childlist->childs[v];
-            int el = wi->childlist->elem;
-            int j = el;
-            for(;j>0l;j--) {
-                Widget_t *wid = wi->childlist->childs[j-1];
-                remove_from_list(designer, wid);
-            }
-            tabbox_remove_tab(designer->active_widget,v);
-            expose_widget(designer->active_widget);
         }
     }
 }
@@ -857,7 +927,8 @@ static void button_release_callback(void *w_, void *button_, void* UNUSED(user_d
         }
         hide_show_as_needed(designer);
         designer->prev_active_widget = wid;
-        widget_hide(designer->set_project);
+        if (designer->set_project)
+            widget_hide(designer->set_project);
     } else if(xbutton->button == Button3) {
         reset_selection(designer);
         adj_set_value(designer->widgets->adj, 0);
@@ -973,6 +1044,24 @@ static void filter_plugin_ui(void *w_, void* UNUSED(user_data)) {
         combobox_set_active_entry(designer->lv2_uris, 0);
         combobox_set_active_entry(designer->lv2_names, 0);
     }
+}
+
+static void load_lv2_uris (XUiDesigner *designer, const char* path) {
+    designer->world = lilv_world_new();
+    if (path !=NULL) set_path(designer->world, path);
+    lilv_world_load_all(designer->world);
+    designer->lv2_plugins = lilv_world_get_all_plugins(designer->world);
+    load_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
+    combobox_set_active_entry(designer->lv2_names, 0);
+    combobox_set_active_entry(designer->lv2_uris, 0);
+    designer->lv2_names->func.value_changed_callback = load_plugin_ui;
+    combobox_set_menu_size(designer->lv2_names, 24);
+}
+
+static void check_world(void *w_, void* UNUSED(button_), void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (!designer->world) load_lv2_uris (designer, NULL);
 }
 
 /*---------------------------------------------------------------------
@@ -1112,6 +1201,7 @@ int main (int argc, char ** argv) {
         designer->controls[m].destignation_enabled = false;
         designer->controls[m].name = NULL;
         designer->controls[m].symbol = NULL;
+        designer->controls[m].is_type = IS_NONE;
     }
 
     Xputty app;
@@ -1127,11 +1217,6 @@ int main (int argc, char ** argv) {
     designer->w->func.dnd_notify_callback = dnd_load_response;
     designer->w->func.configure_notify_callback = win_configure_callback;
 
-    designer->world = lilv_world_new();
-    if (path !=NULL) set_path(designer->world, path);
-    lilv_world_load_all(designer->world);
-    designer->lv2_plugins = lilv_world_get_all_plugins(designer->world);
-
     designer->lv2_uris = add_combobox(designer->w, "", 300, 25, 600, 30);
     designer->lv2_uris->parent_struct = designer;
     designer->lv2_uris->flags |= IS_TOOLTIP;
@@ -1141,11 +1226,11 @@ int main (int argc, char ** argv) {
     designer->lv2_names->parent_struct = designer;
     tooltip_set_text(designer->lv2_names->childlist->childs[0], _("Select LV2 Plugin"));
     combobox_add_entry(designer->lv2_names,_("--"));
-    load_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
-    combobox_set_active_entry(designer->lv2_names, 0);
-    combobox_set_active_entry(designer->lv2_uris, 0);
-    designer->lv2_names->func.value_changed_callback = load_plugin_ui;
-    combobox_set_menu_size(designer->lv2_names, 24);
+    designer->lv2_names->func.button_press_callback = check_world;
+    designer->lv2_names->childlist->childs[0]->parent_struct = designer;
+    designer->lv2_names->childlist->childs[0]->func.button_press_callback = check_world;
+
+    //load_lv2_uris(designer, path);
 
     designer->filter_lv2_uris = add_toggle_button(designer->w, "Filter", 250, 25, 40, 30);
     tooltip_set_text(designer->filter_lv2_uris,_("Show only UI-less plugins"));
@@ -1171,9 +1256,6 @@ int main (int argc, char ** argv) {
     designer->ui->func.leave_callback = unset_cursor;
     designer->ui->func.motion_callback = set_drag_icon;
     designer->ui->func.map_notify_callback = transparent_draw;
-    designer->grid_image = cairo_image_surface_create ( CAIRO_FORMAT_ARGB32,
-        DisplayWidth(app.dpy, DefaultScreen(app.dpy)), DisplayHeight(app.dpy, DefaultScreen(app.dpy)));
-    draw_grid(designer->ui, designer->grid_image);
 
     designer->widgets = add_combobox(designer->w, "", 20, 25, 120, 30);
     designer->widgets->scale.gravity = CENTER;
@@ -1213,7 +1295,6 @@ int main (int argc, char ** argv) {
     widget_get_png(designer->color_chooser, LDVAR(colors_png));
     tooltip_set_text(designer->color_chooser,_("Show/Hide Color Chooser"));
     designer->color_chooser->parent_struct = designer;
-    designer->color_widget = create_color_chooser (designer);
     designer->color_chooser->func.value_changed_callback = show_color_chooser;
 
     designer->grid = add_toggle_button(designer->w, "", 80, 135, 40, 40);
@@ -1221,6 +1302,20 @@ int main (int argc, char ** argv) {
     tooltip_set_text(designer->grid,_("Snap to grid"));
     designer->grid->parent_struct = designer;
     designer->grid->func.value_changed_callback = use_grid;
+
+    designer->grid_size_x = add_valuedisplay(designer->w, _("Grid X"), 125, 135, 40, 20);
+    designer->grid_size_x->parent_struct = designer;
+    set_adjustment(designer->grid_size_x->adj,(float)designer->grid_width,
+        (float)designer->grid_width, 10.0, 300.0, 1.0, CL_CONTINUOS);
+    tooltip_set_text(designer->grid_size_x,_("Grid width"));
+    designer->grid_size_x->func.value_changed_callback = set_grid_width;
+
+    designer->grid_size_y = add_valuedisplay(designer->w, _("Grid Y"), 125, 155, 40, 20);
+    designer->grid_size_y->parent_struct = designer;
+    set_adjustment(designer->grid_size_y->adj,(float)designer->grid_height,
+        (float)designer->grid_height, 10.0, 300.0, 1.0, CL_CONTINUOS);
+    tooltip_set_text(designer->grid_size_y,_("Grid height"));
+    designer->grid_size_y->func.value_changed_callback = set_grid_height;
 
     designer->settings = add_button(designer->w, "", 900, 740, 40, 40);
     widget_get_png(designer->settings, LDVAR(settings_png));
@@ -1303,26 +1398,9 @@ int main (int argc, char ** argv) {
     tooltip_set_text(designer->move_all,_("Move all Controller of the same type"));
     designer->move_all->parent_struct = designer;
 
-
-    designer->grid_size_x = add_valuedisplay(designer->w, _("Grid X"), 125, 135, 40, 20);
-    designer->grid_size_x->parent_struct = designer;
-    set_adjustment(designer->grid_size_x->adj,(float)designer->grid_width,
-        (float)designer->grid_width, 10.0, 300.0, 1.0, CL_CONTINUOS);
-    tooltip_set_text(designer->grid_size_x,_("Grid width"));
-    designer->grid_size_x->func.value_changed_callback = set_grid_width;
-
-    designer->grid_size_y = add_valuedisplay(designer->w, _("Grid Y"), 125, 155, 40, 20);
-    designer->grid_size_y->parent_struct = designer;
-    set_adjustment(designer->grid_size_y->adj,(float)designer->grid_height,
-        (float)designer->grid_height, 10.0, 300.0, 1.0, CL_CONTINUOS);
-    tooltip_set_text(designer->grid_size_y,_("Grid height"));
-    designer->grid_size_y->func.value_changed_callback = set_grid_height;
-
-    designer->combobox_settings = create_widget(&app, designer->w, 1000, 440, 180, 200);
-    add_label(designer->combobox_settings, _("Add Combobox Entry"), 0, 0, 180, 30);
-    designer->combobox_entry = add_input_box(designer->combobox_settings, 0, 0, 40, 140, 30);
-    designer->combobox_entry->parent_struct = designer;
-    designer->combobox_entry->func.user_callback = set_combobox_entry;
+    designer->global_knob_image = add_check_box(designer->w, _("Use Global Knob Image"), 1000, 450, 180, 20);
+    tooltip_set_text(designer->global_knob_image,_("Use the Image loaded on one Knob for all Knobs"));
+    designer->global_knob_image->parent_struct = designer;
 
     designer->global_button_image = add_check_box(designer->w, _("Use Global Button Image"), 1000, 450, 180, 20);
     tooltip_set_text(designer->global_button_image,_("Use the Image loaded on one Button for all Buttons"));
@@ -1331,37 +1409,6 @@ int main (int argc, char ** argv) {
     designer->global_switch_image = add_check_box(designer->w, _("Use Global Switch Image"), 1000, 450, 180, 20);
     tooltip_set_text(designer->global_switch_image,_("Use the Image loaded on one Switch for all Switchs"));
     designer->global_switch_image->parent_struct = designer;
-
-    designer->add_entry = add_button(designer->combobox_settings, _("Add"), 140, 40, 40, 30);
-    designer->add_entry->parent_struct = designer;
-    designer->add_entry->func.value_changed_callback = add_combobox_entry;
-
-    designer->controller_settings = create_widget(&app, designer->w, 1000, 440, 180, 270);
-    add_label(designer->controller_settings, _("Controller Settings"), 0, 0, 180, 30);
-    const char* labels[4] = { "Min","Max","Default", "Step Size"};
-    int k = 0;
-    for (;k<4;k++) {
-        add_label(designer->controller_settings, labels[k], 0, (k+1)*40, 90, 30);
-        designer->controller_entry[k] = add_input_box(designer->controller_settings, 1, 100, (k+1)*40, 60, 30);
-        designer->controller_entry[k]->parent_struct = designer;
-    }
-
-    designer->set_adjust = add_button(designer->controller_settings, _("Set"), 100, 200, 60, 30);
-    designer->set_adjust->parent_struct = designer;
-    designer->set_adjust->func.value_changed_callback = set_controller_adjustment;
-
-    designer->global_knob_image = add_check_box(designer->controller_settings, _("Use Global Knob Image"), 1, 240, 160, 20);
-    tooltip_set_text(designer->global_knob_image,_("Use the Image loaded on one Knob for all Knobs"));
-    designer->global_knob_image->parent_struct = designer;
-
-    designer->tabbox_settings = create_widget(&app, designer->w, 1000, 440, 180, 250);
-    add_label(designer->tabbox_settings, _("Tab Box Settings"), 0, 0, 180, 30);
-    designer->tabbox_entry[0] = add_button(designer->tabbox_settings, _("Add Tab"), 40, 40, 100, 30);
-    designer->tabbox_entry[0]->parent_struct = designer;
-    designer->tabbox_entry[0]->func.value_changed_callback = add_tabbox_entry;
-    designer->tabbox_entry[1] = add_button(designer->tabbox_settings, _("Remove Tab"), 40, 80, 100, 30);
-    designer->tabbox_entry[1]->parent_struct = designer;
-    designer->tabbox_entry[1]->func.value_changed_callback = remove_tabbox_entry;
 
     designer->context_menu = create_menu(designer->w,25);
     designer->context_menu->parent_struct = designer;
@@ -1397,8 +1444,6 @@ int main (int argc, char ** argv) {
     menu_add_item(designer->context_menu,_("Delete Controller"));
     designer->context_menu->func.button_release_callback = pop_menu_response;
 
-    create_project_settings_window(designer);
-    create_text_view_window(designer);
     create_systray_widget(designer, 0, 0, 240, 240);
 
     widget_show_all(designer->w);

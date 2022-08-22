@@ -481,8 +481,10 @@ void pop_menu_response(void *w_, void* item_, void* UNUSED(user_data)) {
             adj_set_value(designer->y_axis->adj, 0.0);
             adj_set_value(designer->w_axis->adj, 10.0);
             adj_set_value(designer->h_axis->adj, 10.0);
-            widget_hide(designer->combobox_settings);
-            widget_hide(designer->controller_settings);
+            if (designer->combobox_settings)
+                widget_hide(designer->combobox_settings);
+            if (designer->controller_settings)
+                widget_hide(designer->controller_settings);
         }
         break;
         default:

@@ -113,6 +113,12 @@ void set_grid_height(void *w_, void* UNUSED(user_data)) {
 void use_grid(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (!designer->grid_image) {
+        designer->grid_image = cairo_image_surface_create ( CAIRO_FORMAT_ARGB32,
+                    DisplayWidth(w->app->dpy, DefaultScreen(w->app->dpy)),
+                    DisplayHeight(w->app->dpy, DefaultScreen(w->app->dpy)));
+        draw_grid(designer->ui, designer->grid_image);
+    }
     designer->grid_view = (bool)adj_get_value(w->adj);
     if (designer->grid_view) {
         snap_to_grid(designer);
