@@ -136,6 +136,7 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
     cmd = NULL;    
     free(outname);
     outname = NULL;
+    if (!designer->ttlfile_view) create_text_view_window(designer);
     XWindowAttributes attrs;
     XGetWindowAttributes(designer->ttlfile_view->app->dpy, (Window)designer->ttlfile_view->widget, &attrs);
     if (attrs.map_state == IsViewable) {
