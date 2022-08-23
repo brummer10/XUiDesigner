@@ -1049,8 +1049,11 @@ static void filter_plugin_ui(void *w_, void* UNUSED(user_data)) {
 static void load_lv2_uris (XUiDesigner *designer) {
     designer->world = lilv_world_new();
     if (designer->path !=NULL) set_path(designer->world, designer->path);
+    LilvNode* false_val = lilv_new_bool(designer->world, false);
+    lilv_world_set_option(designer->world,LILV_OPTION_DYN_MANIFEST, false_val);
     lilv_world_load_all(designer->world);
     designer->lv2_plugins = lilv_world_get_all_plugins(designer->world);
+    lilv_node_free(false_val);
     load_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
     combobox_set_active_entry(designer->lv2_names, 0);
     combobox_set_active_entry(designer->lv2_uris, 0);
