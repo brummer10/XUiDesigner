@@ -328,19 +328,19 @@ void print_plugin(XUiDesigner *designer) {
     "    if(n_samples<1) return;\n\n", name);
 
     i = 0;
-    printf ("    // get controller values\n");
-    for (;i<MAX_CONTROLS;i++) {
-        if (designer->controls[i].wid != NULL) {
-            if (designer->controls[i].is_type == IS_FRAME ||
-                designer->controls[i].is_type == IS_IMAGE ||
-                designer->controls[i].is_type == IS_TABBOX ||
-                designer->controls[i].is_audio_input ||
-                designer->controls[i].is_audio_output ||
-                designer->controls[i].is_atom_input ||
-                designer->controls[i].is_atom_output ) {
-                continue;
-            }
-            if (!designer->controls[i].destignation_enabled && !designer->is_faust_file) {
+    if (!designer->controls[i].destignation_enabled && !designer->is_faust_file) {
+        printf ("    // get controller values\n");
+        for (;i<MAX_CONTROLS;i++) {
+            if (designer->controls[i].wid != NULL) {
+                if (designer->controls[i].is_type == IS_FRAME ||
+                    designer->controls[i].is_type == IS_IMAGE ||
+                    designer->controls[i].is_type == IS_TABBOX ||
+                    designer->controls[i].is_audio_input ||
+                    designer->controls[i].is_audio_output ||
+                    designer->controls[i].is_atom_input ||
+                    designer->controls[i].is_atom_output ) {
+                    continue;
+                }
                 char* var = strdup(designer->controls[i].wid->label);
                 strtovar(var);
                 printf ("#define  %s_ (*(%s))\n", var, var);
@@ -391,51 +391,60 @@ void print_plugin(XUiDesigner *designer) {
 
     char* oports = NULL;
     i = 0;
-    for (;i<designer->lv2c.audio_input;i++) {
-        if (i < designer->lv2c.audio_output) {
-            printf ("\n    // do inplace processing on default\n"
-            "    if(%s != %s)\n"
-            "        memcpy(%s, %s, n_samples*sizeof(float));\n\n",
-                    a_outputs[i],a_inputs[i],a_outputs[i],a_inputs[i]);
-            asprintf(&oports, ", %s, %s",a_outputs[i], a_outputs[i]);
-        } else {
-            printf ("    // audio input and output count is not equal\n"
-            "    // you must handle them yourself\n\n");
+    if (designer->lv2c.audio_input == designer->lv2c.audio_output) {
+        for (;i<designer->lv2c.audio_input;i++) {
+            if (i < designer->lv2c.audio_output) {
+                printf ("\n    // do inplace processing on default\n"
+                "    if(%s != %s)\n"
+                "        memcpy(%s, %s, n_samples*sizeof(float));\n\n",
+                        a_outputs[i],a_inputs[i],a_outputs[i],a_inputs[i]);
+                asprintf(&oports, ", %s, %s",a_outputs[i], a_outputs[i]);
+            } else {
+                printf ("    // audio input and output count is not equal\n"
+                "    // you must handle them yourself\n\n");
+            }
+        }
+    } else {
+        for (;i<designer->lv2c.audio_input;i++) {
+            asprintf(&oports, ", %s",a_inputs[i]);
+        }
+        i = 0;
+        for (;i<designer->lv2c.audio_output;i++) {
+            asprintf(&oports, ", %s",a_outputs[i]);
         }
     }
 
     if (designer->lv2c.bypass) {
         if (designer->lv2c.audio_input != designer->lv2c.audio_output) {
             printf ("     // audio input and output count is not equal\n"
-            "    // you must handle bypassing yourself\n\n");
+            "    // you must handle ramping yourself\n\n");
         } else {
             i = 0;
             for (;i<designer->lv2c.audio_input;i++) {
                 printf ("    float buf%i[n_samples];\n", i);
             }
-
-            printf ("    // check if bypass is pressed\n"
-            "    if (bypass_ != static_cast<uint32_t>(*(bypass))) {\n"
-            "        bypass_ = static_cast<uint32_t>(*(bypass));\n"
-            "        if (!bypass_) {\n"
-            "            needs_ramp_down = true;\n"
-            "            needs_ramp_up = false;\n"
-            "        } else {\n"
-            "            needs_ramp_down = false;\n"
-            "            needs_ramp_up = true;\n"
-            "            bypassed = false;\n"
-            "        }\n"
-            "    }\n\n"
-
-            "    if (needs_ramp_down || needs_ramp_up) {\n");
+        }
+        printf ("    // check if bypass is pressed\n"
+        "    if (bypass_ != static_cast<uint32_t>(*(bypass))) {\n"
+        "        bypass_ = static_cast<uint32_t>(*(bypass));\n"
+        "        if (!bypass_) {\n"
+        "            needs_ramp_down = true;\n"
+        "            needs_ramp_up = false;\n"
+        "        } else {\n"
+        "            needs_ramp_down = false;\n"
+        "            needs_ramp_up = true;\n"
+        "            bypassed = false;\n"
+        "        }\n"
+        "    }\n\n");
+        if (designer->lv2c.audio_input == designer->lv2c.audio_output) {
+            printf ("    if (needs_ramp_down || needs_ramp_up) {\n");
             i = 0;
             for (;i<designer->lv2c.audio_input;i++) {
                 printf ("         memcpy(buf%i, %s, n_samples*sizeof(float));\n", i, a_inputs[i]);
             }
-            printf ("    }\n"
-
-            "    if (!bypassed) {\n    ");
+            printf ("    }\n");
         }
+        printf ("    if (!bypassed) {\n    ");
     }
     if (!designer->is_faust_file) {
         printf ("    for (uint32_t i = 0; i<n_samples; i++) {\n");
@@ -447,10 +456,10 @@ void print_plugin(XUiDesigner *designer) {
         }
         printf ("        }\n\n");
     } else {
-        if (designer->lv2c.audio_input == designer->lv2c.audio_output) {
+        //if (designer->lv2c.audio_input == designer->lv2c.audio_output) {
             
-            printf ("    plugin->compute(n_samples%s);\n", oports);
-        }
+            printf ("    plugin->compute(n_samples%s);\n    }\n\n", oports);
+        //}
         free(oports);
         oports = NULL;
     }
@@ -458,11 +467,10 @@ void print_plugin(XUiDesigner *designer) {
     if (designer->lv2c.bypass) {
         if (designer->lv2c.audio_input != designer->lv2c.audio_output) {
             printf ("     // audio input and output count is not equal\n"
-            "    // you must handle bypassing yourself\n\n");
+            "    // you must handle ramping yourself\n\n");
         } else {
         
-            printf ("    }\n"
-
+            printf (
             "    // check if ramping is needed\n"
             "    if (needs_ramp_down) {\n"
             "        float fade = 0;\n"

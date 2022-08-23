@@ -24,6 +24,7 @@
 #include "XUiImageLoader.h"
 #include "XUiLv2Parser.h"
 #include "XUiTurtleView.h"
+#include "XUiWritePlugin.h"
 
 
 /*---------------------------------------------------------------------
