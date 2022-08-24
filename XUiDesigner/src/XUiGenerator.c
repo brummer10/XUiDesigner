@@ -234,7 +234,7 @@ void print_makefile(XUiDesigner *designer) {
             "	@echo \". ., done\"\n\n"
             "clean:\n"
             "	rm -f *.a *.o *.so xresources.h\n\n",
-            name, "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%","%%", use_atom ? "-DUSE_ATOM" : "");
+            name, "\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%", use_atom ? "-DUSE_ATOM" : "");
     } else {
         asprintf(&cmd,"\n\n	# check if user is root\n"
             "	user = $(shell whoami)\n"
@@ -340,11 +340,11 @@ void print_makefile(XUiDesigner *designer) {
             "	@echo \". ., done\"\n\n"
             "clean:\n"
             "	rm -f *.a *.o *.so xresources.h\n\n",
-            name, "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%",
-                "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%",
-                "%%","%%","%%","%%","%%","%%","%%","%%","%%","%%",
-                "%%","%%","\\r\\n","%%","%%",
-                "%%","%%","\\r\\n","%%","%%","%%","%%","%%","%%","%%","%%", use_atom ? "-DUSE_ATOM" : "");
+            name, "\%","\%","\%","\%","\%","\%","\%","\%","\%","\%",
+                "\%","\%","\%","\%","\%","\%","\%","\%","\%","\%",
+                "\%","\%","\%","\%","\%","\%","\%","\%","\%","\%",
+                "\%","\%","\\r\\n","\%","\%",
+                "\%","\%","\\r\\n","\%","\%","\%","\%","\%","\%","\%","\%", use_atom ? "-DUSE_ATOM" : "");
     }
     printf("%s",cmd);
     printf("%s",cmd2);
@@ -438,7 +438,7 @@ void run_save(void *w_, void* user_data) {
         free(makefile);
         free(cmd);
         cmd = NULL;
-       
+        
 
         free(filepath);
         filepath = NULL;
@@ -460,7 +460,9 @@ void run_save(void *w_, void* user_data) {
         fclose(fp);
         fp = NULL;
         if (!designer->generate_ui_only) {
-            strdecode(filename, ".c", ".cpp");
+            free(filename);
+            filename = NULL;
+            asprintf(&filename, "%s%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
             if((fp=freopen(filename, "w" ,stdout))==NULL) {
                 printf("open failed\n");
             }

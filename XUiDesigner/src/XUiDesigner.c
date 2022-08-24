@@ -1028,6 +1028,62 @@ static void ask_save_as(void *w_, void* UNUSED(user_data)) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+void *reset_flag(void *designer_) {
+    XUiDesigner *designer = (XUiDesigner*)designer_;
+    usleep(1*1000*1000); // 1sec
+    designer->ui->flags &= ~FAST_REDRAW;
+    pthread_exit(NULL);
+}
+
+static void load_lv2_ui(void *w_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    designer->ui->flags |= FAST_REDRAW;
+    if (load_plugin_ui(w)) {
+        widget_show_all(designer->ui);
+        XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
+    }
+    pthread_t rf;
+    pthread_create(&rf, NULL, reset_flag, (void *)designer);
+}
+
+static void load_lv2_uris (XUiDesigner *designer) {
+    designer->lv2_names->func.value_changed_callback = null_callback;
+    designer->world = lilv_world_new();
+    if (designer->path !=NULL) set_path(designer->world, designer->path);
+    LilvNode* false_val = lilv_new_bool(designer->world, false);
+    lilv_world_set_option(designer->world,LILV_OPTION_DYN_MANIFEST, false_val);
+    lilv_world_load_all(designer->world);
+    designer->lv2_plugins = lilv_world_get_all_plugins(designer->world);
+    lilv_node_free(false_val);
+    load_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
+    combobox_set_active_entry(designer->lv2_names, 0);
+    combobox_set_active_entry(designer->lv2_uris, 0);
+    combobox_set_menu_size(designer->lv2_names, 24);
+    designer->lv2_names->func.value_changed_callback = load_lv2_ui;
+}
+
+static void filter_plugin_name(void *w_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    designer->lv2_names->func.value_changed_callback = null_callback;
+    if (strlen(text_box->input_label)) {
+        if (!designer->world) load_lv2_uris (designer);
+        filter_uris_by_word(designer->lv2_uris, designer->lv2_names, 
+                        designer->lv2_plugins, text_box->input_label);
+    } else {
+        combobox_delete_entrys(designer->lv2_uris);
+        combobox_delete_entrys(designer->lv2_names);
+        combobox_add_entry(designer->lv2_uris,_("--"));
+        combobox_add_entry(designer->lv2_names,_("--"));
+        load_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
+        combobox_set_active_entry(designer->lv2_uris, 0);
+        combobox_set_active_entry(designer->lv2_names, 0);
+    }
+    designer->lv2_names->func.value_changed_callback = load_lv2_ui;
+}
+
 
 static void filter_plugin_ui(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
@@ -1044,21 +1100,6 @@ static void filter_plugin_ui(void *w_, void* UNUSED(user_data)) {
         combobox_set_active_entry(designer->lv2_uris, 0);
         combobox_set_active_entry(designer->lv2_names, 0);
     }
-}
-
-static void load_lv2_uris (XUiDesigner *designer) {
-    designer->world = lilv_world_new();
-    if (designer->path !=NULL) set_path(designer->world, designer->path);
-    LilvNode* false_val = lilv_new_bool(designer->world, false);
-    lilv_world_set_option(designer->world,LILV_OPTION_DYN_MANIFEST, false_val);
-    lilv_world_load_all(designer->world);
-    designer->lv2_plugins = lilv_world_get_all_plugins(designer->world);
-    lilv_node_free(false_val);
-    load_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
-    combobox_set_active_entry(designer->lv2_names, 0);
-    combobox_set_active_entry(designer->lv2_uris, 0);
-    designer->lv2_names->func.value_changed_callback = load_plugin_ui;
-    combobox_set_menu_size(designer->lv2_names, 24);
 }
 
 static void check_world(void *w_, void* UNUSED(button_), void* UNUSED(user_data)) {
@@ -1226,7 +1267,7 @@ int main (int argc, char ** argv) {
     designer->lv2_uris->flags |= IS_TOOLTIP;
     combobox_add_entry(designer->lv2_uris,_("--"));
 
-    designer->lv2_names = add_combobox(designer->w, "", 300, 25, 600, 30);
+    designer->lv2_names = add_combobox(designer->w, "", 300, 25, 400, 30);
     designer->lv2_names->parent_struct = designer;
     tooltip_set_text(designer->lv2_names->childlist->childs[0], _("Select LV2 Plugin"));
     combobox_add_entry(designer->lv2_names,_("--"));
@@ -1240,6 +1281,12 @@ int main (int argc, char ** argv) {
     tooltip_set_text(designer->filter_lv2_uris,_("Show only UI-less plugins"));
     designer->filter_lv2_uris->parent_struct = designer;
     designer->filter_lv2_uris->func.value_changed_callback = filter_plugin_ui;
+
+    designer->filter_by_word = add_input_box(designer->w, 0, 720, 25, 180, 30);
+    tooltip_set_text(designer->filter_by_word,_("Search plugins by name"));
+    designer->filter_by_word->func.value_changed_callback = filter_plugin_name;
+    designer->filter_by_word->parent_struct = designer;
+
 
     designer->ui = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 600, 400);
     XSelectInput(designer->ui->app->dpy, designer->ui->widget,StructureNotifyMask|ExposureMask|KeyPressMask 

@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <locale.h>
+#include <pthread.h>
 
 #include <lilv/lilv.h>
 #include "lv2/lv2plug.in/ns/ext/presets/presets.h"
@@ -237,6 +238,7 @@ typedef struct {
     Widget_t *lv2_uris;
     Widget_t *lv2_names;
     Widget_t *filter_lv2_uris;
+    Widget_t *filter_by_word;
     Widget_t *image_loader;
     Widget_t *unload_image;
     Widget_t *context_menu;
@@ -313,6 +315,8 @@ void set_pos_tab(void *w_, void *button_, void* user_data);
 void move_tab(void *w_, void *xmotion_, void* user_data);
 
 void hide_show_as_needed(XUiDesigner *designer);
+
+void *reset_flag(void *designer_);
 
 char *getUserName(void);
 

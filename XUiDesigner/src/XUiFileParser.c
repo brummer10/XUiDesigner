@@ -67,6 +67,7 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
     int p = 1;
     designer->lv2c.audio_input = 0;
     designer->lv2c.audio_output = 0;
+    designer->ui->flags |= FAST_REDRAW;
     while (fgets(buf, 128, fp) != NULL) {
         if (strstr(buf, "input") != NULL) {
             designer->lv2c.audio_input += 1;
@@ -143,8 +144,11 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
     if (attrs.map_state == IsViewable) {
         run_generate_ttl(designer->ttlfile, NULL);
     }
+    pthread_t rf;
+    pthread_create(&rf, NULL, reset_flag, (void *)designer);
     //print_ttl(designer);
     //print_plugin(designer);
+    //print_makefile(designer);
 }
 
 static void parse_c_file (XUiDesigner *designer, char* filename) {

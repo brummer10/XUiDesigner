@@ -32,7 +32,10 @@
 extern "C" {
 #endif
 
-void load_plugin_ui(void* w_, void* user_data);
+int load_plugin_ui(Widget_t *w);
+
+void filter_uris_by_word(Widget_t *lv2_uris, Widget_t *lv2_names,
+                        const LilvPlugins* lv2_plugins, const char* word);
 
 void filter_uris(Widget_t *lv2_uris, Widget_t *lv2_names, const LilvPlugins* lv2_plugins);
 

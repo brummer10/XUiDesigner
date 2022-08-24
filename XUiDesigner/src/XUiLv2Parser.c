@@ -362,8 +362,7 @@ static Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plug
     return wid;
 }
 
-void load_plugin_ui(void* w_, void* UNUSED(user_data)) {
-    Widget_t *w = (Widget_t*)w_;
+int load_plugin_ui(Widget_t *w) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     combobox_set_active_entry(designer->lv2_uris, adj_get_value(w->adj));
     reset_plugin_ui(designer);
@@ -763,7 +762,6 @@ void load_plugin_ui(void* w_, void* UNUSED(user_data)) {
     //XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
     if (designer->active_widget != NULL)
         box_entry_set_text(designer->controller_label, designer->active_widget->label);
-    widget_show_all(designer->ui);
 
     if (!designer->ttlfile_view) create_text_view_window(designer);
     XWindowAttributes attrs;
@@ -772,8 +770,41 @@ void load_plugin_ui(void* w_, void* UNUSED(user_data)) {
         run_generate_ttl(designer->ttlfile, NULL);
     }
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height+1);
+    return 1;
 }
 
+static const char * uppercase(const char* s ) {
+    for ( char *p = (char*)s; *p; ++p ) {
+        if ( 'a' <= *p && *p <= 'z' ) *p = *p & ~' ';
+    }
+    return (const char*)s;
+}
+
+void filter_uris_by_word(Widget_t *lv2_uris, Widget_t *lv2_names,
+                        const LilvPlugins* lv2_plugins, const char* word) {
+    combobox_delete_entrys(lv2_uris);
+    combobox_delete_entrys(lv2_names);
+    combobox_add_entry(lv2_uris,_("--"));
+    combobox_add_entry(lv2_names,_("--"));
+    for (LilvIter* it = lilv_plugins_begin(lv2_plugins);
+      !lilv_plugins_is_end(lv2_plugins, it);
+      it = lilv_plugins_next(lv2_plugins, it)) {
+        const LilvPlugin* plugin = lilv_plugins_get(lv2_plugins, it);
+        if (plugin) {
+            const char* name = lilv_node_as_string(lilv_plugin_get_name(plugin));
+            const char* uri = lilv_node_as_string(lilv_plugin_get_uri(plugin));
+            char* has = strstr(name, word);
+            if (!has) has = strstr(uri, word);
+            if (has) {
+                combobox_add_entry(lv2_names, lilv_node_as_string(lilv_plugin_get_name(plugin)));
+                combobox_add_entry(lv2_uris,lilv_node_as_string(lilv_plugin_get_uri(plugin)));
+            }
+        }
+    }
+    combobox_set_active_entry(lv2_uris, 0);
+    combobox_set_active_entry(lv2_names, 0);
+    combobox_set_menu_size(lv2_names, 24);
+}
 
 void filter_uris(Widget_t *lv2_uris, Widget_t *lv2_names, const LilvPlugins* lv2_plugins) {
     combobox_delete_entrys(lv2_uris);
@@ -797,6 +828,7 @@ void filter_uris(Widget_t *lv2_uris, Widget_t *lv2_names, const LilvPlugins* lv2
     }
     combobox_set_active_entry(lv2_uris, 0);
     combobox_set_active_entry(lv2_names, 0);
+    combobox_set_menu_size(lv2_names, 24);
 }
 
 void load_uris(Widget_t *lv2_uris, Widget_t *lv2_names, const LilvPlugins* lv2_plugins) {
