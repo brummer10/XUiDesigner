@@ -32,6 +32,8 @@
 extern "C" {
 #endif
 
+void strovar(char* c);
+
 void strtovar(char* c);
 
 void strtosym(char* c);

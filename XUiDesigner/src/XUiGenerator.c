@@ -79,6 +79,18 @@ void show_list(XUiDesigner *designer) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+void strovar(char* c) {
+    char* b = "_";
+    int i = 0;
+    for (i=0; c[i] != '\0'; i++) {
+        if (!isalnum((unsigned char)c[i])) {
+            c[i] = (*b);
+        } else {
+            c[i] = tolower((unsigned char)c[i]);
+        }
+    }
+}
+
 void strtovar(char* c) {
     char* b = "_";
     int i = 0;

@@ -36,7 +36,7 @@ void print_plugin(XUiDesigner *designer) {
     char *name = NULL;
     XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
     if (name == NULL) asprintf(&name, "%s", "noname");
-    strtovar(name);
+    strovar(name);
 
     printf ("\n#include <cstdlib>\n"
     "#include <cmath>\n"
