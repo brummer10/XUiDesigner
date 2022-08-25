@@ -83,7 +83,10 @@ void strtovar(char* c) {
     char* b = "_";
     int i = 0;
     for (i=0; c[i] != '\0'; i++) {
-        if (!isalnum((unsigned char)c[i])) {
+        if (isdigit((unsigned char)c[i])) {
+            int d = (c[i] -'0');
+            c[i] = d %26 + 97;
+        } else if (!isalnum((unsigned char)c[i])) {
             c[i] = (*b);
         } else {
             c[i] = tolower((unsigned char)c[i]);

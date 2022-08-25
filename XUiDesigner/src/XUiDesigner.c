@@ -508,7 +508,8 @@ static void set_drag_icon(void *w_, void *xmotion_, void* UNUSED(user_data)) {
             widget_draw(designer->ui, NULL);
         }
         if (((xmotion->state & Button1Mask) != 0)) {
-            if (designer->multi_selected < 2) {
+            if (designer->multi_selected < 2 &&
+                    designer->multi_selected > -1) {
                 designer->select_width = xmotion->x;
                 designer->select_height = xmotion->y;
                 designer->multi_selected = 1;
@@ -1066,7 +1067,7 @@ static void load_lv2_uris (XUiDesigner *designer) {
 static void filter_plugin_name(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    TextBox_t *text_box = (TextBox_t*)w->private_struct;
+    TextBox_t *text_box = (TextBox_t*)designer->filter_by_word->private_struct;
     designer->lv2_names->func.value_changed_callback = null_callback;
     if (strlen(text_box->input_label)) {
         if (!designer->world) load_lv2_uris (designer);
@@ -1081,6 +1082,7 @@ static void filter_plugin_name(void *w_, void* UNUSED(user_data)) {
         combobox_set_active_entry(designer->lv2_uris, 0);
         combobox_set_active_entry(designer->lv2_names, 0);
     }
+    combobox_set_menu_size(designer->lv2_names, 24);
     designer->lv2_names->func.value_changed_callback = load_lv2_ui;
 }
 
@@ -1099,6 +1101,7 @@ static void filter_plugin_ui(void *w_, void* UNUSED(user_data)) {
         load_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
         combobox_set_active_entry(designer->lv2_uris, 0);
         combobox_set_active_entry(designer->lv2_names, 0);
+        combobox_set_menu_size(designer->lv2_names, 24);
     }
 }
 
@@ -1284,9 +1287,13 @@ int main (int argc, char ** argv) {
 
     designer->filter_by_word = add_input_box(designer->w, 0, 720, 25, 180, 30);
     tooltip_set_text(designer->filter_by_word,_("Search plugins by name"));
-    designer->filter_by_word->func.value_changed_callback = filter_plugin_name;
+    //designer->filter_by_word->func.value_changed_callback = filter_plugin_name;
     designer->filter_by_word->parent_struct = designer;
 
+    designer->search_plug = add_button(designer->w, _("Search"), 910, 25, 40, 30);
+    tooltip_set_text(designer->search_plug,_("Show only plugins match the search string"));
+    designer->search_plug->parent_struct = designer;
+    designer->search_plug->func.value_changed_callback = filter_plugin_name;
 
     designer->ui = create_window(&app, DefaultRootWindow(app.dpy), 0, 0, 600, 400);
     XSelectInput(designer->ui->app->dpy, designer->ui->widget,StructureNotifyMask|ExposureMask|KeyPressMask 

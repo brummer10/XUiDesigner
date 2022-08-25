@@ -239,6 +239,7 @@ typedef struct {
     Widget_t *lv2_names;
     Widget_t *filter_lv2_uris;
     Widget_t *filter_by_word;
+    Widget_t *search_plug;
     Widget_t *image_loader;
     Widget_t *unload_image;
     Widget_t *context_menu;

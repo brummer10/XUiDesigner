@@ -208,5 +208,5 @@ void reset_selection(XUiDesigner *designer) {
     designer->select_sy = 0;
     designer->select_width = 0;
     designer->select_height = 0;
-    designer->multi_selected = 0;
+    designer->multi_selected = -1;
 }

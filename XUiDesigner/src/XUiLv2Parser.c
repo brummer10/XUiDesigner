@@ -17,6 +17,8 @@
  * PERFORMANCE OF THIS SOFTWARE.
  *
  */
+ 
+#include <ctype.h>
 
 #include "XUiLv2Parser.h"
 #include "XUiGenerator.h"
@@ -773,11 +775,31 @@ int load_plugin_ui(Widget_t *w) {
     return 1;
 }
 
-static const char * uppercase(const char* s ) {
-    for ( char *p = (char*)s; *p; ++p ) {
-        if ( 'a' <= *p && *p <= 'z' ) *p = *p & ~' ';
+static char* strcstr( const char* haystack, const char* needle) {
+    const char* p1 = haystack ;
+    const char* p2 = needle ;
+    const char* r = *p2 == 0 ? haystack : 0 ;
+    while( *p1 != 0 && *p2 != 0 ) {
+        if( tolower( (unsigned char)*p1 ) == tolower( (unsigned char)*p2 )) {
+            if( r == 0 ) {
+                r = p1 ;
+            }
+            p2++ ;
+        } else {
+            p2 = needle ;
+            if( r != 0 ) {
+                p1 = r + 1 ;
+            }
+            if( tolower( (unsigned char)*p1 ) == tolower( (unsigned char)*p2 )) {
+                r = p1 ;
+                p2++ ;
+            } else {
+                r = 0 ;
+            }
+        }
+        p1++ ;
     }
-    return (const char*)s;
+    return *p2 == 0 ? (char*)r : 0 ;
 }
 
 void filter_uris_by_word(Widget_t *lv2_uris, Widget_t *lv2_names,
@@ -793,11 +815,11 @@ void filter_uris_by_word(Widget_t *lv2_uris, Widget_t *lv2_names,
         if (plugin) {
             const char* name = lilv_node_as_string(lilv_plugin_get_name(plugin));
             const char* uri = lilv_node_as_string(lilv_plugin_get_uri(plugin));
-            char* has = strstr(name, word);
-            if (!has) has = strstr(uri, word);
+            char* has = strcstr(name, word);
+            if (!has) has = strcstr(uri, word);
             if (has) {
-                combobox_add_entry(lv2_names, lilv_node_as_string(lilv_plugin_get_name(plugin)));
-                combobox_add_entry(lv2_uris,lilv_node_as_string(lilv_plugin_get_uri(plugin)));
+                combobox_add_entry(lv2_names, name);
+                combobox_add_entry(lv2_uris, uri);
             }
         }
     }
