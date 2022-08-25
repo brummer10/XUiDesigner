@@ -37,6 +37,7 @@ typedef struct {
     Widget_t* menu;
     Widget_t* item1;
     Widget_t* item2;
+    Widget_t* grab_widget;
     char input_label[256];
     char selection[256];
     int curser_pos;

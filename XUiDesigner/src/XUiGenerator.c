@@ -510,12 +510,14 @@ void run_save(void *w_, void* user_data) {
                     printf("open failed\n");
                 }
                 char buf[128];
-                while (fgets(buf, 128, fp) != NULL) {
+                char* directory = NULL;
+                asprintf(&directory, "%s", dirname(designer->faust_file));
+                while (fgets(buf, 127, fp) != NULL) {
                     if (strstr(buf, "#include \"") != NULL) {
                         char *ptr = strtok(buf, "\"");
                         ptr = strtok(NULL, "\"");
                         if (strstr(ptr, "math.h") == NULL) {
-                            asprintf(&filename, "%s/%s", dirname(designer->faust_file),ptr);
+                            asprintf(&filename, "%s/%s", directory,ptr);
                             if (access(filename, F_OK) == 0) {
                                 asprintf(&cmd, "cp %s \'%s\'", filename, filepath);
                                 ret = system(cmd);
@@ -533,6 +535,8 @@ void run_save(void *w_, void* user_data) {
                 }
                 fclose(fp);
                 fp = NULL;
+                free(directory);
+                directory = NULL;
             }
 
             asprintf(&filename, "%s/XUiDesigner/wrapper/libxputty/lv2_plugin.h", SHARE_DIR);

@@ -303,6 +303,25 @@ static void text_box_button_pressed(void *w_, void* button_, void* UNUSED(user_d
     Widget_t *w = (Widget_t*)w_;
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
+    if (xbutton->window == w->widget) {
+        if ( w->app->hold_grab != w) {
+            int err = XGrabKeyboard(w->app->dpy, w->widget, true,
+                    GrabModeAsync, GrabModeAsync, CurrentTime);
+            if (!err) {
+                XGrabPointer(w->app->dpy, DefaultRootWindow(w->app->dpy), True,
+                     ButtonPressMask|ButtonReleaseMask,
+                     GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
+                w->app->key_snooper = w;
+                text_box->grab_widget = w->app->hold_grab;
+                w->app->hold_grab = w;
+            }
+        }   
+    } else {
+        XUngrabKeyboard(w->app->dpy, CurrentTime);
+        XUngrabPointer(w->app->dpy, CurrentTime);
+        w->app->key_snooper = NULL;
+        w->app->hold_grab = text_box->grab_widget;
+    }
     if (w->flags & HAS_POINTER) {
         if(xbutton->button == Button1) {
             text_box->set_selection = 0;
@@ -552,6 +571,7 @@ static void box_entry_get_text(void *w_, void *key_, void* UNUSED(user_data)) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     XKeyEvent *key = (XKeyEvent*)key_;
     if (!key) return;
+    //if ( w->app->hold_grab == w && key->window == w->widget) return;
     int nk = key_mapping(w->app->dpy, key);
     if (nk == 11) {
         box_entry_clip(w);
@@ -626,6 +646,7 @@ Widget_t *add_input_box(Widget_t *parent, int data, int x, int y, int width, int
     text_box->mark2_pos = 0;
     text_box->set_selection = 0;
     text_box->curser_size = 0;
+    text_box->grab_widget = NULL;
     strcat(wid->input_label, "|");
     wid->flags |= HAS_MEM;
     wid->data = data;
