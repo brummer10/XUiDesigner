@@ -814,7 +814,9 @@ void filter_uris_by_word(Widget_t *lv2_uris, Widget_t *lv2_names,
         const LilvPlugin* plugin = lilv_plugins_get(lv2_plugins, it);
         if (plugin) {
             const char* name = lilv_node_as_string(lilv_plugin_get_name(plugin));
+            if (!name) continue;
             const char* uri = lilv_node_as_string(lilv_plugin_get_uri(plugin));
+            if (!uri) continue;
             char* has = strcstr(name, word);
             if (!has) has = strcstr(uri, word);
             if (has) {
@@ -841,7 +843,9 @@ void filter_uris(Widget_t *lv2_uris, Widget_t *lv2_names, const LilvPlugins* lv2
             LilvUIs* uis = lilv_plugin_get_uis(plugin);
             if (!uis) {
                 const LilvNode* name = lilv_plugin_get_name(plugin);
+                if (!name) continue;
                 const LilvNode* uri = lilv_plugin_get_uri(plugin);
+                if (!uri) continue;
                 combobox_add_entry(lv2_names, lilv_node_as_string(name));
                 combobox_add_entry(lv2_uris,lilv_node_as_string(uri));
             }
@@ -860,7 +864,9 @@ void load_uris(Widget_t *lv2_uris, Widget_t *lv2_names, const LilvPlugins* lv2_p
         const LilvPlugin* plugin = lilv_plugins_get(lv2_plugins, it);
         if (plugin) {
             const LilvNode* name = lilv_plugin_get_name(plugin);
+            if (!name) continue;
             const LilvNode* uri = lilv_plugin_get_uri(plugin);
+            if (!uri) continue;
             combobox_add_entry(lv2_names, lilv_node_as_string(name));
             combobox_add_entry(lv2_uris,lilv_node_as_string(uri));
         }
