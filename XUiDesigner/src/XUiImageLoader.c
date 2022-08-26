@@ -209,11 +209,26 @@ static void unset_image_button(XUiDesigner *designer) {
     designer->active_widget_num = new_wid->data;
 }
 
+static void set_slider_frames(void *w_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    designer->controls[designer->active_widget_num].slider_image_sprites = (int)adj_get_value(w->adj);
+    set_slider_image_frame_count(designer->active_widget, adj_get_value(w->adj));
+}
+
 static void load_for_all_global(XUiDesigner *designer, WidgetType is_type, cairo_surface_t *getpng,
                                 const char* filename, int width, int height) {
     int i = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && designer->controls[i].is_type == is_type ) {
+            if (designer->controls[i].is_type == IS_VSLIDER) {
+                designer->controls[i].slider_image_sprites =
+                    designer->global_vslider_image_sprites;
+                
+            } else if (designer->controls[i].is_type == IS_HSLIDER) {
+                designer->controls[i].slider_image_sprites =
+                    designer->global_hslider_image_sprites;
+            }
             cairo_surface_destroy(designer->controls[i].wid->image);
             designer->controls[i].wid->image = NULL;
 
@@ -238,10 +253,10 @@ static void load_for_all_global(XUiDesigner *designer, WidgetType is_type, cairo
 
 void load_single_controller_image (XUiDesigner *designer, const char* filename) {
     //if (!designer->active_widget) return;
+    char *tmp = strdup(filename);
     if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON) {
         set_image_button(designer);
     }
-    char *tmp = strdup(filename);
     cairo_surface_t *getpng = NULL;
     if (strstr(filename, ".png")) {
         getpng = cairo_image_surface_create_from_png (filename);
@@ -284,6 +299,17 @@ void controller_image_load_response(void *w_, void* user_data) {
         }
         if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON) {
             set_image_button(designer);
+        } else if (designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
+                    designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) {
+            Widget_t *dia = open_message_dialog(w, INFO_BOX, *(const char**)user_data,
+                                                _("How many Sprites been in the Image?"),NULL);
+            XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+            Widget_t *counter =  add_valuedisplay(dia, _("SliderSprites"), 125, 65, 60, 40);
+            counter->parent_struct = designer;
+            set_adjustment(counter->adj, 101, designer->controls[designer->active_widget_num].slider_image_sprites,
+                                                                                    1.0, 330.0, 1.0, CL_CONTINUOS);
+            counter->func.value_changed_callback = set_slider_frames;
+            widget_show(counter);
         }
         const char* filename = *(const char**)user_data;
         cairo_surface_t *getpng = NULL;
@@ -302,6 +328,24 @@ void controller_image_load_response(void *w_, void* user_data) {
             free(designer->global_knob_image_file);
             designer->global_knob_image_file = NULL;
             asprintf(&designer->global_knob_image_file, "%s", filename);
+            cairo_surface_destroy(getpng);
+        } else if (designer->controls[designer->active_widget_num].is_type == IS_VSLIDER &&
+                                    adj_get_value(designer->global_vslider_image->adj)) {
+            designer->global_vslider_image_sprites =
+                designer->controls[designer->active_widget_num].slider_image_sprites;
+            load_for_all_global(designer, IS_VSLIDER, getpng, filename, width, height);
+            free(designer->global_vslider_image_file);
+            designer->global_vslider_image_file = NULL;
+            asprintf(&designer->global_vslider_image_file, "%s", filename);
+            cairo_surface_destroy(getpng);
+        } else if (designer->controls[designer->active_widget_num].is_type == IS_HSLIDER &&
+                                    adj_get_value(designer->global_hslider_image->adj)) {
+            designer->global_hslider_image_sprites =
+                designer->controls[designer->active_widget_num].slider_image_sprites;
+            load_for_all_global(designer, IS_HSLIDER, getpng, filename, width, height);
+            free(designer->global_hslider_image_file);
+            designer->global_hslider_image_file = NULL;
+            asprintf(&designer->global_hslider_image_file, "%s", filename);
             cairo_surface_destroy(getpng);
         } else if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON &&
                                     adj_get_value(designer->global_button_image->adj)) {
@@ -406,9 +450,7 @@ static void unload_controller_image(void *w_, void* UNUSED(user_data)) {
         designer->controls[designer->active_widget_num].is_type == IS_VALUE_DISPLAY ||
         designer->controls[designer->active_widget_num].is_type == IS_VMETER ||
         designer->controls[designer->active_widget_num].is_type == IS_HMETER ||
-        designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
-        designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
-        designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) return;
+        designer->controls[designer->active_widget_num].is_type == IS_LABEL) return;
     cairo_surface_destroy(w->image);
     w->image = NULL;
     expose_widget(w);
@@ -429,9 +471,7 @@ void pop_menu_response(void *w_, void* item_, void* UNUSED(user_data)) {
             designer->controls[designer->active_widget_num].is_type == IS_VALUE_DISPLAY ||
             designer->controls[designer->active_widget_num].is_type == IS_VMETER ||
             designer->controls[designer->active_widget_num].is_type == IS_HMETER ||
-            designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
-            designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
-            designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) break;
+            designer->controls[designer->active_widget_num].is_type == IS_LABEL) break;
             Widget_t *dia = open_file_dialog(designer->ui, designer->image_path, "image");
             XSetTransientForHint(designer->ui->app->dpy, dia->widget, designer->ui->widget);
             if (designer->controls[designer->active_widget_num].is_type == IS_FRAME ||

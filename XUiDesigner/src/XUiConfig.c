@@ -45,9 +45,19 @@ void save_config(XUiDesigner *designer) {
     if (designer->global_switch_image_file) {
         printf("[Global Switch Image]=%s\n", designer->global_switch_image_file);
     }
+    if (designer->global_vslider_image_file) {
+        printf("[Global VSlider Image]=%s\n", designer->global_vslider_image_file);
+    }
+    if (designer->global_hslider_image_file) {
+        printf("[Global HSlider Image]=%s\n", designer->global_hslider_image_file);
+    }
     printf("[Use Global Knob Image]=%f\n", adj_get_value(designer->global_knob_image->adj));
     printf("[Use Global Button Image]=%f\n", adj_get_value(designer->global_button_image->adj));
     printf("[Use Global Switch Image]=%f\n", adj_get_value(designer->global_switch_image->adj));
+    printf("[Use Global VSlider Image]=%f\n", adj_get_value(designer->global_vslider_image->adj));
+    printf("[Use Global HSlider Image]=%f\n", adj_get_value(designer->global_hslider_image->adj));
+    printf("[Global VSlider Sprites]=%i\n", designer->global_vslider_image_sprites);
+    printf("[Global HSlider Sprites]=%i\n", designer->global_hslider_image_sprites);
     printf("[Keep Aspect Ratio]=%f\n", adj_get_value(designer->aspect_ratio->adj));
     printf("[Use Global Size]=%f\n", adj_get_value(designer->resize_all->adj));
     fclose(fpm);
@@ -81,6 +91,16 @@ void read_config(XUiDesigner *designer) {
                 designer->global_switch_image_file = NULL;
                 ptr = strtok(NULL, "\n");
                 asprintf(&designer->global_switch_image_file, "%s", ptr);
+            } else if (strstr(ptr, "[Global VSlider Image]") != NULL) {
+                free(designer->global_vslider_image_file);
+                designer->global_vslider_image_file = NULL;
+                ptr = strtok(NULL, "\n");
+                asprintf(&designer->global_vslider_image_file, "%s", ptr);
+            } else if (strstr(ptr, "[Global HSlider Image]") != NULL) {
+                free(designer->global_hslider_image_file);
+                designer->global_hslider_image_file = NULL;
+                ptr = strtok(NULL, "\n");
+                asprintf(&designer->global_hslider_image_file, "%s", ptr);
             } else if (strstr(ptr, "[Use Global Knob Image]") != NULL) {
                 ptr = strtok(NULL, "\n");
                 adj_set_value(designer->global_knob_image->adj, strtod(ptr, NULL));
@@ -90,12 +110,24 @@ void read_config(XUiDesigner *designer) {
             } else if (strstr(ptr, "[Use Global Switch Image]") != NULL) {
                 ptr = strtok(NULL, "\n");
                 adj_set_value(designer->global_switch_image->adj, strtod(ptr, NULL));
+            } else if (strstr(ptr, "[Use Global VSlider Image]") != NULL) {
+                ptr = strtok(NULL, "\n");
+                adj_set_value(designer->global_vslider_image->adj, strtod(ptr, NULL));
+            } else if (strstr(ptr, "[Use Global HSlider Image]") != NULL) {
+                ptr = strtok(NULL, "\n");
+                adj_set_value(designer->global_hslider_image->adj, strtod(ptr, NULL));
             } else if (strstr(ptr, "[Keep Aspect Ratio]") != NULL) {
                 ptr = strtok(NULL, "\n");
                 adj_set_value(designer->aspect_ratio->adj, strtod(ptr, NULL));
             } else if (strstr(ptr, "[Use Global Size]") != NULL) {
                 ptr = strtok(NULL, "\n");
                 adj_set_value(designer->resize_all->adj, strtod(ptr, NULL));
+            } else if (strstr(ptr, "[Global VSlider Sprites]") != NULL) {
+                ptr = strtok(NULL, "\n");
+                designer->global_vslider_image_sprites = strtod(ptr, NULL);
+            } else if (strstr(ptr, "[Global HSlider Sprites]") != NULL) {
+                ptr = strtok(NULL, "\n");
+                designer->global_hslider_image_sprites = (int)strtod(ptr, NULL);
             }
             ptr = strtok(NULL, "=");
         }

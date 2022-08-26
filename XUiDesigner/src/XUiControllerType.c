@@ -111,6 +111,9 @@ void switch_controller_type(void *w_, void* UNUSED(user_data)) {
             designer->controls[new_wid->data].image = NULL;
             widget_show(new_wid);
             designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            if (designer->global_hslider_image_file != NULL && adj_get_value(designer->global_hslider_image->adj)) 
+                load_single_controller_image(designer, designer->global_hslider_image_file);
         break;
         case 2:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -124,6 +127,9 @@ void switch_controller_type(void *w_, void* UNUSED(user_data)) {
             designer->controls[new_wid->data].image = NULL;
             widget_show(new_wid);
             designer->active_widget = new_wid;
+            designer->active_widget_num = new_wid->data;
+            if (designer->global_vslider_image_file != NULL && adj_get_value(designer->global_vslider_image->adj)) 
+                load_single_controller_image(designer, designer->global_vslider_image_file);
         break;
         case 3:
             asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
@@ -246,12 +252,16 @@ Widget_t *add_controller(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t 
             wid = add_hslider(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-15, 120, 30);
             set_controller_callbacks(designer, wid, true);
             add_to_list(designer, wid, "add_lv2_hslider", true, IS_HSLIDER);
+            if (designer->global_hslider_image_file != NULL && adj_get_value(designer->global_hslider_image->adj)) 
+                load_single_controller_image(designer, designer->global_hslider_image_file);
         break;
         case 3:
             asprintf(&designer->controls[designer->wid_counter].name, "VSlider%i", designer->wid_counter);
             wid = add_vslider(w, designer->controls[designer->wid_counter].name, xbutton->x-15, xbutton->y-60, 30, 120);
             set_controller_callbacks(designer, wid, true);
             add_to_list(designer, wid, "add_lv2_vslider", true, IS_VSLIDER);
+            if (designer->global_vslider_image_file != NULL && adj_get_value(designer->global_vslider_image->adj)) 
+                load_single_controller_image(designer, designer->global_vslider_image_file);
         break;
         case 4:
             asprintf(&designer->controls[designer->wid_counter].name, "Button%i", designer->wid_counter);

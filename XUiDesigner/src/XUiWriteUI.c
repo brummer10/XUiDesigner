@@ -658,6 +658,11 @@ void print_list(XUiDesigner *designer) {
                     }
                     free(xldl);
                 }
+                if (designer->controls[i].is_type == IS_VSLIDER ||
+                        designer->controls[i].is_type == IS_HSLIDER) {
+                    printf ("    set_slider_image_frame_count(ui->widget[%i], %i);\n",j,
+                        designer->controls[i].slider_image_sprites);
+                }
             }
             if (designer->controls[i].is_type == IS_COMBOBOX) {
                 Widget_t *menu = wid->childlist->childs[1];

@@ -264,6 +264,16 @@ void hide_show_as_needed(XUiDesigner *designer) {
     } else {
         widget_hide(designer->global_knob_image);
     }
+    if (designer->controls[designer->active_widget_num].is_type == IS_VSLIDER) {
+        widget_show(designer->global_vslider_image);
+    } else {
+        widget_hide(designer->global_vslider_image);
+    }
+    if (designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) {
+        widget_show(designer->global_hslider_image);
+    } else {
+        widget_hide(designer->global_hslider_image);
+    }
     if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON) {
         widget_show(designer->global_button_image);
     } else {
@@ -830,11 +840,9 @@ void fix_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
             designer->controls[designer->active_widget_num].is_type == IS_VALUE_DISPLAY ||
             designer->controls[designer->active_widget_num].is_type == IS_VMETER ||
             designer->controls[designer->active_widget_num].is_type == IS_HMETER ||
-            designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
             designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
             designer->controls[designer->active_widget_num].is_type == IS_WAVEVIEW ||
-            designer->controls[designer->active_widget_num].is_type == IS_TABBOX ||
-            designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) {
+            designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
             designer->menu_item_load->state = 4;
             designer->menu_item_unload->state = 4;
         } else {
@@ -1089,11 +1097,11 @@ static void filter_plugin_name(void *w_, void* UNUSED(user_data)) {
 
 static void filter_plugin_ui(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && adj_get_value(w->adj_y)) {
-        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+        if (!designer->world) load_lv2_uris (designer);
         filter_uris(designer->lv2_uris, designer->lv2_names, designer->lv2_plugins);
     } else if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
         combobox_delete_entrys(designer->lv2_uris);
         combobox_delete_entrys(designer->lv2_names);
         combobox_add_entry(designer->lv2_uris,_("--"));
@@ -1196,6 +1204,10 @@ int main (int argc, char ** argv) {
     designer->global_knob_image_file = NULL;
     designer->global_button_image_file = NULL;
     designer->global_switch_image_file = NULL;
+    designer->global_vslider_image_file = NULL;
+    designer->global_hslider_image_file = NULL;
+    designer->global_vslider_image_sprites = 101;
+    designer->global_hslider_image_sprites = 101;
     designer->run_test = false;
     designer->lv2c.ui_uri = NULL;
     asprintf(&designer->lv2c.ui_uri, "urn:%s:%s", getUserName(), "test_ui");
@@ -1250,6 +1262,7 @@ int main (int argc, char ** argv) {
         designer->controls[m].name = NULL;
         designer->controls[m].symbol = NULL;
         designer->controls[m].is_type = IS_NONE;
+        designer->controls[m].slider_image_sprites = 101;
     }
 
     Xputty app;
@@ -1467,6 +1480,14 @@ int main (int argc, char ** argv) {
     designer->global_switch_image = add_check_box(designer->w, _("Use Global Switch Image"), 1000, 450, 180, 20);
     tooltip_set_text(designer->global_switch_image,_("Use the Image loaded on one Switch for all Switchs"));
     designer->global_switch_image->parent_struct = designer;
+
+    designer->global_vslider_image = add_check_box(designer->w, _("Use Global VSlider Image"), 1000, 450, 180, 20);
+    tooltip_set_text(designer->global_vslider_image,_("Use the Image loaded on one Slider for all VSliders"));
+    designer->global_vslider_image->parent_struct = designer;
+
+    designer->global_hslider_image = add_check_box(designer->w, _("Use Global HSlider Image"), 1000, 450, 180, 20);
+    tooltip_set_text(designer->global_vslider_image,_("Use the Image loaded on one Slider for all HSliders"));
+    designer->global_vslider_image->parent_struct = designer;
 
     designer->context_menu = create_menu(designer->w,25);
     designer->context_menu->parent_struct = designer;

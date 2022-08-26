@@ -132,6 +132,7 @@ typedef struct {
     int in_frame;
     int in_tab;
     int tab_box;
+    int slider_image_sprites;
     bool destignation_enabled;
     bool is_atom_patch;
     bool is_audio_output;
@@ -139,7 +140,6 @@ typedef struct {
     bool is_atom_output;
     bool is_atom_input;
     bool have_adjustment;
-    bool pad;
 } Controller;
 
 /*---------------------------------------------------------------------
@@ -232,6 +232,8 @@ typedef struct {
     Widget_t *global_knob_image;
     Widget_t *global_button_image;
     Widget_t *global_switch_image;
+    Widget_t *global_vslider_image;
+    Widget_t *global_hslider_image;
     Widget_t *tabbox_settings;
     Widget_t *tabbox_entry[2];
     Widget_t *set_adjust;
@@ -269,6 +271,8 @@ typedef struct {
     bool run;
     bool skipit;
     bool pad;
+    int global_vslider_image_sprites;
+    int global_hslider_image_sprites;
     int multi_selected;
     int active_widget_num;
     int pos_x;
@@ -296,6 +300,8 @@ typedef struct {
     char* global_knob_image_file;
     char* global_button_image_file;
     char* global_switch_image_file;
+    char* global_vslider_image_file;
+    char* global_hslider_image_file;
     char* path;
     LV2_CONTROLLER lv2c;
     Controller controls[MAX_CONTROLS];

@@ -63,7 +63,9 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
                 new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_CONTINUOS;
             add_to_list(designer, new_wid, "add_lv2_hslider", true, IS_HSLIDER);
             destroy_widget(wid, designer->w->app);
-            designer->controls[new_wid->data].image = NULL;
+            if (designer->controls[new_wid->data].image != NULL) {
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
+            }
             widget_show(new_wid);
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
@@ -79,7 +81,9 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
                 new_wid->adj->type == CL_LOGSCALE ? CL_LOGSCALE : CL_CONTINUOS;
             add_to_list(designer, new_wid, "add_lv2_vslider", true, IS_VSLIDER);
             destroy_widget(wid, designer->w->app);
-            designer->controls[new_wid->data].image = NULL;
+            if (designer->controls[new_wid->data].image != NULL) {
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
+            }
             widget_show(new_wid);
             designer->active_widget = new_wid;
             designer->active_widget_num = new_wid->data;
