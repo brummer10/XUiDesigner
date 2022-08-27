@@ -126,18 +126,21 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
 
     strdecode(outname, ".cc", "");
-    widget_set_title(designer->ui,basename(outname));
+    char* tmp = strdup(outname);
+    widget_set_title(designer->ui,basename(tmp));
     free(designer->lv2c.ui_uri);
     designer->lv2c.ui_uri = NULL;
-    asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), basename(outname),"_ui");
+    asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), tmp,"_ui");
     free(designer->lv2c.uri);
     designer->lv2c.uri = NULL;
-    asprintf(&designer->lv2c.uri, "urn:%s:%s", getUserName(), basename(outname));
+    asprintf(&designer->lv2c.uri, "urn:%s:%s", getUserName(), tmp);
     designer->is_faust_file = true;
     free(cmd);
     cmd = NULL;    
     free(outname);
     outname = NULL;
+    free(tmp);
+    tmp = NULL;
     if (!designer->ttlfile_view) create_text_view_window(designer);
     XWindowAttributes attrs;
     XGetWindowAttributes(designer->ttlfile_view->app->dpy, (Window)designer->ttlfile_view->widget, &attrs);

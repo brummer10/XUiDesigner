@@ -523,7 +523,10 @@ void run_save(void *w_, void* user_data) {
                 }
                 char buf[128];
                 char* directory = NULL;
-                asprintf(&directory, "%s", dirname(designer->faust_file));
+                char* tmp = strdup(designer->faust_file);
+                asprintf(&directory, "%s", dirname(tmp));
+                free(tmp);
+                tmp = NULL;
                 while (fgets(buf, 127, fp) != NULL) {
                     if (strstr(buf, "#include \"") != NULL) {
                         char *ptr = strtok(buf, "\"");
@@ -609,7 +612,10 @@ void run_save(void *w_, void* user_data) {
         }
         if (designer->image != NULL) {
             //png2c(designer->image,filepath);
-            char* xldl = strdup(basename(designer->image));
+            char* tmp = strdup(designer->image);
+            char* xldl = strdup(basename(tmp));
+            free(tmp);
+            tmp = NULL;
             strdecode(xldl, "-", "_");
             strdecode(xldl, " ", "_");
             strtovar(xldl);
@@ -668,7 +674,10 @@ void run_save(void *w_, void* user_data) {
             for (;i<MAX_CONTROLS;i++) {
                 if (designer->controls[i].image != NULL) {
                     //png2c(designer->controls[i].image,filepath);
-                    char* xldl = strdup(basename(designer->controls[i].image));
+                    char* tmp = strdup(designer->controls[i].image);
+                    char* xldl = strdup(basename(tmp));
+                    free(tmp);
+                    tmp = NULL;
                     strdecode(xldl, "-", "_");
                     strdecode(xldl, " ", "_");
                     strtovar(xldl);

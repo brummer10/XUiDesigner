@@ -56,8 +56,11 @@ void print_plugin(XUiDesigner *designer) {
     "using std::min;\n"
     "using std::max;\n\n",  designer->lv2c.uri);
     if (designer->is_faust_file) {
+        char* tmp = strdup(designer->faust_file);
         printf ("#define __rt_data __attribute__((section(\".rt.data\")))\n");
-        printf ("#include \"%s\"\n\n", basename(designer->faust_file));
+        printf ("#include \"%s\"\n\n", basename(tmp));
+        free(tmp);
+        tmp = NULL;
     } else {
         printf ("typedef int PortIndex;\n\n");
     }

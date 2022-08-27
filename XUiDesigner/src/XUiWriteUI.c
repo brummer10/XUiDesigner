@@ -75,7 +75,10 @@ void png2c(char* image_name, char* filepath) {
 
     char * xld = NULL;
     char * xldl = NULL;
-    asprintf(&xld, "%s", basename(image_name));
+    char* tmp = strdup(image_name);
+    asprintf(&xld, "%s", basename(tmp));
+    free(tmp);
+    tmp = NULL;
     strdecode(xld, ".png", ".c");
     strdecode(xld, "-", "_");
     strdecode(xld, " ", "_");
@@ -512,7 +515,8 @@ void print_list(XUiDesigner *designer) {
             if (designer->run_test) {
                 printf ("    load_bg_image(ui,\"%s\");\n", designer->image);
             } else {
-                char * xldl = strdup(basename(designer->image));
+                char* tmp = strdup(designer->image);
+                char * xldl = strdup(basename(tmp));
                 strdecode(xldl, ".", "_");
                 strdecode(xldl, "-", "_");
                 strdecode(xldl, " ", "_");
@@ -523,6 +527,9 @@ void print_list(XUiDesigner *designer) {
                     printf ("    widget_get_scaled_svg(ui->win, %s);\n", xldl);
                 }
                 free(xldl);
+                xldl = NULL;
+                free(tmp);
+                tmp = NULL;
                 //printf ("    load_bg_image(ui,\"./resources/%s\");\n", basename(designer->image));
             }
         }
@@ -559,7 +566,8 @@ void print_list(XUiDesigner *designer) {
                         printf ("    load_controller_image(ui->elem[%i], \"%s\");\n",
                                             j, designer->controls[i].image);
                     } else {
-                        char * xldl = strdup(basename(designer->controls[i].image));
+                        char* tmp = strdup(designer->controls[i].image);
+                        char * xldl = strdup(basename(tmp));
                         strdecode(xldl, ".", "_");
                         strdecode(xldl, "-", "_");
                         strdecode(xldl, " ", "_");
@@ -571,6 +579,9 @@ void print_list(XUiDesigner *designer) {
                             printf ("    widget_get_scaled_svg(ui->widget[%i], %s);\n", j, xldl);
                         }
                         free(xldl);
+                        xldl = NULL;
+                        free(tmp);
+                        tmp = NULL;
                        // printf ("    load_controller_image(ui->elem[%i], \"./resources/%s\");\n",
                        //                         j, basename(designer->controls[i].image));
                     }
@@ -646,7 +657,8 @@ void print_list(XUiDesigner *designer) {
                     printf ("    load_controller_image(ui->widget[%i], \"%s\");\n",
                             j, designer->controls[i].image);
                 } else {
-                    char * xldl = strdup(basename(designer->controls[i].image));
+                    char* tmp = strdup(designer->controls[i].image);
+                    char * xldl = strdup(basename(tmp));
                     strdecode(xldl, ".", "_");
                     strdecode(xldl, "-", "_");
                     strdecode(xldl, " ", "_");
@@ -657,6 +669,9 @@ void print_list(XUiDesigner *designer) {
                         printf ("    widget_get_svg(ui->widget[%i], %s);\n", j, xldl);
                     }
                     free(xldl);
+                    xldl = NULL;
+                    free(tmp);
+                    tmp = NULL;
                 }
                 if (designer->controls[i].is_type == IS_VSLIDER ||
                         designer->controls[i].is_type == IS_HSLIDER) {
