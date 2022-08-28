@@ -152,8 +152,8 @@ void png2c(char* image_name, char* filepath) {
 ----------------------------------------------------------------------*/
 
 static void print_colors(XUiDesigner *designer) {
-    Xputty * main = designer->w->app;
-    Colors *c = &main->color_scheme->normal;
+    //Xputty * main = designer->w->app;
+    Colors *c = &designer->ui->color_scheme->normal;
     printf (
     "void set_costum_theme(Xputty *main) {\n"
     "    main->color_scheme->normal = (Colors) {\n"
@@ -173,7 +173,7 @@ static void print_colors(XUiDesigner *designer) {
                 c->frame[0],c->frame[1],c->frame[2],c->frame[3],
                 c->light[0],c->light[1],c->light[2],c->light[3]);
 
-    c = &main->color_scheme->prelight;
+    c = &designer->ui->color_scheme->prelight;
     printf (
     "    main->color_scheme->prelight = (Colors) {\n"
     "         /* cairo    / r  / g  / b  / a  /  */\n"
@@ -192,7 +192,7 @@ static void print_colors(XUiDesigner *designer) {
                 c->frame[0],c->frame[1],c->frame[2],c->frame[3],
                 c->light[0],c->light[1],c->light[2],c->light[3]);
 
-    c = &main->color_scheme->selected;
+    c = &designer->ui->color_scheme->selected;
     printf (
     "    main->color_scheme->selected = (Colors) {\n"
     "         /* cairo    / r  / g  / b  / a  /  */\n"
@@ -211,7 +211,7 @@ static void print_colors(XUiDesigner *designer) {
                 c->frame[0],c->frame[1],c->frame[2],c->frame[3],
                 c->light[0],c->light[1],c->light[2],c->light[3]);
 
-    c = &main->color_scheme->active;
+    c = &designer->ui->color_scheme->active;
     printf (
     "    main->color_scheme->active = (Colors) {\n"
     "         /* cairo    / r  / g  / b  / a  /  */\n"
@@ -230,7 +230,7 @@ static void print_colors(XUiDesigner *designer) {
                 c->frame[0],c->frame[1],c->frame[2],c->frame[3],
                 c->light[0],c->light[1],c->light[2],c->light[3]);
 
-    c = &main->color_scheme->insensitive;
+    c = &designer->ui->color_scheme->insensitive;
     printf (
     "    main->color_scheme->insensitive = (Colors) {\n"
     "         /* cairo    / r  / g  / b  / a  /  */\n"

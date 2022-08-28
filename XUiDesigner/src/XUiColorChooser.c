@@ -291,6 +291,7 @@ static void set_rgba_color(XUiDesigner *designer, ColorChooser_t *color_chooser,
     set_costum_color(designer, color_chooser, 1, g);
     set_costum_color(designer, color_chooser, 2, b);
     set_costum_color(designer, color_chooser, 3, a);
+    color_scheme_to_childs(designer->ui);
 }
 
 static void a_callback(void *w_, void* UNUSED(user_data)) {
@@ -300,6 +301,7 @@ static void a_callback(void *w_, void* UNUSED(user_data)) {
     color_chooser->alpha = adj_get_value(w->adj);
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
+    color_scheme_to_childs(designer->ui);
     expose_widget(color_chooser->color_widget);
     expose_widget(designer->ui);
 }
@@ -376,18 +378,18 @@ static void set_selected_scheme(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;    
-    Xputty *main = designer->w->app;
+    //Xputty *main = designer->w->app;
     int s = (int)adj_get_value(w->adj);
     switch (s) {
-        case 0: designer->selected_scheme = &main->color_scheme->normal;
+        case 0: designer->selected_scheme = &designer->ui->color_scheme->normal;
         break;
-        case 1: designer->selected_scheme = &main->color_scheme->prelight;
+        case 1: designer->selected_scheme = &designer->ui->color_scheme->prelight;
         break;
-        case 2: designer->selected_scheme = &main->color_scheme->selected;
+        case 2: designer->selected_scheme = &designer->ui->color_scheme->selected;
         break;
-        case 3: designer->selected_scheme = &main->color_scheme->active;
+        case 3: designer->selected_scheme = &designer->ui->color_scheme->active;
         break;
-        case 4: designer->selected_scheme = &main->color_scheme->insensitive;
+        case 4: designer->selected_scheme = &designer->ui->color_scheme->insensitive;
         break;
         default:
         break;
@@ -644,8 +646,8 @@ static void color_chooser_mem_free(void *w_, void* UNUSED(user_data)) {
 }
 
 Widget_t *create_color_chooser (XUiDesigner *designer) {
-    Xputty *main = designer->w->app;
-    designer->selected_scheme = &main->color_scheme->normal;
+    //Xputty *main = designer->w->app;
+    designer->selected_scheme = &designer->ui->color_scheme->normal;
     ColorChooser_t *color_chooser = (ColorChooser_t*)malloc(sizeof(ColorChooser_t));
     color_chooser->alpha = 1.0;
     color_chooser->lum = 0.0;

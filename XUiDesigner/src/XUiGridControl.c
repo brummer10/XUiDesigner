@@ -38,7 +38,7 @@ void draw_grid(Widget_t *w, cairo_surface_t *image) {
     cairo_paint(crb);
     cairo_set_operator(crb,CAIRO_OPERATOR_OVER);
 
-    Colors *c = get_color_scheme(w->app, INSENSITIVE_);
+    Colors *c = get_color_scheme(w, INSENSITIVE_);
     cairo_set_source_rgba(crb, c->frame[0],  c->frame[1], c->frame[2],  c->frame[3]);
     cairo_set_line_width(crb, 1.0);
 
