@@ -1201,6 +1201,7 @@ int main (int argc, char ** argv) {
     designer->image_path = NULL;
     designer->image = NULL;
     designer->faust_file = NULL;
+    designer->faust_path = NULL;
     designer->global_knob_image_file = NULL;
     designer->global_button_image_file = NULL;
     designer->global_switch_image_file = NULL;
@@ -1556,6 +1557,7 @@ int main (int argc, char ** argv) {
     free(designer->image_path);
     free(designer->image);
     free(designer->faust_file);
+    free(designer->faust_path);
     free(designer->global_knob_image_file);
     free(designer->global_button_image_file);
     free(designer->global_switch_image_file);

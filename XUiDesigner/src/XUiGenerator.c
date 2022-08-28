@@ -522,11 +522,7 @@ void run_save(void *w_, void* user_data) {
                     printf("open failed\n");
                 }
                 char buf[128];
-                char* directory = NULL;
-                char* tmp = strdup(designer->faust_file);
-                asprintf(&directory, "%s", dirname(tmp));
-                free(tmp);
-                tmp = NULL;
+                char* directory = strdup(designer->faust_path);
                 while (fgets(buf, 127, fp) != NULL) {
                     if (strstr(buf, "#include \"") != NULL) {
                         char *ptr = strtok(buf, "\"");

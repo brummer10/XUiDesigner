@@ -36,8 +36,18 @@
 
 void parse_faust_file (XUiDesigner *designer, const char* filename) {
     char* cmd = NULL;
-    char* outname = strdup(filename);
-    strdecode(outname, ".dsp", ".cc");
+    char* tmp = strdup(filename);
+    strdecode(tmp, ".dsp", ".cc");
+    char* outname = NULL;
+    asprintf(&outname, "/tmp/%s", basename(tmp));
+    free(tmp);
+    tmp = NULL;
+    tmp = strdup(filename);
+    free(designer->faust_path);
+    designer->faust_path = NULL;
+    asprintf(&designer->faust_path, "%s/",dirname(tmp));
+    free(tmp);
+    tmp = NULL;    
     if (access("./tools/dsp2cc", F_OK) == 0) {
         asprintf(&cmd, "./tools/dsp2cc -d %s -b -o %s", filename, outname);
     } else {
@@ -54,6 +64,8 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
         cmd = NULL;
         return;
     }
+    free(designer->faust_file);
+    designer->faust_file = NULL;
     asprintf(&designer->faust_file, "%s", outname);
     free(cmd);
     cmd = NULL;
@@ -126,21 +138,18 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
 
     strdecode(outname, ".cc", "");
-    char* tmp = strdup(outname);
-    widget_set_title(designer->ui,basename(tmp));
+    widget_set_title(designer->ui,basename(outname));
     free(designer->lv2c.ui_uri);
     designer->lv2c.ui_uri = NULL;
-    asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), tmp,"_ui");
+    asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), basename(outname),"_ui");
     free(designer->lv2c.uri);
     designer->lv2c.uri = NULL;
-    asprintf(&designer->lv2c.uri, "urn:%s:%s", getUserName(), tmp);
+    asprintf(&designer->lv2c.uri, "urn:%s:%s", getUserName(), basename(outname));
     designer->is_faust_file = true;
     free(cmd);
     cmd = NULL;    
     free(outname);
     outname = NULL;
-    free(tmp);
-    tmp = NULL;
     if (!designer->ttlfile_view) create_text_view_window(designer);
     XWindowAttributes attrs;
     XGetWindowAttributes(designer->ttlfile_view->app->dpy, (Window)designer->ttlfile_view->widget, &attrs);

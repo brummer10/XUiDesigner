@@ -297,6 +297,7 @@ typedef struct {
     char* image_path;
     char* image;
     char* faust_file;
+    char* faust_path;
     char* global_knob_image_file;
     char* global_button_image_file;
     char* global_switch_image_file;
