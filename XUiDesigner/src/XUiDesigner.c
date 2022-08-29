@@ -1027,6 +1027,15 @@ static void ask_save_as(void *w_, void* UNUSED(user_data)) {
         Widget_t *dia = open_message_dialog(designer->ui, SELECTION_BOX,
             "Save as:",  "Save as:", "Only UI-Bundle       |Full Plugin-Bundle       ");
         XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+        tooltip_set_text(dia->childlist->childs[0],
+            _("Select this to generate a UI for a existing LV2 plugin"));
+        tooltip_set_text(dia->childlist->childs[1],
+            _("Select this when generate a LV2 plugin from a Faust file or from scratch"));
+        if (designer->is_project) {
+            adj_set_value(dia->childlist->childs[1]->adj, 1.0);
+        } else {
+            adj_set_value(dia->childlist->childs[0]->adj, 1.0);
+        }
         designer->ui->func.dialog_callback = save_response;
     }
 }
