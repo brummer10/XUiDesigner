@@ -1229,7 +1229,9 @@ int main (int argc, char ** argv) {
     designer->lv2c.bypass = 0;
     designer->grid_width = 15;
     designer->grid_height = 15;
+    designer->grid_view = false;
     designer->is_project = true;
+    designer->set_project = NULL;
     designer->is_faust_file = false;
     designer->generate_ui_only = false;
     designer->drag_icon.x = 0;
@@ -1238,6 +1240,12 @@ int main (int argc, char ** argv) {
     designer->drag_icon.h = 0;
     designer->drag_icon.is_active = false;
     designer->path = NULL;
+    designer->grid_image = NULL;
+    designer->world = NULL;
+    designer->combobox_settings = NULL;
+    designer->tabbox_settings = NULL;
+    designer->controller_settings = NULL;
+    designer->cursor = 0;
     reset_selection(designer);
     if (path !=NULL) asprintf(&designer->path, "%s", path);
     designer->new_label = NULL;
@@ -1264,6 +1272,7 @@ int main (int argc, char ** argv) {
         designer->controls[m].symbol = NULL;
         designer->controls[m].is_type = IS_NONE;
         designer->controls[m].slider_image_sprites = 101;
+        designer->controls[m].have_adjustment = false;
     }
 
     Xputty app;
@@ -1561,6 +1570,8 @@ int main (int argc, char ** argv) {
     free(designer->global_knob_image_file);
     free(designer->global_button_image_file);
     free(designer->global_switch_image_file);
+    free(designer->global_vslider_image_file);
+    free(designer->global_hslider_image_file);
     free(designer->lv2c.ui_uri);
     free(designer->lv2c.uri);
     free(designer->lv2c.author);

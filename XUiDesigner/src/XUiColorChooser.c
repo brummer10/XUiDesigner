@@ -401,7 +401,7 @@ static void get_pixel(Widget_t *w, int x, int y, XColor *color) {
     XImage *image;
     image = XGetImage (w->app->dpy, DefaultRootWindow(w->app->dpy), x, y, 1, 1, AllPlanes, ZPixmap);
     color->pixel = XGetPixel(image, 0, 0);
-    XFree (image);
+    XDestroyImage (image);
     XQueryColor (w->app->dpy, DefaultColormap(w->app->dpy, DefaultScreen (w->app->dpy)), color);
 }
 
@@ -533,7 +533,7 @@ void set_focus_by_color(Widget_t* wid, const double r, const double g, const dou
         }
         i = 10;
     }
-    XFree (image);
+    XDestroyImage (image);
 }
 
 static void set_focus_motion(void *w_, void *xmotion_, void* UNUSED(user_data)) {
