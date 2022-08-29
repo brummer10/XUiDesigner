@@ -1012,10 +1012,11 @@ static void save_response(void *w_, void* user_data) {
         Widget_t *w = (Widget_t*)w_;
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
         int response = *(int*)user_data;
-        if(response == 1)
+        if(response == 1) {
             designer->generate_ui_only = true;
-        else
+        } else {
             designer->generate_ui_only = false;
+        }
         run_save_as(w_, user_data);
     }
 }
@@ -1033,8 +1034,10 @@ static void ask_save_as(void *w_, void* UNUSED(user_data)) {
             _("Select this when generate a LV2 plugin from a Faust file or from scratch"));
         if (designer->is_project) {
             adj_set_value(dia->childlist->childs[1]->adj, 1.0);
+            radio_box_set_active(dia->childlist->childs[1]);
         } else {
             adj_set_value(dia->childlist->childs[0]->adj, 1.0);
+            radio_box_set_active(dia->childlist->childs[0]);
         }
         designer->ui->func.dialog_callback = save_response;
     }

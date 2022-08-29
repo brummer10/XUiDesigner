@@ -176,7 +176,7 @@ void print_makefile(XUiDesigner *designer) {
         asprintf(&cmd2,"\n\n	NAME = %s\n"
             "	space := $(subst ,, )\n"
             "	EXEC_NAME := $(subst $(space),_,$(NAME))\n"
-            "	BUNDLE = $(EXEC_NAME).lv2\n"
+            "	BUNDLE = $(EXEC_NAME)_ui.lv2\n"
             "	RESOURCES_DIR :=../resources/\n"
             "	LIB_DIR := ../libxputty/libxputty/\n"
             "	HEADER_DIR := $(LIB_DIR)include/\n"
