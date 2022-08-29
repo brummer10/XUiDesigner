@@ -155,8 +155,8 @@ static void print_colors(XUiDesigner *designer) {
     //Xputty * main = designer->w->app;
     Colors *c = &designer->ui->color_scheme->normal;
     printf (
-    "void set_costum_theme(Xputty *main) {\n"
-    "    main->color_scheme->normal = (Colors) {\n"
+    "void set_costum_theme(Widget_t *w) {\n"
+    "    w->color_scheme->normal = (Colors) {\n"
     "         /* cairo    / r  / g  / b  / a  /  */\n"
     "        .fg =       { %.3f, %.3f, %.3f, %.3f},\n"
     "        .bg =       { %.3f, %.3f, %.3f, %.3f},\n"
@@ -175,7 +175,7 @@ static void print_colors(XUiDesigner *designer) {
 
     c = &designer->ui->color_scheme->prelight;
     printf (
-    "    main->color_scheme->prelight = (Colors) {\n"
+    "    w->color_scheme->prelight = (Colors) {\n"
     "         /* cairo    / r  / g  / b  / a  /  */\n"
     "        .fg =       { %.3f, %.3f, %.3f, %.3f},\n"
     "        .bg =       { %.3f, %.3f, %.3f, %.3f},\n"
@@ -194,7 +194,7 @@ static void print_colors(XUiDesigner *designer) {
 
     c = &designer->ui->color_scheme->selected;
     printf (
-    "    main->color_scheme->selected = (Colors) {\n"
+    "    w->color_scheme->selected = (Colors) {\n"
     "         /* cairo    / r  / g  / b  / a  /  */\n"
     "        .fg =       { %.3f, %.3f, %.3f, %.3f},\n"
     "        .bg =       { %.3f, %.3f, %.3f, %.3f},\n"
@@ -213,7 +213,7 @@ static void print_colors(XUiDesigner *designer) {
 
     c = &designer->ui->color_scheme->active;
     printf (
-    "    main->color_scheme->active = (Colors) {\n"
+    "    w->color_scheme->active = (Colors) {\n"
     "         /* cairo    / r  / g  / b  / a  /  */\n"
     "        .fg =       { %.3f, %.3f, %.3f, %.3f},\n"
     "        .bg =       { %.3f, %.3f, %.3f, %.3f},\n"
@@ -232,7 +232,7 @@ static void print_colors(XUiDesigner *designer) {
 
     c = &designer->ui->color_scheme->insensitive;
     printf (
-    "    main->color_scheme->insensitive = (Colors) {\n"
+    "    w->color_scheme->insensitive = (Colors) {\n"
     "         /* cairo    / r  / g  / b  / a  /  */\n"
     "        .fg =       { %.3f, %.3f, %.3f, %.3f},\n"
     "        .bg =       { %.3f, %.3f, %.3f, %.3f},\n"
@@ -509,7 +509,7 @@ void print_list(XUiDesigner *designer) {
         "    return \"%s\"; //set plugin name to display on UI\n"
         "}\n\n"
         "void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri, float scale) {\n"
-        "    set_costum_theme(&ui->main);\n"
+        "    set_costum_theme(ui->win);\n"
         , designer->ui->width, designer->ui->height, name? name:"Test");
         if (designer->image != NULL) {
             if (designer->run_test) {
