@@ -47,6 +47,7 @@ typedef struct {
     size_t curser_size;
     int curser_mark2;
     int set_selection;
+    bool in_double_click;
 } TextBox_t;
 
 

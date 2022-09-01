@@ -933,6 +933,10 @@ static void button_release_callback(void *w_, void *button_, void* UNUSED(user_d
                 designer->select_sx = designer->select_x;
                 designer->select_sy = designer->select_y;
             }
+            designer->active_widget = NULL;
+            designer->active_widget_num = MAX_CONTROLS;
+            widget_draw(designer->ui, NULL);
+            box_entry_set_text(designer->controller_label, "");
         }
         hide_show_as_needed(designer);
         designer->prev_active_widget = wid;

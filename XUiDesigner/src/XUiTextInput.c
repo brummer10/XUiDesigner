@@ -352,14 +352,18 @@ static void text_box_button_released(void *w_, void* button_, void* UNUSED(user_
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     //if (w->flags & HAS_POINTER) {
         if(xbutton->button == Button1) {
-            int x = xbutton->x;
-            int j = 0;
-            if (x>6) {
-                int width = 0;
-                get_pos_for_x(w, x, &width, &j);
-            } 
-            box_entry_set_curser_pos(w, -(text_box->curser_size-j));
-            expose_widget(w);
+            if (! text_box->in_double_click) {
+                int x = xbutton->x;
+                int j = 0;
+                if (x>6) {
+                    int width = 0;
+                    get_pos_for_x(w, x, &width, &j);
+                } 
+                box_entry_set_curser_pos(w, -(text_box->curser_size-j));
+                expose_widget(w);
+            } else {
+                text_box->in_double_click = false;
+            }
         } else if(xbutton->button == Button3) {
             if (!text_box->set_selection) text_box->item1->state = 4;
             else text_box->item1->state = 0;
@@ -383,6 +387,7 @@ static void text_box_double_click(void *w_, void* UNUSED(button_), void* UNUSED(
     cairo_text_extents(w->cr, text_box->input_label , &extents);
     text_box->curser_mark2 = (int)extents.width;
     box_entry_set_curser_pos(w, strlen(text_box->input_label));
+    text_box->in_double_click = true;
     expose_widget(w);
     //copy_to_clipboard(w, text_box->input_label, (int)text_box->mark2_pos);
 }
@@ -573,7 +578,7 @@ static void box_entry_get_text(void *w_, void *key_, void* UNUSED(user_data)) {
     if (!key) return;
     //if ( w->app->hold_grab == w && key->window == w->widget) return;
     int nk = key_mapping(w->app->dpy, key);
-    if (nk == 11) {
+    if (nk == 11 || nk == 12) {
         box_entry_clip(w);
     } else if (nk == 6) {
         box_entry_set_curser_pos(w, -1);
@@ -647,6 +652,7 @@ Widget_t *add_input_box(Widget_t *parent, int data, int x, int y, int width, int
     text_box->set_selection = 0;
     text_box->curser_size = 0;
     text_box->grab_widget = NULL;
+    text_box->in_double_click = false;
     strcat(wid->input_label, "|");
     wid->flags |= HAS_MEM;
     wid->data = data;
