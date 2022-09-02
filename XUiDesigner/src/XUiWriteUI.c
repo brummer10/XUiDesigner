@@ -252,6 +252,91 @@ static void print_colors(XUiDesigner *designer) {
 
 }
 
+static double *get_selected_color(Colors *c, int s) {
+    double *use = NULL;
+    switch (s) {
+        case 0: use = c->fg;
+        break;
+        case 1: use = c->bg;
+        break;
+        case 2: use = c->base;
+        break;
+        case 3: use = c->text;
+        break;
+        case 4: use = c->shadow;
+        break;
+        case 5: use = c->frame;
+        break;
+        case 6: use = c->light;
+        break;
+        default:
+        break;
+    }
+    return use;
+}
+
+static void check_for_Widget_colors(XUiDesigner *designer) {
+    int j = 0;  // Color_state
+    for(;j<5;j++) {
+        int k = 0; // Color_mod
+        for(;k<6;k++) {
+            double *c =  get_selected_color(get_color_scheme(designer->ui, j), k);
+            int i = 0;
+            int a = 0;
+            int x = 0;
+            for (;i<MAX_CONTROLS;i++) {
+                if (designer->controls[i].wid != NULL) {
+                    if (designer->controls[i].is_audio_output || designer->controls[i].is_audio_input ||
+                        designer->controls[i].is_atom_output || designer->controls[i].is_atom_input ||
+                        designer->controls[i].is_type == IS_FRAME ||
+                        designer->controls[i].is_type == IS_IMAGE ||
+                        designer->controls[i].is_type == IS_TABBOX) {
+                        continue;
+                    }
+                    Widget_t * wid = designer->controls[i].wid;
+                    double *b = get_selected_color(get_color_scheme(wid, j), k);
+                    a = memcmp(c, b, 4 * sizeof(double));
+                    if (a != 0) {
+                        printf("\n    set_widget_color(ui->widget[%i], %i, %i,"
+                                "%.3f, %.3f, %.3f, %.3f);\n", x, j, k, b[0], b[1], b[2], b[3]);
+                    }
+                    x++;
+                }
+            }
+        }
+    }
+}
+
+static void check_for_elem_colors(XUiDesigner *designer) {
+    int j = 0;  // Color_state
+    for(;j<5;j++) {
+        int k = 0; // Color_mod
+        for(;k<6;k++) {
+            double *c =  get_selected_color(get_color_scheme(designer->ui, j), k);
+            int i = 0;
+            int a = 0;
+            int x = 0;
+            for (;i<MAX_CONTROLS;i++) {
+                if (designer->controls[i].wid != NULL) {
+                    if (designer->controls[i].is_type == IS_FRAME ||
+                        designer->controls[i].is_type == IS_IMAGE ||
+                        designer->controls[i].is_type == IS_TABBOX) {
+
+                        Widget_t * wid = designer->controls[i].wid;
+                        double *b = get_selected_color(get_color_scheme(wid, j), k);
+                        a = memcmp(c, b, 4 * sizeof(double));
+                        if (a != 0) {
+                            printf("\n    set_widget_color(ui->elem[%i], %i, %i,"
+                                    "%.3f, %.3f, %.3f, %.3f);\n", x, j, k, b[0], b[1], b[2], b[3]);
+                        }
+                        x++;
+                    }
+                }
+            }
+        }
+    }
+}
+
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 print C file for UI widgets 
@@ -703,6 +788,8 @@ void print_list(XUiDesigner *designer) {
             }
         }
     }
+    check_for_elem_colors(designer);
+    check_for_Widget_colors(designer);
     printf ("}\n\n"
     "void plugin_cleanup(X11_UI *ui) {\n");
     if (have_atom_in || have_atom_out) {

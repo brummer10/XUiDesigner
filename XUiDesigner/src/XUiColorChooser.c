@@ -256,7 +256,50 @@ static int dummy_error_handler(Display *UNUSED(dpy), XErrorEvent *UNUSED(e)) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+static void get_selected_scheme(XUiDesigner *designer, ColorChooser_t *color_chooser) {
+    int s = (int)adj_get_value(color_chooser->color_scheme_select->adj);
+    switch (s) {
+        case 0: designer->selected_scheme = &get_active_widget(designer)->color_scheme->normal;
+        break;
+        case 1: designer->selected_scheme = &get_active_widget(designer)->color_scheme->prelight;
+        break;
+        case 2: designer->selected_scheme = &get_active_widget(designer)->color_scheme->selected;
+        break;
+        case 3: designer->selected_scheme = &get_active_widget(designer)->color_scheme->active;
+        break;
+        case 4: designer->selected_scheme = &get_active_widget(designer)->color_scheme->insensitive;
+        break;
+        default:
+        break;
+    }
+}
+
+static double *get_selected_color(XUiDesigner *designer, ColorChooser_t *color_chooser) {
+    int s = (int)adj_get_value(color_chooser->color_sel->adj);
+    double *use = NULL;
+    switch (s) {
+        case 0: use = designer->selected_scheme->bg;
+        break;
+        case 1: use = designer->selected_scheme->fg;
+        break;
+        case 2: use = designer->selected_scheme->base;
+        break;
+        case 3: use = designer->selected_scheme->text;
+        break;
+        case 4: use = designer->selected_scheme->shadow;
+        break;
+        case 5: use = designer->selected_scheme->frame;
+        break;
+        case 6: use = designer->selected_scheme->light;
+        break;
+        default:
+        break;
+    }
+    return use;
+}
+
 static void set_costum_color(XUiDesigner *designer, ColorChooser_t *color_chooser, int a, float v) {
+    get_selected_scheme(designer, color_chooser);
     int s = (int)adj_get_value(color_chooser->color_sel->adj);
     switch (s) {
         case 0:
@@ -287,11 +330,13 @@ static void set_costum_color(XUiDesigner *designer, ColorChooser_t *color_choose
 
 static void set_rgba_color(XUiDesigner *designer, ColorChooser_t *color_chooser,
                                     float r, float g, float b, float a) {
-    set_costum_color(designer, color_chooser, 0, r);
-    set_costum_color(designer, color_chooser, 1, g);
-    set_costum_color(designer, color_chooser, 2, b);
-    set_costum_color(designer, color_chooser, 3, a);
-    color_scheme_to_childs(designer->ui);
+    get_selected_scheme(designer, color_chooser);
+    widget_set_color(get_selected_color(designer, color_chooser), r, g, b, a);
+    //set_costum_color(designer, color_chooser, 0, r);
+    //set_costum_color(designer, color_chooser, 1, g);
+    //set_costum_color(designer, color_chooser, 2, b);
+    //set_costum_color(designer, color_chooser, 3, a);
+    //color_scheme_to_childs(get_active_widget(designer));
 }
 
 static void a_callback(void *w_, void* UNUSED(user_data)) {
@@ -301,9 +346,9 @@ static void a_callback(void *w_, void* UNUSED(user_data)) {
     color_chooser->alpha = adj_get_value(w->adj);
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     set_costum_color(designer, color_chooser, 3, color_chooser->alpha);
-    color_scheme_to_childs(designer->ui);
+    color_scheme_to_childs(get_active_widget(designer));
     expose_widget(color_chooser->color_widget);
-    expose_widget(designer->ui);
+    expose_widget(get_active_widget(designer));
 }
 
 static void set_selected_color(void *w_, void* UNUSED(user_data)) {
@@ -381,15 +426,15 @@ static void set_selected_scheme(void *w_, void* UNUSED(user_data)) {
     //Xputty *main = designer->w->app;
     int s = (int)adj_get_value(w->adj);
     switch (s) {
-        case 0: designer->selected_scheme = &designer->ui->color_scheme->normal;
+        case 0: designer->selected_scheme = &get_active_widget(designer)->color_scheme->normal;
         break;
-        case 1: designer->selected_scheme = &designer->ui->color_scheme->prelight;
+        case 1: designer->selected_scheme = &get_active_widget(designer)->color_scheme->prelight;
         break;
-        case 2: designer->selected_scheme = &designer->ui->color_scheme->selected;
+        case 2: designer->selected_scheme = &get_active_widget(designer)->color_scheme->selected;
         break;
-        case 3: designer->selected_scheme = &designer->ui->color_scheme->active;
+        case 3: designer->selected_scheme = &get_active_widget(designer)->color_scheme->active;
         break;
-        case 4: designer->selected_scheme = &designer->ui->color_scheme->insensitive;
+        case 4: designer->selected_scheme = &get_active_widget(designer)->color_scheme->insensitive;
         break;
         default:
         break;
@@ -431,7 +476,7 @@ static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {
         set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
         set_focus_by_color(w, r, g, b);
         expose_widget(color_chooser->color_widget);
-        expose_widget(designer->ui);
+        expose_widget(get_active_widget(designer));
     } else if (w->flags & HAS_POINTER) {
         if (xbutton->button == Button1 &&  is_in_circle(color_chooser, xbutton->x, xbutton->y)) {
             int x1, y1;
@@ -445,7 +490,7 @@ static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {
             //fprintf(stderr, "%f %f %f %f\n", r, g, b, color_chooser->alpha);
             set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
             expose_widget(color_chooser->color_widget);
-            expose_widget(designer->ui);
+            expose_widget(get_active_widget(designer));
         }
     }
 }
@@ -467,7 +512,7 @@ static void lum_callback(void *w_, void* UNUSED(user_data)) {
     double b = (double)c.blue/65535.0;
     set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
     expose_widget(color_chooser->color_widget);
-    expose_widget(designer->ui);
+    expose_widget(get_active_widget(designer));
 }
 
 static void null_callback(void* UNUSED(w_), void* UNUSED(user_data)) {
@@ -524,7 +569,7 @@ void set_focus_by_color(Widget_t* wid, const double r, const double g, const dou
                     color_chooser->focus_y = (double)j;
                     set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
                     expose_widget(color_chooser->color_widget);
-                    expose_widget(designer->ui);
+                    expose_widget(get_active_widget(designer));
                     //fprintf(stderr,"found %ld,%ld,%ld ", (pixel >> 0x10) & 0xFF, (pixel >> 0x08) & 0xFF, pixel & 0xFF);
                     j = wid->height-121;
                     break;
@@ -556,7 +601,7 @@ static void set_focus_motion(void *w_, void *xmotion_, void* UNUSED(user_data)) 
         double b = (double)c.blue/65535.0;
         set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
         expose_widget(color_chooser->color_widget);
-        expose_widget(designer->ui);
+        expose_widget(get_active_widget(designer));
     }
 }
 
@@ -635,7 +680,7 @@ static void set_focus_on_key(void *w_, void *key_, void* UNUSED(user_data)) {
         double b = (double)c.blue/65535.0;
         set_rgba_color(designer, color_chooser, r, g, b, color_chooser->alpha);
         expose_widget(color_chooser->color_widget);
-        expose_widget(designer->ui);
+        expose_widget(get_active_widget(designer));
     }
 }
 
@@ -647,7 +692,7 @@ static void color_chooser_mem_free(void *w_, void* UNUSED(user_data)) {
 
 Widget_t *create_color_chooser (XUiDesigner *designer) {
     //Xputty *main = designer->w->app;
-    designer->selected_scheme = &designer->ui->color_scheme->normal;
+    designer->selected_scheme = &get_active_widget(designer)->color_scheme->normal;
     ColorChooser_t *color_chooser = (ColorChooser_t*)malloc(sizeof(ColorChooser_t));
     color_chooser->alpha = 1.0;
     color_chooser->lum = 0.0;

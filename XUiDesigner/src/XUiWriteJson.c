@@ -52,7 +52,7 @@ static const char* parse_type(WidgetType is_type) {
         return "COMBOBOX";
         break;
         case IS_VALUE_DISPLAY:
-        return "VALUE_DISPLA";
+        return "VALUE_DISPLAY";
         break;
         case IS_LABEL:
         return "LABEL";
@@ -160,6 +160,9 @@ void print_json(XUiDesigner *designer) {
     json_add_key ("Name");
     json_add_string(name);
 
+    json_add_key ("Author");
+    json_add_string(designer->lv2c.author);
+
     json_add_key ("Window size");
     json_start_array();
     json_add_int(designer->ui->width);
@@ -176,6 +179,9 @@ void print_json(XUiDesigner *designer) {
                 json_add_key ("Frame Box");
                 json_start_array();
                 json_start_value_pair();
+                json_add_key ("Type");
+                json_add_string(designer->controls[i].type);
+                json_add_key ("Label");
                 json_add_string(designer->controls[i].wid->label);
                 json_add_key ("Size");
                 json_start_array();
@@ -196,6 +202,9 @@ void print_json(XUiDesigner *designer) {
                 json_add_key ("TAB Box");
                 json_start_array();
                 json_start_value_pair();
+                json_add_key ("Type");
+                json_add_string(designer->controls[i].type);
+                json_add_key ("Label");
                 json_add_string(designer->controls[i].wid->label);
                 json_add_key ("Size");
                 json_start_array();
@@ -219,6 +228,9 @@ void print_json(XUiDesigner *designer) {
                     Widget_t *wi = designer->controls[i].wid->childlist->childs[t];
                     json_start_array();
                     json_start_value_pair();
+                    json_add_key ("Type");
+                    json_add_string(designer->controls[i].type);
+                    json_add_key ("Label");
                     json_add_string(designer->controls[i].wid->label);
                     json_add_key ("Size");
                     json_start_array();
@@ -237,6 +249,8 @@ void print_json(XUiDesigner *designer) {
                 json_add_key (parse_type(designer->controls[i].is_type));
                 json_start_array();
                 json_start_value_pair();
+                json_add_key ("Type");
+                json_add_string(designer->controls[i].type);
                 json_add_key ("Label");
                 json_add_string(designer->controls[i].wid->label);
                 json_add_key ("Port");
@@ -260,12 +274,13 @@ void print_json(XUiDesigner *designer) {
                     json_add_key ("Adjustment");
                     json_add_string(parse_adjusment_type(designer->controls[i].wid->adj->type));
                     json_add_key ("Default Value");
-                    json_add_float(designer->controls[i].wid->adj->std_value);
+                    json_add_float(adj_get_std_value(designer->controls[i].wid->adj));
                     json_add_key ("Min Value");
-                    json_add_float(designer->controls[i].wid->adj->min_value);
+                    json_add_float(adj_get_min_value(designer->controls[i].wid->adj));
                     json_add_key ("Max Value");
-                    json_add_float(designer->controls[i].wid->adj->max_value);
-                    
+                    json_add_float(adj_get_max_value(designer->controls[i].wid->adj));
+                    json_add_key ("Step Size");
+                    json_add_float(designer->controls[i].wid->adj->step);
                 }
                 if (designer->controls[i].is_type == IS_COMBOBOX) {
                     Widget_t *menu = designer->controls[i].wid->childlist->childs[1];

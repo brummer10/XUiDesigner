@@ -66,6 +66,7 @@ void copy_widget_settings(XUiDesigner *designer, Widget_t *wid, Widget_t *new_wi
                 wid->adj->min_value,wid->adj->max_value, wid->adj->step, wid->adj->type);
         }
     }
+    memcpy(new_wid->color_scheme, wid->color_scheme, sizeof (struct XColor_t));
     set_controller_callbacks(designer, new_wid, true);
     new_wid->data = wid->data;
     designer->wid_counter--;

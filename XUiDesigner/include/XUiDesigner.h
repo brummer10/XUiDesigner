@@ -328,6 +328,8 @@ void *reset_flag(void *designer_);
 
 char *getUserName(void);
 
+Widget_t *get_active_widget(XUiDesigner *designer);
+
 #ifdef __cplusplus
 }
 #endif
