@@ -892,6 +892,13 @@ void move_tab(void *w_, void *xmotion_, void* user_data) {
     move_wid(p, xmotion_, user_data);
 }
 
+Widget_t *get_active_widget(XUiDesigner *designer) {
+    if (designer->active_widget == NULL) {
+        return designer->ui;
+    }
+    return designer->active_widget;
+}
+
 static void button_press_callback(void *w_, void *button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -934,7 +941,7 @@ static void button_release_callback(void *w_, void *button_, void* UNUSED(user_d
                 designer->select_sy = designer->select_y;
             }
             designer->active_widget = NULL;
-            designer->active_widget_num = MAX_CONTROLS;
+            designer->active_widget_num = MAX_CONTROLS-1;
             widget_draw(designer->ui, NULL);
             box_entry_set_text(designer->controller_label, "");
         }
