@@ -249,6 +249,7 @@ typedef struct {
     Widget_t *menu_item_unload;
     Widget_t *color_chooser;
     Widget_t *color_widget;
+    Widget_t *global_color;
     Widget_t *grid;
     Widget_t *grid_size_x;
     Widget_t *grid_size_y;

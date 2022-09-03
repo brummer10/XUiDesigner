@@ -759,7 +759,7 @@ int load_plugin_ui(Widget_t *w) {
     }
     //print_list(designer);
     //print_ttl(designer);
-    print_json(designer);
+    //print_json(designer);
     //print_plugin(designer);
     //XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
     if (designer->active_widget != NULL)

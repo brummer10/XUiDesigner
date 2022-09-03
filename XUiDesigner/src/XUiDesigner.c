@@ -893,7 +893,8 @@ void move_tab(void *w_, void *xmotion_, void* user_data) {
 }
 
 Widget_t *get_active_widget(XUiDesigner *designer) {
-    if (designer->active_widget == NULL) {
+    if (!designer->color_widget) return designer->ui;
+    if (designer->active_widget == NULL || adj_get_value(designer->global_color->adj)) {
         return designer->ui;
     }
     return designer->active_widget;

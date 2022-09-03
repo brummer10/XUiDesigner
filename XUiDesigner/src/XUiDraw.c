@@ -38,9 +38,13 @@ void draw_window(void *w_, void* UNUSED(user_data)) {
 void draw_ui(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    use_bg_color_scheme(w, NORMAL_);
+    set_pattern(w,&w->color_scheme->selected,&w->color_scheme->normal,BACKGROUND_);
     cairo_paint (w->crb);
-    cairo_paint (w->cr);
+    set_pattern(w,&w->color_scheme->normal,&w->color_scheme->selected,BACKGROUND_);
+    cairo_rectangle (w->crb,4,4,w->width-8,w->height-8);
+    cairo_set_line_width(w->crb,4);
+    cairo_stroke(w->crb);
+
     if (w->image) {
         widget_set_scale(w);
         cairo_set_source_surface (w->crb, w->image, 0, 0);

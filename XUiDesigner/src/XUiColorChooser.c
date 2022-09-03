@@ -109,7 +109,7 @@ static void draw_color_widget(void *w_, void* UNUSED(user_data)) {
     cairo_paint (w->crb);
 
     int width = w->width-60;
-    int height = w->height-120;
+    int height = w->height-160;
 
     int grow = (width > height) ? height:width;
     int cwheel_x = grow-1;
@@ -336,7 +336,8 @@ static void set_rgba_color(XUiDesigner *designer, ColorChooser_t *color_chooser,
     //set_costum_color(designer, color_chooser, 1, g);
     //set_costum_color(designer, color_chooser, 2, b);
     //set_costum_color(designer, color_chooser, 3, a);
-    //color_scheme_to_childs(get_active_widget(designer));
+    if (adj_get_value(designer->global_color->adj))
+        color_scheme_to_childs(get_active_widget(designer));
 }
 
 static void a_callback(void *w_, void* UNUSED(user_data)) {
@@ -692,14 +693,13 @@ static void color_chooser_mem_free(void *w_, void* UNUSED(user_data)) {
 
 Widget_t *create_color_chooser (XUiDesigner *designer) {
     //Xputty *main = designer->w->app;
-    designer->selected_scheme = &get_active_widget(designer)->color_scheme->normal;
     ColorChooser_t *color_chooser = (ColorChooser_t*)malloc(sizeof(ColorChooser_t));
     color_chooser->alpha = 1.0;
     color_chooser->lum = 0.0;
     color_chooser->focus_x = 10.0;
     color_chooser->focus_y = 10.0;
 
-    color_chooser->color_widget = create_window(designer->w->app, DefaultRootWindow(designer->w->app->dpy), 0, 0, 260, 340);
+    color_chooser->color_widget = create_window(designer->w->app, DefaultRootWindow(designer->w->app->dpy), 0, 0, 260, 380);
     Atom wmStateAbove = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE_ABOVE", 1 );
     Atom wmNetWmState = XInternAtom(designer->w->app->dpy, "_NET_WM_STATE", 1 );
     XChangeProperty(designer->w->app->dpy, color_chooser->color_widget->widget, wmNetWmState, XA_ATOM, 32, 
@@ -718,6 +718,13 @@ Widget_t *create_color_chooser (XUiDesigner *designer) {
     color_chooser->color_widget->func.visibiliy_change_callback = set_selected_color_on_map;
     color_chooser->color_widget->parent_struct = designer;
     color_chooser->color_widget->private_struct = color_chooser;
+
+    designer->global_color = add_check_box(color_chooser->color_widget, _("  Global Color"), 20, 300, 180, 20);
+    tooltip_set_text(designer->global_color,_("Use Color settings for all Widgets"));
+    adj_set_value(designer->global_color->adj, 1.0);
+    designer->global_color->parent_struct = designer;
+
+    designer->selected_scheme = &get_active_widget(designer)->color_scheme->normal;
 
     color_chooser->al = add_vslider(color_chooser->color_widget, _("A"), 200, 40, 40, 200);
     set_adjustment(color_chooser->al->adj, 1.0, 1.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
@@ -759,6 +766,7 @@ Widget_t *create_color_chooser (XUiDesigner *designer) {
     color_chooser->color_sel->scale.gravity = SOUTHEAST;
     color_chooser->color_sel->parent_struct = designer;
     color_chooser->color_sel->func.value_changed_callback = set_selected_color;
+
     return color_chooser->color_widget;
 }
 
