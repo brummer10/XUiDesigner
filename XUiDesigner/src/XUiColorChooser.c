@@ -336,7 +336,8 @@ static void set_rgba_color(XUiDesigner *designer, ColorChooser_t *color_chooser,
     //set_costum_color(designer, color_chooser, 1, g);
     //set_costum_color(designer, color_chooser, 2, b);
     //set_costum_color(designer, color_chooser, 3, a);
-    if (adj_get_value(designer->global_color->adj))
+    if (adj_get_value(designer->global_color->adj) ||
+        designer->controls[designer->active_widget_num].is_type == IS_COMBOBOX)
         color_scheme_to_childs(get_active_widget(designer));
 }
 
