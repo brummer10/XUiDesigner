@@ -34,46 +34,46 @@ bool need_tab = false;
 static const char* parse_type(WidgetType is_type) {
     switch(is_type) {
         case IS_KNOB:
-        return "KNOB";
+        return "IS_KNOB";
         break;
         case IS_HSLIDER:
-        return "HSLIDER";
+        return "IS_HSLIDER";
         break;
         case IS_VSLIDER:
-        return "VSLIDER";
+        return "IS_VSLIDER";
         break;
         case IS_BUTTON :
-        return "BUTTON";
+        return "IS_BUTTON";
         break;
         case IS_TOGGLE_BUTTON:
-        return "TOGGLE_BUTTON";
+        return "IS_TOGGLE_BUTTON";
         break;
         case IS_COMBOBOX:
-        return "COMBOBOX";
+        return "IS_COMBOBOX";
         break;
         case IS_VALUE_DISPLAY:
-        return "VALUE_DISPLAY";
+        return "IS_VALUE_DISPLAY";
         break;
         case IS_LABEL:
-        return "LABEL";
+        return "IS_LABEL";
         break;
         case IS_VMETER:
-        return "VMETER";
+        return "IS_VMETER";
         break;
         case IS_HMETER:
-        return "HMETER";
+        return "IS_HMETER";
         break;
         case IS_WAVEVIEW:
-        return "WAVEVIEW";
+        return "IS_WAVEVIEW";
         break;
         case IS_FRAME:
-        return "FRAME";
+        return "IS_FRAME";
         break;
         case IS_TABBOX :
-        return "TABBOX";
+        return "IS_TABBOX";
         break;
         case IS_IMAGE :
-        return "IMAGE";
+        return "IS_IMAGE";
         break;
         // keep those below
         case IS_FILE_BUTTON:
