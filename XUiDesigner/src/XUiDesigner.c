@@ -1044,7 +1044,7 @@ static void ask_save_as(void *w_, void* UNUSED(user_data)) {
             _("Select this to generate a UI for a existing LV2 plugin"));
         tooltip_set_text(dia->childlist->childs[1],
             _("Select this when generate a LV2 plugin from a Faust file or from scratch"));
-        if (designer->is_project) {
+        if (designer->is_project || designer->is_faust_synth_file) {
             adj_set_value(dia->childlist->childs[1]->adj, 1.0);
             radio_box_set_active(dia->childlist->childs[1]);
         } else {
