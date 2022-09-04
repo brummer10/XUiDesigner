@@ -430,9 +430,11 @@ int load_plugin_ui(Widget_t *w) {
             strdecode(designer->lv2c.plugintype, " ", "");
             set_project_type_by_name (designer->project_type, designer->lv2c.plugintype);
             const LilvNode* author = lilv_plugin_get_author_name(plugin);
-            free(designer->lv2c.author);
-            designer->lv2c.author = NULL;
-            asprintf(&designer->lv2c.author, "%s", lilv_node_as_string(author));
+            if (author) {
+                free(designer->lv2c.author);
+                designer->lv2c.author = NULL;
+                asprintf(&designer->lv2c.author, "%s", lilv_node_as_string(author));
+            }
 
             LilvNode* nd = NULL;
             //const LilvNode* uri = lilv_plugin_get_uri(plugin);

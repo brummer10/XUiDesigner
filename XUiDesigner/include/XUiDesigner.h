@@ -268,6 +268,7 @@ typedef struct {
     bool grid_view;
     bool is_project;
     bool is_faust_file;
+    bool is_faust_synth_file;
     bool generate_ui_only;
     bool run;
     bool skipit;
@@ -299,6 +300,8 @@ typedef struct {
     char* image;
     char* faust_file;
     char* faust_path;
+    char* faust_synth_file;
+    char* faust_synth_voices;
     char* global_knob_image_file;
     char* global_button_image_file;
     char* global_switch_image_file;
@@ -328,6 +331,10 @@ void hide_show_as_needed(XUiDesigner *designer);
 void *reset_flag(void *designer_);
 
 char *getUserName(void);
+
+void load_lv2_uris (XUiDesigner *designer);
+
+void load_lv2_ui(void *w_, void* user_data);
 
 Widget_t *get_active_widget(XUiDesigner *designer);
 

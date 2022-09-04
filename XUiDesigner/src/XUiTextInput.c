@@ -578,7 +578,15 @@ static void box_entry_get_text(void *w_, void *key_, void* UNUSED(user_data)) {
     if (!key) return;
     //if ( w->app->hold_grab == w && key->window == w->widget) return;
     int nk = key_mapping(w->app->dpy, key);
-    if (nk == 11 || nk == 12) {
+    if (nk == 11) {
+        box_entry_clip(w);
+    } else if (nk == 12) {
+        size_t cp = text_box->curser_size;
+        if(IS_UTF8(text_box->input_label[text_box->curser_size])) 
+            box_entry_set_curser_pos(w, 2);
+        else
+            box_entry_set_curser_pos(w, 1);
+        if (cp == text_box->curser_size) return;
         box_entry_clip(w);
     } else if (nk == 6) {
         box_entry_set_curser_pos(w, -1);

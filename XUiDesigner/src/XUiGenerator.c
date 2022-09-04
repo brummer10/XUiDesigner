@@ -150,6 +150,12 @@ void print_makefile(XUiDesigner *designer) {
         }
     }
     if (!designer->generate_ui_only) {
+        char *uri = NULL;
+        char *voices = NULL;
+        if (designer->is_faust_synth_file) {
+            asprintf(&uri, "\'-DPLUGIN_URI=\"%s\"\'", designer->lv2c.uri);
+            asprintf(&voices, "-DNVOICES=%s", designer->faust_synth_voices);
+        }
         asprintf(&cmd,"\n\n	# check if user is root\n"
             "	user = $(shell whoami)\n"
             "	ifeq ($(user),root)\n"
@@ -198,7 +204,8 @@ void print_makefile(XUiDesigner *designer) {
             "	-Wl,-Bdynamic `pkg-config --cflags --libs cairo x11 lilv-0` \\\n"
             "	-shared -lm -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -Wl,--gc-sections\n"
             "	CFLAGS := -O2 -D_FORTIFY_SOURCE=2 -Wall -fstack-protector -fvisibility=hidden \\\n"
-            "	-fdata-sections -Wl,--gc-sections -Wl,-z,relro,-z,now -Wl,--exclude-libs,ALL\n\n"
+            "	-fdata-sections -Wl,--gc-sections -Wl,-z,relro,-z,now -Wl,--exclude-libs,ALL\n"
+            "	FAUSTFLAGS := %s%s%s\n\n"
             ".PHONY : all install uninstall\n\n"
             ".NOTPARALLEL:\n\n"
             "all: $(RESOURCEHEADER) $(EXEC_NAME)\n\n"
@@ -232,7 +239,7 @@ void print_makefile(XUiDesigner *designer) {
             "$(EXEC_NAME):$(RESOURCES_OBJ)\n"
             "	@# use this line when you include libxputty as submodule\n"
             "	@$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) $(GUI_LDFLAGS) -I./\n"
-            "	$(CXX) $(CXXFLAGS) $(EXEC_NAME).cpp $(LDFLAGS) -o $(EXEC_NAME).so\n"
+            "	$(CXX) $(CXXFLAGS) $(FAUSTFLAGS) $(EXEC_NAME).cpp $(LDFLAGS) -o $(EXEC_NAME).so\n"
             "	@#$(CC) %s $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) -o \'$(EXEC_NAME)_ui.so\' $(SLP_LDFLAGS) -I./\n"
             "	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(EXEC_NAME).so\n"
             "	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(EXEC_NAME)_ui.so\n\n"
@@ -249,7 +256,15 @@ void print_makefile(XUiDesigner *designer) {
             "	@echo \". ., done\"\n\n"
             "clean:\n"
             "	rm -f *.a *.o *.so xresources.h\n\n",
-            name, "\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%", use_atom ? "-DUSE_ATOM" : "");
+            name, "\%","\%","\%","\%","\%","\%", designer->is_faust_synth_file ? uri : "",
+                designer->is_faust_synth_file ? " -DFAUST_META=1 -DFAUST_MIDICC=1 -DFAUST_MTS=1 -DFAUST_UI=0 -DVOICE_CTRLS=1 " : "",
+                designer->is_faust_synth_file ?  voices  : "",
+                "\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%",
+                "\%","\%","\%","\%","\%", use_atom ? "-DUSE_ATOM" : "");
+        free(uri);
+        uri = NULL;
+        free(voices);
+        voices = NULL;
     } else {
         asprintf(&cmd,"\n\n	# check if user is root\n"
             "	user = $(shell whoami)\n"
@@ -474,23 +489,32 @@ void run_save(void *w_, void* user_data) {
         print_list(designer);
         fclose(fp);
         fp = NULL;
+
         if (!designer->generate_ui_only) {
             free(filename);
             filename = NULL;
-            asprintf(&filename, "%s%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
-            if((fp=freopen(filename, "w" ,stdout))==NULL) {
-                printf("open failed\n");
+            if (!designer->is_faust_synth_file) {
+                asprintf(&filename, "%s%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
+                if((fp=freopen(filename, "w" ,stdout))==NULL) {
+                    printf("open failed\n");
+                }
+                print_plugin(designer);
+                fclose(fp);
+                fp = NULL;
+            } else {
+                asprintf(&filename, "%s%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
+                asprintf(&cmd, "cp %s %s", designer->faust_synth_file, filename);
+                ret = system(cmd);
+                free(cmd);
+                cmd = NULL;
             }
-            print_plugin(designer);
-            fclose(fp);
-            fp = NULL;
             strdecode(filename, ".cpp", ".ttl");
         } else {
             free(filename);
             filename = NULL;
             asprintf(&filename, "%s%s_ui/%s/%s_ui.ttl",*(const char**)user_data,name,name,name);
         }
-        
+
         if((fp=freopen(filename, "w" ,stdout))==NULL) {
             printf("open failed\n");
         }

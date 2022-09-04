@@ -1068,7 +1068,7 @@ void *reset_flag(void *designer_) {
     pthread_exit(NULL);
 }
 
-static void load_lv2_ui(void *w_, void* UNUSED(user_data)) {
+void load_lv2_ui(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     designer->ui->flags |= FAST_REDRAW;
@@ -1080,7 +1080,7 @@ static void load_lv2_ui(void *w_, void* UNUSED(user_data)) {
     pthread_create(&rf, NULL, reset_flag, (void *)designer);
 }
 
-static void load_lv2_uris (XUiDesigner *designer) {
+void load_lv2_uris (XUiDesigner *designer) {
     designer->lv2_names->func.value_changed_callback = null_callback;
     designer->world = lilv_world_new();
     if (designer->path !=NULL) set_path(designer->world, designer->path);
@@ -1226,6 +1226,8 @@ int main (int argc, char ** argv) {
     designer->image = NULL;
     designer->faust_file = NULL;
     designer->faust_path = NULL;
+    designer->faust_synth_file = NULL;
+    designer->faust_synth_voices = NULL;
     designer->global_knob_image_file = NULL;
     designer->global_button_image_file = NULL;
     designer->global_switch_image_file = NULL;
@@ -1257,6 +1259,7 @@ int main (int argc, char ** argv) {
     designer->is_project = true;
     designer->set_project = NULL;
     designer->is_faust_file = false;
+    designer->is_faust_synth_file = false;
     designer->generate_ui_only = false;
     designer->drag_icon.x = 0;
     designer->drag_icon.w = 0;
@@ -1591,6 +1594,8 @@ int main (int argc, char ** argv) {
     free(designer->image);
     free(designer->faust_file);
     free(designer->faust_path);
+    free(designer->faust_synth_file);
+    free(designer->faust_synth_voices);
     free(designer->global_knob_image_file);
     free(designer->global_button_image_file);
     free(designer->global_switch_image_file);

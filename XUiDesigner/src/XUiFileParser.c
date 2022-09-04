@@ -26,15 +26,113 @@
 #include "XUiTurtleView.h"
 #include "XUiWritePlugin.h"
 
-
+char *substr(const char *str, const char *p1, const char *p2) {
+    const char *i1 = strstr(str, p1);
+    if(i1 != NULL) {
+        const size_t pl1 = strlen(p1);
+        const char *i2 = strstr(i1 + pl1, p2);
+        if(p2 != NULL) {
+            /* Found both markers, extract text. */
+            const size_t mlen = i2 - (i1 + pl1);
+            char *ret = malloc(mlen + 1);
+            if(ret != NULL) {
+                memcpy(ret, i1 + pl1, mlen);
+                ret[mlen] = '\0';
+                return ret;
+            }
+        }
+    }
+    return NULL;
+}
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 load faust dsp file
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+static bool check_synth(XUiDesigner *designer, const char* filename) {
+    bool is_synth = false;
+    char* cmd = NULL;
+    char * voices = NULL;
+    char* tmp = strdup(filename);
+    char buf[128];
+    FILE *fp;
+    if((fp = fopen(tmp, "r")) == NULL) {
+        printf("Error opening pipe!\n");
+        return false;
+    }
+    while (fgets(buf, 128, fp) != NULL) {
+        if (strstr(buf, "[midi:on]") != NULL) {
+            fprintf(stderr, "is synth\n");
+            is_synth = true;
+        } else if (strstr(buf, "[nvoices:") != NULL) {
+            voices = substr(buf, ":", "]");
+            fprintf(stderr, "is %s nvoices synth\n", voices); //declare options "[nvoices:6]";
+            is_synth = true;
+            break;
+        }
+    }
+    if (fclose(fp)) {
+        printf("Command not found or exited with error status\n");
+        free(voices);
+        return false;
+    }
+    if (is_synth) {
+        if (voices == NULL) voices = strdup("8");
+        asprintf(&cmd, "faust2lv2 -nvoices %s -keep %s", voices, tmp);
+        int ret = system(cmd);
+        if (ret) {
+            open_message_dialog(designer->ui, ERROR_BOX, "",
+                "Fail to parse faust file", NULL);        
+            free(voices);
+            free(tmp);
+            return false;
+        }
+        if (designer->world) {
+            lilv_world_free(designer->world);
+            designer->world = NULL;
+        }
+        char *tmp2 = strdup(tmp);
+        char *b = basename(tmp2);
+        strdecode(b, ".dsp", ".cpp");
+        strdecode(tmp, ".dsp", "");
+        free(designer->faust_synth_voices);
+        designer->faust_synth_voices = NULL;
+        asprintf(&designer->faust_synth_voices, "%s", voices);
+        free(designer->faust_synth_file);
+        designer->faust_synth_file = NULL;
+        asprintf(&designer->faust_synth_file, "%s/%s", tmp, b);
+        designer->is_faust_synth_file = true;
+
+        combobox_delete_entrys(designer->lv2_uris);
+        combobox_delete_entrys(designer->lv2_names);
+        combobox_add_entry(designer->lv2_uris,_("--"));
+        combobox_add_entry(designer->lv2_names,_("--"));
+        designer->world = lilv_world_new();
+        free(designer->path);
+        designer->path = NULL;
+        asprintf(&designer->path, "%s", tmp);
+        load_lv2_uris (designer);
+        combobox_set_active_entry(designer->lv2_uris, 1);
+        combobox_set_active_entry(designer->lv2_names, 1);
+
+        free(designer->lv2c.ui_uri);
+        designer->lv2c.ui_uri = NULL;
+        asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), basename(tmp),"_ui");
+
+        free(voices);
+        voices = NULL;
+        free(cmd);
+        cmd = NULL;
+        free(tmp2);
+        tmp2 = NULL;
+    }
+    free(tmp);
+    return is_synth;
+}
 
 void parse_faust_file (XUiDesigner *designer, const char* filename) {
+    if (check_synth(designer, filename)) return;
     char* cmd = NULL;
     char* tmp = strdup(filename);
     strdecode(tmp, ".dsp", ".cc");
