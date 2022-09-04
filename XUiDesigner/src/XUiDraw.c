@@ -75,6 +75,7 @@ void draw_ui(void *w_, void* UNUSED(user_data)) {
     }
     if (!designer->drag_icon.is_active && designer->multi_selected) {
         use_frame_color_scheme(w, ACTIVE_);
+        cairo_set_line_width(w->crb,2);
         static const double dashed3[] = {2.0};
         cairo_set_dash(w->crb, dashed3, 1, 0);
         cairo_rectangle(w->crb, designer->select_x, designer->select_y,

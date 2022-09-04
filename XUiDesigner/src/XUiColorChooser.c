@@ -105,6 +105,8 @@ static void draw_lum_slider(void *w_, void* UNUSED(user_data)) {
 static void draw_color_widget(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    Colors *c = designer->selected_scheme;
     cairo_set_source_rgba(w->crb,  0.13, 0.13, 0.13, 1.0);
     cairo_paint (w->crb);
 
@@ -190,49 +192,49 @@ static void draw_color_widget(void *w_, void* UNUSED(user_data)) {
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "bg");
     cairo_rectangle(w->crb, 10,w->height-20,  20, 20);
-    use_bg_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
+    cairo_set_source_rgba(w->crb, c->bg[0],  c->bg[1], c->bg[2],  c->bg[3]);
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 45,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "fg");
     cairo_rectangle(w->crb, 45, w->height-20, 20, 20);
-    use_fg_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
+    cairo_set_source_rgba(w->crb, c->fg[0],  c->fg[1], c->fg[2],  c->fg[3]);
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 80,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "base");
     cairo_rectangle(w->crb, 80, w->height-20, 20, 20);
-    use_base_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
+    cairo_set_source_rgba(w->crb, c->base[0],  c->base[1], c->base[2],  c->base[3]);
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 115,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "text");
     cairo_rectangle(w->crb, 115, w->height-20, 20, 20);
-    use_text_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
+    cairo_set_source_rgba(w->crb, c->text[0],  c->text[1], c->text[2],  c->text[3]);
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 140,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "shadow");
     cairo_rectangle(w->crb, 150, w->height-20, 20, 20);
-    use_shadow_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
+    cairo_set_source_rgba(w->crb, c->shadow[0],  c->shadow[1], c->shadow[2],  c->shadow[3]);
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 185,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "frame");
     cairo_rectangle(w->crb, 185, w->height-20, 20, 20);
-    use_frame_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
+    cairo_set_source_rgba(w->crb, c->frame[0],  c->frame[1], c->frame[2],  c->frame[3]);
     cairo_fill(w->crb);
 
     cairo_move_to (w->crb, 220,  w->height-25);
     use_text_color_scheme(w, NORMAL_);
     cairo_show_text(w->crb, "light");
     cairo_rectangle(w->crb, 220, w->height-20, 20, 20);
-    use_light_color_scheme(w, (int)adj_get_value(color_chooser->color_scheme_select->adj));
+    cairo_set_source_rgba(w->crb, c->light[0],  c->light[1], c->light[2],  c->light[3]);
     cairo_fill(w->crb);
 }
 
@@ -386,13 +388,14 @@ static void set_selected_color(void *w_, void* UNUSED(user_data)) {
     }
 }
 
-static void set_selected_color_on_map(void *w_, void* UNUSED(user_data)) {
+void set_selected_color_on_map(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XWindowAttributes attrs;
     XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
     if (attrs.map_state != IsViewable) return;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
+    get_selected_scheme(designer, color_chooser);
     int s = (int)adj_get_value(color_chooser->color_sel->adj);
     double *use = NULL;
     switch (s) {
@@ -416,8 +419,20 @@ static void set_selected_color_on_map(void *w_, void* UNUSED(user_data)) {
     if (use) {
         color_chooser->alpha = use[3];
         adj_set_value(color_chooser->al->adj, color_chooser->alpha);
-        expose_widget(color_chooser->color_widget);
         set_focus_by_color(color_chooser->color_widget, use[0], use[1], use[2]);
+        expose_widget(color_chooser->color_widget);
+    }
+}
+
+static void reset_plugin_colors(void *w_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
+        fprintf(stderr, "Reset colors\n");
+        memcpy(designer->ui->color_scheme, designer->w->color_scheme, sizeof (struct XColor_t));
+        color_scheme_to_childs(designer->ui);
+        expose_widget(designer->ui);
+        set_selected_color_on_map(w, NULL);
     }
 }
 
@@ -720,12 +735,18 @@ Widget_t *create_color_chooser (XUiDesigner *designer) {
     color_chooser->color_widget->parent_struct = designer;
     color_chooser->color_widget->private_struct = color_chooser;
 
-    designer->global_color = add_check_box(color_chooser->color_widget, _("  Global Color"), 20, 300, 180, 20);
+    designer->global_color = add_check_box(color_chooser->color_widget, _("  Global Color"), 20, 305, 140, 20);
     tooltip_set_text(designer->global_color,_("Use Color settings for all Widgets"));
     adj_set_value(designer->global_color->adj, 1.0);
     designer->global_color->parent_struct = designer;
 
     designer->selected_scheme = &get_active_widget(designer)->color_scheme->normal;
+
+    color_chooser->reset = add_button(color_chooser->color_widget, _("Reset"), 180, 300, 60, 30);
+    tooltip_set_text(color_chooser->reset,_("Reset all Colors to default"));
+    color_chooser->reset->parent_struct = designer;
+    color_chooser->reset->private_struct = color_chooser;
+    color_chooser->reset->func.value_changed_callback = reset_plugin_colors;
 
     color_chooser->al = add_vslider(color_chooser->color_widget, _("A"), 200, 40, 40, 200);
     set_adjustment(color_chooser->al->adj, 1.0, 1.0, 0.0, 1.0, 0.005, CL_CONTINUOS);

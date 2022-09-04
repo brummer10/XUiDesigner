@@ -803,6 +803,8 @@ void fix_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
         designer->modify_mod = XUI_NONE;
         designer->active_widget = (Widget_t*)w_;
         designer->active_widget_num = w->data;
+        if (designer->color_widget)
+            set_selected_color_on_map(designer->color_widget, NULL);
         if (designer->controls[w->data].is_type == IS_TABBOX) {
             int elem = w->childlist->elem;
             int i = 0;
@@ -943,6 +945,8 @@ static void button_release_callback(void *w_, void *button_, void* UNUSED(user_d
             }
             designer->active_widget = NULL;
             designer->active_widget_num = MAX_CONTROLS-1;
+            if (designer->color_widget)
+                set_selected_color_on_map(designer->color_widget, NULL);
             widget_draw(designer->ui, NULL);
             box_entry_set_text(designer->controller_label, "");
         }
