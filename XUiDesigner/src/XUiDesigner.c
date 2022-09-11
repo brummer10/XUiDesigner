@@ -48,13 +48,7 @@
 
 
 static void set_designer_callbacks(XUiDesigner *designer, Widget_t* wid) {
-    if (designer->controls[wid->data].is_type == IS_TABBOX) {
-        int v = (int)adj_get_value(wid->adj);
-        Widget_t *wi = designer->active_widget->childlist->childs[v];
-        box_entry_set_text(designer->controller_label, wi->label);
-    } else {
-        box_entry_set_text(designer->controller_label, wid->label);
-    }
+    box_entry_set_text(designer->controller_label, wid->label);
     xevfunc store = designer->x_axis->func.value_changed_callback;
     designer->x_axis->func.value_changed_callback = null_callback;
     adj_set_value(designer->x_axis->adj, (float)wid->x);
@@ -1030,10 +1024,19 @@ static void save_response(void *w_, void* user_data) {
         int response = *(int*)user_data;
         if(response == 1) {
             designer->generate_ui_only = true;
-        } else {
+            run_save_as(w_, user_data);
+        } else if(response == 2) {
             designer->generate_ui_only = false;
+            run_save_as(w_, user_data);
+        } else if(response == 3) {
+            designer->generate_ui_only = true;
+            designer->regenerate_ui = true;
+            if (designer->json_file_path != NULL) {
+                run_save(w, (void*)&designer->json_file_path);
+            } else {
+                run_save_as(w_, user_data);
+            }
         }
-        run_save_as(w_, user_data);
     }
 }
 
@@ -1042,15 +1045,20 @@ static void ask_save_as(void *w_, void* UNUSED(user_data)) {
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
         Widget_t *dia = open_message_dialog(designer->ui, SELECTION_BOX,
-            "Save as:",  "Save as:", "Only UI-Bundle       |Full Plugin-Bundle       ");
+            "Save as:",  "Save as:", "UI-Bundle       |Full Plugin-Bundle       |UI only       ");
         XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
         tooltip_set_text(dia->childlist->childs[0],
             _("Select this to generate a UI for a existing LV2 plugin"));
         tooltip_set_text(dia->childlist->childs[1],
-            _("Select this when generate a LV2 plugin from a Faust file or from scratch"));
+            _("Select this to generate a LV2 plugin from a Faust file or from scratch"));
+        tooltip_set_text(dia->childlist->childs[2],
+            _("Select this to re-generate a UI from a json file"));
         if (designer->is_project || designer->is_faust_synth_file) {
             adj_set_value(dia->childlist->childs[1]->adj, 1.0);
             radio_box_set_active(dia->childlist->childs[1]);
+        } else if (designer->is_json_file) {
+            adj_set_value(dia->childlist->childs[2]->adj, 1.0);
+            radio_box_set_active(dia->childlist->childs[2]);
         } else {
             adj_set_value(dia->childlist->childs[0]->adj, 1.0);
             radio_box_set_active(dia->childlist->childs[0]);
@@ -1239,6 +1247,7 @@ int main (int argc, char ** argv) {
     designer->global_hslider_image_file = NULL;
     designer->global_vslider_image_sprites = 101;
     designer->global_hslider_image_sprites = 101;
+    designer->json_file_path = NULL;
     designer->run_test = false;
     designer->lv2c.ui_uri = NULL;
     asprintf(&designer->lv2c.ui_uri, "urn:%s:%s", getUserName(), "test_ui");
@@ -1264,7 +1273,9 @@ int main (int argc, char ** argv) {
     designer->set_project = NULL;
     designer->is_faust_file = false;
     designer->is_faust_synth_file = false;
+    designer->is_json_file = false;
     designer->generate_ui_only = false;
+    designer->regenerate_ui = false;
     designer->drag_icon.x = 0;
     designer->drag_icon.w = 0;
     designer->drag_icon.y = 0;
@@ -1605,6 +1616,7 @@ int main (int argc, char ** argv) {
     free(designer->global_switch_image_file);
     free(designer->global_vslider_image_file);
     free(designer->global_hslider_image_file);
+    free(designer->json_file_path);
     free(designer->lv2c.ui_uri);
     free(designer->lv2c.uri);
     free(designer->lv2c.author);

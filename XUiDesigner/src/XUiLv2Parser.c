@@ -74,6 +74,8 @@ void reset_plugin_ui(XUiDesigner *designer) {
     designer->active_widget = NULL;
     designer->is_project = true;
     designer->is_faust_file = false;
+    designer->is_json_file = false;
+    designer->regenerate_ui = false;
     designer->lv2c.audio_input = 0;
     designer->lv2c.audio_output = 0;
     designer->lv2c.midi_input = 0;
@@ -761,7 +763,7 @@ int load_plugin_ui(Widget_t *w) {
     }
     //print_list(designer);
     //print_ttl(designer);
-    //print_json(designer);
+    //print_json(designer, NULL);
     //print_plugin(designer);
     //XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
     if (designer->active_widget != NULL)

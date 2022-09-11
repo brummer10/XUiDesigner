@@ -288,7 +288,7 @@ Widget_t *add_controller(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t 
         break;
         case 7:
             asprintf(&designer->controls[designer->wid_counter].name, "ValueDisply%i", designer->wid_counter);
-            wid = add_valuedisplay(w, "designer->controls[designer->wid_counter].name", xbutton->x-20, xbutton->y-15, 40, 30);
+            wid = add_valuedisplay(w, designer->controls[designer->wid_counter].name, xbutton->x-20, xbutton->y-15, 40, 30);
             set_controller_callbacks(designer, wid, true);
             add_to_list(designer, wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
         break;

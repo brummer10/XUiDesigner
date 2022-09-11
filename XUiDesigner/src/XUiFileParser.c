@@ -25,6 +25,7 @@
 #include "XUiLv2Parser.h"
 #include "XUiTurtleView.h"
 #include "XUiWritePlugin.h"
+#include "XUiReadJson.h"
 
 char *substr(const char *str, const char *p1, const char *p2) {
     const char *i1 = strstr(str, p1);
@@ -299,6 +300,8 @@ void dnd_load_response(void *w_, void* user_data) {
                 parse_faust_file (designer, dndfile);
             } else if (strstr(dndfile, ".c") ) {
                 parse_c_file (designer, dndfile);
+            } else if (strstr(dndfile, ".json") ) {
+                read_json (designer, dndfile);
             }
             dndfile = strtok(NULL, "\r\n");
         }

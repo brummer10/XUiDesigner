@@ -27,9 +27,134 @@
 #include "XUiWriteJson.h"
 #include "XUiGenerator.h"
 #include "XUiWriteUI.h"
+#include "XUiFileParser.h"
+#include "XUiDraw.h"
+#include "XUiImageLoader.h"
+#include "XUiControllerType.h"
 
 bool need_comma = false;
 bool need_tab = false;
+
+static double *get_selected_color(Colors *c, int s) {
+    double *use = NULL;
+    switch (s) {
+        case 0: use = c->fg;
+        break;
+        case 1: use = c->bg;
+        break;
+        case 2: use = c->base;
+        break;
+        case 3: use = c->text;
+        break;
+        case 4: use = c->shadow;
+        break;
+        case 5: use = c->frame;
+        break;
+        case 6: use = c->light;
+        break;
+        default:
+        break;
+    }
+    return use;
+}
+
+static void print_colors(XUiDesigner *designer) {
+    Colors *c = &designer->ui->color_scheme->normal;
+    printf (
+    "      \"NORMAL\" : [\n"
+    "        \".fg\" :       [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".bg\" :       [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".base\" :     [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".text\" :     [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".shadow\" :   [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".frame\" :    [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".light\" :    [ %.3f, %.3f, %.3f, %.3f] \n"
+    "      ] ,\n"
+                ,c->fg[0],c->fg[1],c->fg[2],c->fg[3],
+                c->bg[0],c->bg[1],c->bg[2],c->bg[3],
+                c->base[0],c->base[1],c->base[2],c->base[3],
+                c->text[0],c->text[1],c->text[2],c->text[3],
+                c->shadow[0],c->shadow[1],c->shadow[2],c->shadow[3],
+                c->frame[0],c->frame[1],c->frame[2],c->frame[3],
+                c->light[0],c->light[1],c->light[2],c->light[3]);
+
+    c = &designer->ui->color_scheme->prelight;
+    printf (
+    "      \"PRELIGHT\" : [\n"
+    "        \".fg\" :       [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".bg\" :       [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".base\" :     [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".text\" :     [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".shadow\" :   [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".frame\" :    [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".light\" :    [ %.3f, %.3f, %.3f, %.3f] \n"
+    "      ] ,\n"
+                ,c->fg[0],c->fg[1],c->fg[2],c->fg[3],
+                c->bg[0],c->bg[1],c->bg[2],c->bg[3],
+                c->base[0],c->base[1],c->base[2],c->base[3],
+                c->text[0],c->text[1],c->text[2],c->text[3],
+                c->shadow[0],c->shadow[1],c->shadow[2],c->shadow[3],
+                c->frame[0],c->frame[1],c->frame[2],c->frame[3],
+                c->light[0],c->light[1],c->light[2],c->light[3]);
+
+    c = &designer->ui->color_scheme->selected;
+    printf (
+    "      \"SELECTED\" : [\n"
+    "        \".fg\" :       [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".bg\" :       [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".base\" :     [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".text\" :     [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".shadow\" :   [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".frame\" :    [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".light\" :    [ %.3f, %.3f, %.3f, %.3f] \n"
+    "      ] ,\n"
+                ,c->fg[0],c->fg[1],c->fg[2],c->fg[3],
+                c->bg[0],c->bg[1],c->bg[2],c->bg[3],
+                c->base[0],c->base[1],c->base[2],c->base[3],
+                c->text[0],c->text[1],c->text[2],c->text[3],
+                c->shadow[0],c->shadow[1],c->shadow[2],c->shadow[3],
+                c->frame[0],c->frame[1],c->frame[2],c->frame[3],
+                c->light[0],c->light[1],c->light[2],c->light[3]);
+
+    c = &designer->ui->color_scheme->active;
+    printf (
+    "      \"ACTIVE\" : [\n"
+    "        \".fg\" :       [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".bg\" :       [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".base\" :     [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".text\" :     [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".shadow\" :   [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".frame\" :    [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".light\" :    [ %.3f, %.3f, %.3f, %.3f] \n"
+    "      ] ,\n"
+                ,c->fg[0],c->fg[1],c->fg[2],c->fg[3],
+                c->bg[0],c->bg[1],c->bg[2],c->bg[3],
+                c->base[0],c->base[1],c->base[2],c->base[3],
+                c->text[0],c->text[1],c->text[2],c->text[3],
+                c->shadow[0],c->shadow[1],c->shadow[2],c->shadow[3],
+                c->frame[0],c->frame[1],c->frame[2],c->frame[3],
+                c->light[0],c->light[1],c->light[2],c->light[3]);
+
+    c = &designer->ui->color_scheme->insensitive;
+    printf (
+    "      \"INSENSITIVE\" : [\n"
+    "        \".fg\" :       [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".bg\" :       [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".base\" :     [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".text\" :     [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".shadow\" :   [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".frame\" :    [ %.3f, %.3f, %.3f, %.3f] ,\n"
+    "        \".light\" :    [ %.3f, %.3f, %.3f, %.3f] \n"
+    "      ] ,"
+            ,c->fg[0],c->fg[1],c->fg[2],c->fg[3],
+            c->bg[0],c->bg[1],c->bg[2],c->bg[3],
+            c->base[0],c->base[1],c->base[2],c->base[3],
+            c->text[0],c->text[1],c->text[2],c->text[3],
+            c->shadow[0],c->shadow[1],c->shadow[2],c->shadow[3],
+            c->frame[0],c->frame[1],c->frame[2],c->frame[3],
+            c->light[0],c->light[1],c->light[2],c->light[3]);
+
+}
 
 static const char* parse_type(WidgetType is_type) {
     switch(is_type) {
@@ -108,7 +233,7 @@ static void json_start_value_pair(void) {
 }
 
 static void json_close_value_pair(void) {
-    printf ("\n    }\n  ");
+    printf (",\n    }\n  ");
     need_tab = false;
 }
 
@@ -137,7 +262,50 @@ static void json_close_object(void) {
     need_comma = false;
 }
 
-void print_json(XUiDesigner *designer) {
+static void check_for_Widget_color(XUiDesigner *designer, Widget_t * wid) {
+    int j = 0;  // Color_state
+    for(;j<5;j++) {
+        int k = 0; // Color_mod
+        for(;k<6;k++) {
+            double *c =  get_selected_color(get_color_scheme(designer->ui, j), k);
+            int a = 0;
+            double *b = get_selected_color(get_color_scheme(wid, j), k);
+            a = memcmp(c, b, 4 * sizeof(double));
+            if (a != 0) {
+                json_add_key ("COLOR");
+                json_start_array();
+                json_add_int(j);
+                json_add_int(k);
+                json_add_float(b[0]);
+                json_add_float(b[1]);
+                json_add_float(b[2]);
+                json_add_float(b[3]);
+                json_close_array();
+            }
+        }
+    }
+}
+
+char *set_resource_path(XUiDesigner *designer, const char* filepath, const char* image) {
+    char* tmp = strdup(image);
+    char* xldl = strdup(basename(tmp));
+    free(tmp);
+    tmp = NULL;
+    strdecode(xldl, "-", "_");
+    strdecode(xldl, " ", "_");
+    strtovar(xldl);
+    char* fxldl = NULL;
+    if (strstr(image, ".png")) {
+        strdecode(xldl, "_png", ".png");
+    } else if (strstr(designer->image, ".svg")) {
+        strdecode(xldl, "_svg", ".svg");
+    }
+    asprintf(&fxldl, "%s/resources/%s", filepath, xldl);
+    free(xldl);
+    return fxldl;
+}
+
+void print_json(XUiDesigner *designer, const char* filepath) {
     char *name = NULL;
     XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
     if (name == NULL) asprintf(&name, "%s", "noname");
@@ -168,38 +336,31 @@ void print_json(XUiDesigner *designer) {
     json_add_int(designer->ui->width);
     json_add_int(designer->ui->height);
     json_close_array();
+
+    json_add_key ("Image");
+    if (designer->image != NULL ) {
+        char *image = set_resource_path(designer, filepath, designer->image);
+        json_add_string(image);
+        free(image);
+    } else {
+        json_add_string("None");
+    }
     
     json_add_key ("Contolls");
     json_add_int(j);
+
+    json_add_key ("Colors");
+    json_start_array();
+    json_start_value_pair();
+    print_colors(designer);
+    json_close_value_pair();
+    json_close_array();
 
     i = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME) {
-                json_add_key ("Frame Box");
-                json_start_array();
-                json_start_value_pair();
-                json_add_key ("Type");
-                json_add_string(designer->controls[i].type);
-                json_add_key ("Label");
-                json_add_string(designer->controls[i].wid->label);
-                json_add_key ("Size");
-                json_start_array();
-                json_add_int(designer->controls[i].wid->x);
-                json_add_int(designer->controls[i].wid->y);
-                json_add_int(designer->controls[i].wid->width);
-                json_add_int(designer->controls[i].wid->height);
-                json_close_array();
-                json_add_key ("Image");
-                if (designer->controls[i].image != NULL ) {
-                    json_add_string(designer->controls[i].image);
-                } else {
-                    json_add_string("");
-                }
-                json_close_value_pair();
-                json_close_array();
-            } else if (designer->controls[i].is_type == IS_TABBOX) {
-                json_add_key ("TAB Box");
+                json_add_key ("IS_Frame Box");
                 json_start_array();
                 json_start_value_pair();
                 json_add_key ("Type");
@@ -219,6 +380,32 @@ void print_json(XUiDesigner *designer) {
                 } else {
                     json_add_string("None");
                 }
+                json_close_value_pair();
+                json_close_array();
+                check_for_Widget_color(designer, designer->controls[i].wid);
+            } else if (designer->controls[i].is_type == IS_TABBOX) {
+                json_add_key ("IS_TAB Box");
+                json_start_array();
+                json_start_value_pair();
+                json_add_key ("Type");
+                json_add_string(designer->controls[i].type);
+                json_add_key ("Label");
+                json_add_string(designer->controls[i].wid->label);
+                json_add_key ("Size");
+                json_start_array();
+                json_add_int(designer->controls[i].wid->x);
+                json_add_int(designer->controls[i].wid->y);
+                json_add_int(designer->controls[i].wid->width);
+                json_add_int(designer->controls[i].wid->height);
+                json_close_array();
+                json_add_key ("Image");
+                if (designer->controls[i].image != NULL ) {
+                    json_add_string(designer->controls[i].image);
+                } else {
+                    json_add_string("None");
+                }
+                json_close_value_pair();
+                json_close_array();
                 int elem = designer->controls[i].wid->childlist->elem;
                 if (elem) {
                     json_add_key ("TAB Box item");
@@ -229,9 +416,9 @@ void print_json(XUiDesigner *designer) {
                     json_start_array();
                     json_start_value_pair();
                     json_add_key ("Type");
-                    json_add_string(designer->controls[i].type);
+                    json_add_string("add_lv2_tab");
                     json_add_key ("Label");
-                    json_add_string(designer->controls[i].wid->label);
+                    json_add_string(wi->label);
                     json_add_key ("Size");
                     json_start_array();
                     json_add_int(wi->x);
@@ -242,8 +429,7 @@ void print_json(XUiDesigner *designer) {
                     json_close_value_pair();
                     json_close_array();
                 }
-                json_close_value_pair();
-                json_close_array();
+                check_for_Widget_color(designer, designer->controls[i].wid);
             } else if (!designer->controls[i].is_audio_output && !designer->controls[i].is_audio_input &&
                 !designer->controls[i].is_atom_output && !designer->controls[i].is_atom_input) {
                 json_add_key (parse_type(designer->controls[i].is_type));
@@ -266,10 +452,20 @@ void print_json(XUiDesigner *designer) {
                 json_close_array();
                 json_add_key ("Image");
                 if (designer->controls[i].image != NULL ) {
-                    json_add_string(designer->controls[i].image);
+                    char *image = set_resource_path(designer, filepath, designer->controls[i].image);
+                    json_add_string(image);
+                    free(image);
                 } else {
                     json_add_string("None");
                 }
+                if (designer->controls[i].in_frame) {
+                    json_add_key ("Parent");
+                    json_start_array();
+                    json_add_int(designer->controls[i].in_frame-1);
+                    json_add_int(designer->controls[i].in_tab-1);
+                    json_close_array();
+                }
+                
                 if (designer->controls[i].have_adjustment) {
                     json_add_key ("Adjustment");
                     json_add_string(parse_adjusment_type(designer->controls[i].wid->adj->type));
@@ -296,6 +492,7 @@ void print_json(XUiDesigner *designer) {
                 }
                 json_close_value_pair();
                 json_close_array();
+                check_for_Widget_color(designer, designer->controls[i].wid);
             }
         }
     }

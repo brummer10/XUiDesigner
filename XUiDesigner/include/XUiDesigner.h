@@ -269,7 +269,9 @@ typedef struct {
     bool is_project;
     bool is_faust_file;
     bool is_faust_synth_file;
+    bool is_json_file;
     bool generate_ui_only;
+    bool regenerate_ui;
     bool run;
     bool skipit;
     bool pad;
@@ -308,6 +310,7 @@ typedef struct {
     char* global_vslider_image_file;
     char* global_hslider_image_file;
     char* path;
+    char* json_file_path;
     LV2_CONTROLLER lv2c;
     Controller controls[MAX_CONTROLS];
 } XUiDesigner;

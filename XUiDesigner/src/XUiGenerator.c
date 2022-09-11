@@ -29,6 +29,7 @@
 #include "XUiWriteTurtle.h"
 #include "XUiWritePlugin.h"
 #include "XUiWriteUI.h"
+#include "XUiWriteJson.h"
 
 
 /*---------------------------------------------------------------------
@@ -428,47 +429,62 @@ void run_save(void *w_, void* user_data) {
         }
 
         char* cmd = NULL;
-        asprintf(&cmd, "cd %s && git init", filepath);
-        int ret = system(cmd);
-        free(cmd);
-        cmd = NULL;
         char* filename = NULL;
-        struct stat sb;
-        asprintf(&filename, "%s/libxputty",filepath);
-        if (stat(filename, &sb) != 0 && !S_ISDIR(sb.st_mode)) {
-            asprintf(&cmd, "cd %s && git submodule add https://github.com/brummer10/libxputty.git", filepath);
+        FILE *fpm = NULL;
+        char* makefile = NULL;
+        int ret = 0;
+        if (!designer->regenerate_ui) {
+            asprintf(&cmd, "cd %s && git init", filepath);
             ret = system(cmd);
             free(cmd);
             cmd = NULL;
+            struct stat sb;
+            asprintf(&filename, "%s/libxputty",filepath);
+            if (stat(filename, &sb) != 0 && !S_ISDIR(sb.st_mode)) {
+                asprintf(&cmd, "cd %s && git submodule add https://github.com/brummer10/libxputty.git", filepath);
+                ret = system(cmd);
+                free(cmd);
+                cmd = NULL;
+            }
+            free(filename);
+            filename = NULL;
+            asprintf(&cmd, "SUBDIR := %s\n\n"
+
+                ".PHONY: $(SUBDIR) libxputty  recurse\n\n"
+
+                "$(MAKECMDGOALS) recurse: $(SUBDIR)\n\n"
+
+                "clean:\n\n"
+
+                "libxputty:\n"
+                "	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS)\n\n"
+
+                "$(SUBDIR): libxputty\n"
+                "	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS)\n\n", name);
+
+            asprintf(&makefile, "%s/makefile",filepath);
+            if((fpm=freopen(makefile, "w" ,stdout))==NULL) {
+                printf("open failed\n");
+            }
+            printf("%s", cmd);
+            fclose(fpm);
+            fpm = NULL;
+            free(makefile);
+            makefile = NULL;
+            free(cmd);
+            cmd = NULL;
         }
-        free(filename);
-        filename = NULL;
-        asprintf(&cmd, "SUBDIR := %s\n\n"
 
-            ".PHONY: $(SUBDIR) libxputty  recurse\n\n"
-
-            "$(MAKECMDGOALS) recurse: $(SUBDIR)\n\n"
-
-            "clean:\n\n"
-
-            "libxputty:\n"
-            "	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS)\n\n"
-
-            "$(SUBDIR): libxputty\n"
-            "	@exec $(MAKE) -j 1 -C $@ $(MAKECMDGOALS)\n\n", name);
-
-        char* makefile = NULL;
-        asprintf(&makefile, "%s/makefile",filepath);
-        FILE *fpm;
-        if((fpm=freopen(makefile, "w" ,stdout))==NULL) {
+        char *json_file = NULL;
+        asprintf(&json_file, "%s/%s.json",filepath,name);
+        if((fpm=freopen(json_file, "w" ,stdout))==NULL) {
             printf("open failed\n");
         }
-        printf("%s", cmd);
+        print_json(designer, filepath);
         fclose(fpm);
-        free(makefile);
-        free(cmd);
-        cmd = NULL;
-        
+        fpm = NULL;
+        free(json_file);
+        json_file = NULL;
 
         free(filepath);
         filepath = NULL;
@@ -490,130 +506,132 @@ void run_save(void *w_, void* user_data) {
         fclose(fp);
         fp = NULL;
 
-        if (!designer->generate_ui_only) {
-            free(filename);
-            filename = NULL;
-            if (!designer->is_faust_synth_file) {
-                asprintf(&filename, "%s%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
-                if((fp=freopen(filename, "w" ,stdout))==NULL) {
-                    printf("open failed\n");
-                }
-                print_plugin(designer);
-                fclose(fp);
-                fp = NULL;
-            } else {
-                asprintf(&filename, "%s%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
-                asprintf(&cmd, "cp %s %s", designer->faust_synth_file, filename);
-                ret = system(cmd);
-                free(cmd);
-                cmd = NULL;
-            }
-            strdecode(filename, ".cpp", ".ttl");
-        } else {
-            free(filename);
-            filename = NULL;
-            asprintf(&filename, "%s%s_ui/%s/%s_ui.ttl",*(const char**)user_data,name,name,name);
-        }
 
-        if((fp=freopen(filename, "w" ,stdout))==NULL) {
-            printf("open failed\n");
-        }
-        print_ttl(designer);
-        fclose(fp);
-        fp = NULL;
-        free(filename);
-        filename = NULL;
-        asprintf(&filename, "%s%s_ui/%s/manifest.ttl",*(const char**)user_data,name,name);
-        if((fp=freopen(filename, "w" ,stdout))==NULL) {
-            printf("open failed\n");
-        }
-        print_manifest(designer);
-        fclose(fp);
-        fp = NULL;
-        free(filename);
-        filename = NULL;
-        if (system(NULL)) {
-            cmd = NULL;
-
-            if (designer->is_faust_file) {
-                asprintf(&cmd, "cp %s \'%s\'", designer->faust_file, filepath);
-                ret = system(cmd);
-                if (!ret) {
+        if (!designer->regenerate_ui) {
+            if (!designer->generate_ui_only) {
+                free(filename);
+                filename = NULL;
+                if (!designer->is_faust_synth_file) {
+                    asprintf(&filename, "%s%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
+                    if((fp=freopen(filename, "w" ,stdout))==NULL) {
+                        printf("open failed\n");
+                    }
+                    print_plugin(designer);
+                    fclose(fp);
+                    fp = NULL;
+                } else {
+                    asprintf(&filename, "%s%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
+                    asprintf(&cmd, "cp %s %s", designer->faust_synth_file, filename);
+                    ret = system(cmd);
                     free(cmd);
                     cmd = NULL;
                 }
-                if ((fp=fopen(designer->faust_file, "r"))==NULL) {
-                    printf("open failed\n");
-                }
-                char buf[128];
-                char* directory = strdup(designer->faust_path);
-                while (fgets(buf, 127, fp) != NULL) {
-                    if (strstr(buf, "#include \"") != NULL) {
-                        char *ptr = strtok(buf, "\"");
-                        ptr = strtok(NULL, "\"");
-                        if (strstr(ptr, "math.h") == NULL) {
-                            asprintf(&filename, "%s/%s", directory,ptr);
-                            if (access(filename, F_OK) == 0) {
-                                asprintf(&cmd, "cp %s \'%s\'", filename, filepath);
-                                ret = system(cmd);
-                                if (!ret) {
-                                    free(cmd);
-                                    cmd = NULL;
-                                }
-                            } else {
-                                fprintf(stderr, " could not access %i %s\n", ret, filename);
-                            }
-                            free(filename);
-                            filename = NULL;
-                        }
-                    }
-                }
-                fclose(fp);
-                fp = NULL;
-                free(directory);
-                directory = NULL;
+                strdecode(filename, ".cpp", ".ttl");
+            } else {
+                free(filename);
+                filename = NULL;
+                asprintf(&filename, "%s%s_ui/%s/%s_ui.ttl",*(const char**)user_data,name,name,name);
             }
 
-            asprintf(&filename, "%s/XUiDesigner/wrapper/libxputty/lv2_plugin.h", SHARE_DIR);
-            if (access(filename, F_OK) == 0) {
-                asprintf(&cmd, "cp %s/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", SHARE_DIR, filepath);
-            } else if (access("./Bundle/wrapper/libxputty/lv2_plugin.h", F_OK) == 0) {
-                asprintf(&cmd, "cp ./Bundle/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
-            } else if (access("../Bundle/wrapper/libxputty/lv2_plugin.h", F_OK) == 0) {
-                asprintf(&cmd, "cp ../Bundle/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
-            } else {
-                open_message_dialog(designer->ui, ERROR_BOX, "",
-                    "Fail to copy libxputty wrapper files", NULL);   
+            if((fp=freopen(filename, "w" ,stdout))==NULL) {
+                printf("open failed\n");
             }
+            print_ttl(designer);
+            fclose(fp);
+            fp = NULL;
             free(filename);
             filename = NULL;
-            ret = system(cmd);
-            if (!ret) {
-                makefile = NULL;
-                asprintf(&makefile, "%s/makefile",filepath);
-                FILE *fpmu;
-                if((fpmu=freopen(makefile, "w" ,stdout))==NULL) {
-                    printf("open failed\n");
-                }
-                print_makefile(designer);
-                fclose(fpmu);
-                free(makefile);
-                free(cmd);
-                cmd = NULL;
-                //asprintf(&cmd, "cd \'%s\'  && make", filepath);
-                //ret = system(cmd);
-                //free(cmd);
-                //cmd = NULL;
-            } else {
-                free(cmd);
-                cmd = NULL;
+            asprintf(&filename, "%s%s_ui/%s/manifest.ttl",*(const char**)user_data,name,name);
+            if((fp=freopen(filename, "w" ,stdout))==NULL) {
+                printf("open failed\n");
             }
+            print_manifest(designer);
+            fclose(fp);
+            fp = NULL;
+            free(filename);
+            filename = NULL;
+            if (system(NULL)) {
+                cmd = NULL;
+
+                if (designer->is_faust_file) {
+                    asprintf(&cmd, "cp %s \'%s\'", designer->faust_file, filepath);
+                    ret = system(cmd);
+                    if (!ret) {
+                        free(cmd);
+                        cmd = NULL;
+                    }
+                    if ((fp=fopen(designer->faust_file, "r"))==NULL) {
+                        printf("open failed\n");
+                    }
+                    char buf[128];
+                    char* directory = strdup(designer->faust_path);
+                    while (fgets(buf, 127, fp) != NULL) {
+                        if (strstr(buf, "#include \"") != NULL) {
+                            char *ptr = strtok(buf, "\"");
+                            ptr = strtok(NULL, "\"");
+                            if (strstr(ptr, "math.h") == NULL) {
+                                asprintf(&filename, "%s/%s", directory,ptr);
+                                if (access(filename, F_OK) == 0) {
+                                    asprintf(&cmd, "cp %s \'%s\'", filename, filepath);
+                                    ret = system(cmd);
+                                    if (!ret) {
+                                        free(cmd);
+                                        cmd = NULL;
+                                    }
+                                } else {
+                                    fprintf(stderr, " could not access %i %s\n", ret, filename);
+                                }
+                                free(filename);
+                                filename = NULL;
+                            }
+                        }
+                    }
+                    fclose(fp);
+                    fp = NULL;
+                    free(directory);
+                    directory = NULL;
+                }
+
+                asprintf(&filename, "%s/XUiDesigner/wrapper/libxputty/lv2_plugin.h", SHARE_DIR);
+                if (access(filename, F_OK) == 0) {
+                    asprintf(&cmd, "cp %s/XUiDesigner/wrapper/libxputty/lv2_plugin.* \'%s\'", SHARE_DIR, filepath);
+                } else if (access("./Bundle/wrapper/libxputty/lv2_plugin.h", F_OK) == 0) {
+                    asprintf(&cmd, "cp ./Bundle/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
+                } else if (access("../Bundle/wrapper/libxputty/lv2_plugin.h", F_OK) == 0) {
+                    asprintf(&cmd, "cp ../Bundle/wrapper/libxputty/lv2_plugin.* \'%s\'", filepath);
+                } else {
+                    open_message_dialog(designer->ui, ERROR_BOX, "",
+                        "Fail to copy libxputty wrapper files", NULL);   
+                }
+                free(filename);
+                filename = NULL;
+                ret = system(cmd);
+                if (!ret) {
+                    asprintf(&makefile, "%s/makefile",filepath);
+                    FILE *fpmu;
+                    if((fpmu=freopen(makefile, "w" ,stdout))==NULL) {
+                        printf("open failed\n");
+                    }
+                    print_makefile(designer);
+                    fclose(fpmu);
+                    free(makefile);
+                    free(cmd);
+                    cmd = NULL;
+                    //asprintf(&cmd, "cd \'%s\'  && make", filepath);
+                    //ret = system(cmd);
+                    //free(cmd);
+                    //cmd = NULL;
+                } else {
+                    free(cmd);
+                    cmd = NULL;
+                }
+            }
+            free(filepath);
+            filepath = NULL;
         }
-        free(filepath);
-        
+
         cmd = NULL;
         if (have_image || designer->image != NULL) {
-            filepath = NULL;
             asprintf(&filepath, "%s%s_ui/resources",*(const char**)user_data,name);
             if (stat(filepath, &st) == -1) {
                 mkdir(filepath, 0700);
@@ -630,6 +648,7 @@ void run_save(void *w_, void* user_data) {
                 }
             }
         }
+
         if (designer->image != NULL) {
             //png2c(designer->image,filepath);
             char* tmp = strdup(designer->image);

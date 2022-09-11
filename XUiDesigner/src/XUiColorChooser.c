@@ -428,7 +428,6 @@ static void reset_plugin_colors(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj_y)) {
-        fprintf(stderr, "Reset colors\n");
         memcpy(designer->ui->color_scheme, designer->w->color_scheme, sizeof (struct XColor_t));
         color_scheme_to_childs(designer->ui);
         expose_widget(designer->ui);

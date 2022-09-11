@@ -25,8 +25,8 @@
 
 #pragma once
 
-#ifndef XUIWRITEJSON_H_
-#define XUIWRITEJSON_H_
+#ifndef XUIREADJSON_H_
+#define XUIREADJSON_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,10 +34,8 @@ extern "C" {
 
 void read_json(XUiDesigner *designer, const char *filename);
 
-void print_json(XUiDesigner *designer, const char* filepath);
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif //XUIWRITEJSON_H_
+#endif //XUIREADJSON_H_
