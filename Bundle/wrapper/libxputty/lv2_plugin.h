@@ -130,6 +130,9 @@ Widget_t* add_lv2_image_toggle(Widget_t *w, Widget_t *p, PortIndex index, const 
 Widget_t* add_lv2_button(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 
+Widget_t* add_lv2_image_button(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                 X11_UI* ui, int x, int y, int width, int height);
+
 Widget_t* add_lv2_valuedisplay(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                  X11_UI* ui, int x, int y, int width, int height);
 

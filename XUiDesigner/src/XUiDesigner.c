@@ -268,7 +268,8 @@ void hide_show_as_needed(XUiDesigner *designer) {
     } else {
         widget_hide(designer->global_hslider_image);
     }
-    if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON) {
+    if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON ||
+        designer->controls[designer->active_widget_num].is_type == IS_IMAGE_BUTTON) {
         widget_show(designer->global_button_image);
     } else {
         widget_hide(designer->global_button_image);
@@ -854,6 +855,8 @@ void fix_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
         int sel = designer->controls[designer->active_widget_num].is_type;
         if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_TOGGLE)
             sel = IS_TOGGLE_BUTTON;
+        if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_BUTTON)
+            sel = IS_BUTTON;
         if (designer->controls[designer->active_widget_num].is_type == IS_FRAME ||
             designer->controls[designer->active_widget_num].is_type == IS_IMAGE ||
             designer->controls[designer->active_widget_num].is_type == IS_TABBOX ||
@@ -1404,7 +1407,7 @@ int main (int argc, char ** argv) {
     combobox_set_menu_size(designer->widgets, 15);
     designer->widgets->func.value_changed_callback = set_widget_callback;
 
-    designer->image_loader = add_image_button(designer->w,20,75,40,40, "", "image");
+    designer->image_loader = add_image_load_button(designer->w,20,75,40,40, "", "image");
     tooltip_set_text(designer->image_loader,_("Load Background Image (*.png | *.svg)"));
     designer->image_loader->func.user_callback = image_load_response;
     

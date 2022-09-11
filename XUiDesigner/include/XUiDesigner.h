@@ -112,6 +112,7 @@ typedef enum {
     // keep those below
     IS_FILE_BUTTON    ,
     IS_IMAGE_TOGGLE   ,
+    IS_IMAGE_BUTTON   ,
 } WidgetType;
 
 /*---------------------------------------------------------------------

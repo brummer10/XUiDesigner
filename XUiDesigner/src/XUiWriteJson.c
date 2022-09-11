@@ -207,6 +207,9 @@ static const char* parse_type(WidgetType is_type) {
         case IS_IMAGE_TOGGLE:
         return "IS_IMAGE_TOGGLE";
         break;
+        case IS_IMAGE_BUTTON:
+        return "IS_IMAGE_BUTTON";
+        break;
         default:
         return "";
     } 

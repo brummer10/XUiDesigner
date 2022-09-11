@@ -215,6 +215,23 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
             designer->active_widget_num = new_wid->data;
             designer->controls[new_wid->data].in_frame = j;
             designer->controls[new_wid->data].in_tab = v;
+        break;
+        case IS_IMAGE_BUTTON:
+            asprintf (&designer->new_label[wid->data], "%s",wid->label);
+            new_wid = add_image_button(parent, designer->new_label[wid->data],
+                                                                        x, y, width, height);
+            copy_widget_settings(designer, wid, new_wid);
+            add_to_list(designer, new_wid, "add_lv2_image_button", false, IS_IMAGE_BUTTON);
+            destroy_widget(wid, designer->w->app);
+            widget_show(new_wid);
+            designer->active_widget = new_wid;
+            if (designer->controls[new_wid->data].image != NULL) {
+                load_single_controller_image(designer, designer->controls[new_wid->data].image);
+            }
+            designer->active_widget_num = new_wid->data;
+            designer->controls[new_wid->data].in_frame = j;
+            designer->controls[new_wid->data].in_tab = v;
+        break;
         default:
         break;
     }

@@ -26,7 +26,7 @@
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------	
-                add_image_button
+                add_image_load_button
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
@@ -80,7 +80,7 @@ static void ibutton_mem_free(void *w_, void* UNUSED(user_data)) {
     imagebutton = NULL;
 }
 
-Widget_t *add_image_button(Widget_t *parent, int x, int y, int width, int height,
+Widget_t *add_image_load_button(Widget_t *parent, int x, int y, int width, int height,
                            const char *path, const char *filter) {
     ImageButton *imagebutton = (ImageButton*)malloc(sizeof(ImageButton));
     imagebutton->path = path;
@@ -162,46 +162,66 @@ void unload_background_image(void *w_, void* UNUSED(user_data)) {
     }
 }
 
-static void set_image_button(XUiDesigner *designer) {
+static void set_image_button(XUiDesigner *designer, WidgetType is_type) {
     Widget_t *wid = designer->active_widget;
     Widget_t *p = (Widget_t*)wid->parent;
     remove_from_list(designer, wid);
     designer->prev_active_widget = NULL;
     Widget_t *new_wid = NULL;
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-    new_wid = add_switch_image_button(p, designer->new_label[designer->active_widget_num],
+    if (is_type == IS_TOGGLE_BUTTON) {
+        new_wid = add_switch_image_button(p, designer->new_label[designer->active_widget_num],
                                                                 wid->x, wid->y, 60, 60);
-    copy_widget_settings(designer, wid, new_wid);
-    add_to_list(designer, new_wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
+        copy_widget_settings(designer, wid, new_wid);
+        add_to_list(designer, new_wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
+    } else if (is_type == IS_BUTTON) {
+        new_wid = add_image_button(p, designer->new_label[designer->active_widget_num],
+                                                                wid->x, wid->y, 60, 60);
+        copy_widget_settings(designer, wid, new_wid);
+        add_to_list(designer, new_wid, "add_lv2_image_button", false, IS_IMAGE_BUTTON);
+    }
     destroy_widget(wid, designer->w->app);
     widget_show(new_wid);
     designer->active_widget = new_wid;
     designer->active_widget_num = new_wid->data;
 }
 
-static void set_all_image_button(XUiDesigner *designer, Widget_t *wid, int i) {
+static void set_all_image_button(XUiDesigner *designer, Widget_t *wid, int i, WidgetType is_type) {
     Widget_t *p = (Widget_t*)wid->parent;
     remove_from_list(designer, wid);
     designer->prev_active_widget = NULL;
     Widget_t *new_wid = NULL;
     asprintf (&designer->new_label[i], "%s",wid->label);
-    new_wid = add_switch_image_button(p, designer->new_label[i], wid->x, wid->y, 60, 60);
-    copy_widget_settings(designer, wid, new_wid);
-    add_to_list(designer, new_wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
+    if (is_type == IS_TOGGLE_BUTTON) {
+        new_wid = add_switch_image_button(p, designer->new_label[i], wid->x, wid->y, 60, 60);
+        copy_widget_settings(designer, wid, new_wid);
+        add_to_list(designer, new_wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
+    } else if (is_type == IS_BUTTON) {
+        new_wid = add_image_button(p, designer->new_label[i], wid->x, wid->y, 60, 60);
+        copy_widget_settings(designer, wid, new_wid);
+        add_to_list(designer, new_wid, "add_lv2_image_button", false, IS_IMAGE_BUTTON);
+    }
     destroy_widget(wid, designer->w->app);
     widget_show(new_wid);
 }
 
-static void unset_image_button(XUiDesigner *designer) {
+static void unset_image_button(XUiDesigner *designer, WidgetType is_type) {
     Widget_t *wid = designer->active_widget;
     remove_from_list(designer, wid);
     designer->prev_active_widget = NULL;
     Widget_t *new_wid = NULL;
     asprintf (&designer->new_label[designer->active_widget_num], "%s",wid->label);
-    new_wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num],
+    if (is_type == IS_IMAGE_TOGGLE) {
+        new_wid = add_toggle_button(designer->ui, designer->new_label[designer->active_widget_num],
                                                                 wid->x, wid->y, 60, 60);
-    copy_widget_settings(designer, wid, new_wid);
-    add_to_list(designer, new_wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+        copy_widget_settings(designer, wid, new_wid);
+        add_to_list(designer, new_wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+    } else if (is_type == IS_IMAGE_BUTTON) {
+        new_wid = add_button(designer->ui, designer->new_label[designer->active_widget_num],
+                                                                wid->x, wid->y, 60, 60);
+        copy_widget_settings(designer, wid, new_wid);
+        add_to_list(designer, new_wid, "add_lv2_button", false, IS_BUTTON);
+    }
     destroy_widget(wid, designer->w->app);
     designer->controls[new_wid->data].image = NULL;
     widget_show(new_wid);
@@ -254,8 +274,9 @@ static void load_for_all_global(XUiDesigner *designer, WidgetType is_type, cairo
 void load_single_controller_image (XUiDesigner *designer, const char* filename) {
     //if (!designer->active_widget) return;
     char *tmp = strdup(filename);
-    if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON) {
-        set_image_button(designer);
+    if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON ||
+        designer->controls[designer->active_widget_num].is_type == IS_BUTTON) {
+        set_image_button(designer, designer->controls[designer->active_widget_num].is_type);
     }
     cairo_surface_t *getpng = NULL;
     if (strstr(filename, ".png")) {
@@ -297,8 +318,9 @@ void controller_image_load_response(void *w_, void* user_data) {
             XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
             return;
         }
-        if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON) {
-            set_image_button(designer);
+        if (designer->controls[designer->active_widget_num].is_type == IS_TOGGLE_BUTTON ||
+            designer->controls[designer->active_widget_num].is_type == IS_BUTTON) {
+            set_image_button(designer, designer->controls[designer->active_widget_num].is_type);
         } else if (designer->controls[designer->active_widget_num].is_type == IS_VSLIDER ||
                     designer->controls[designer->active_widget_num].is_type == IS_HSLIDER) {
             Widget_t *dia = open_message_dialog(w, INFO_BOX, *(const char**)user_data,
@@ -349,6 +371,12 @@ void controller_image_load_response(void *w_, void* user_data) {
             cairo_surface_destroy(getpng);
         } else if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON &&
                                     adj_get_value(designer->global_button_image->adj)) {
+            int i = 0;
+            for (;i<MAX_CONTROLS;i++) {
+                if (designer->controls[i].wid != NULL && designer->controls[i].is_type == IS_BUTTON) {
+                    set_all_image_button(designer, designer->controls[i].wid, i, designer->controls[i].is_type);
+                }
+            }
             load_for_all_global(designer, IS_BUTTON, getpng, filename, width, height);
             free(designer->global_button_image_file);
             designer->global_button_image_file = NULL;
@@ -359,7 +387,7 @@ void controller_image_load_response(void *w_, void* user_data) {
             int i = 0;
             for (;i<MAX_CONTROLS;i++) {
                 if (designer->controls[i].wid != NULL && designer->controls[i].is_type == IS_TOGGLE_BUTTON) {
-                    set_all_image_button(designer, designer->controls[i].wid, i);
+                    set_all_image_button(designer, designer->controls[i].wid, i, designer->controls[i].is_type);
                 }
             }
             load_for_all_global(designer, IS_IMAGE_TOGGLE, getpng, filename, width, height);
@@ -456,8 +484,9 @@ static void unload_controller_image(void *w_, void* UNUSED(user_data)) {
     expose_widget(w);
     free(designer->controls[designer->active_widget_num].image);
     designer->controls[designer->active_widget_num].image = NULL;
-    if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_TOGGLE) {
-        unset_image_button(designer);
+    if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_TOGGLE ||
+        designer->controls[designer->active_widget_num].is_type == IS_IMAGE_BUTTON) {
+        unset_image_button(designer, designer->controls[designer->active_widget_num].is_type);
     }
 }
 

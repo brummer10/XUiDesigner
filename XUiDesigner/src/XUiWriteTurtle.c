@@ -331,7 +331,8 @@ void print_ttl(XUiDesigner *designer) {
                                 designer->controls[i].symbol, xldl,
                                 designer->controls[i].destignation_enabled ? 1 : 0);
                             add_comma = true;
-                    } else if (designer->controls[i].is_type == IS_BUTTON) {
+                    } else if (designer->controls[i].is_type == IS_BUTTON ||
+                            designer->controls[i].is_type == IS_IMAGE_BUTTON) {
                         printf ("%s, [\n"
                             "      a lv2:InputPort ,\n"
                             "          lv2:ControlPort ;\n"
