@@ -346,10 +346,20 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
                 wi = designer->ui;
+            } else if (strstr(type, "add_lv2_image_button") != NULL) {
+                wid = add_image_button(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
+                set_controller_callbacks(designer, wid, true);
+                add_to_list(designer, wid, "add_lv2_image_button", false, IS_BUTTON);
+                wi = designer->ui;
             } else if (strstr(type, "add_lv2_toggle_button") != NULL) {
                 wid = add_toggle_button(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+                wi = designer->ui;
+            } else if (strstr(type, "add_lv2_image_toggle") != NULL) {
+                wid = add_switch_image_button(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
+                set_controller_callbacks(designer, wid, true);
+                add_to_list(designer, wid, "add_lv2_image_toggle", false, IS_TOGGLE_BUTTON);
                 wi = designer->ui;
             } else if (strstr(type, "add_lv2_combobox") != NULL) {
                 wid = add_combobox(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
