@@ -736,7 +736,7 @@ Widget_t *create_color_chooser (XUiDesigner *designer) {
 
     designer->global_color = add_check_box(color_chooser->color_widget, _("  Global Color"), 20, 305, 140, 20);
     tooltip_set_text(designer->global_color,_("Use Color settings for all Widgets"));
-    adj_set_value(designer->global_color->adj, 1.0);
+    //adj_set_value(designer->global_color->adj, 1.0);
     designer->global_color->parent_struct = designer;
 
     designer->selected_scheme = &get_active_widget(designer)->color_scheme->normal;

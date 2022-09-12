@@ -32,6 +32,10 @@
 #include "XUiImageLoader.h"
 #include "XUiControllerType.h"
 
+static char *trim(char *s) {
+    while(isspace(*s)) s++;
+    return s;
+}
 
 static char *get_string(const char *buf, char *s, char *e) {
     char *get = substr(buf, s, e);
@@ -384,7 +388,7 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
                 char *ptr = strtok(entrys, ",");
                 while(ptr != NULL) {
                     strdecode(ptr, "\"", "");
-                    combobox_add_entry(wid, ptr);
+                    combobox_add_entry(wid, trim(ptr));
                     ptr = strtok(NULL, ",");
                 }
                 wi = designer->ui;
@@ -478,6 +482,7 @@ void read_json(XUiDesigner *designer, const char *filename) {
         printf("Error opening pipe!\n");
         return;
     }
+    designer->ui->flags |= FAST_REDRAW;
     while (fgets(buf, 128, fp) != NULL) {
         if (strstr(buf, "{") != NULL) {
             //fprintf(stderr, "Start object\n");
@@ -520,6 +525,8 @@ void read_json(XUiDesigner *designer, const char *filename) {
     designer->is_json_file = true;
     designer->is_project = false;
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
+    pthread_t rf;
+    pthread_create(&rf, NULL, reset_flag, (void *)designer);
     if (fclose(fp)) {
         printf("Command not found or exited with error status\n");
         free(tmp);
