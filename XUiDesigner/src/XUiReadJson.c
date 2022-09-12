@@ -162,6 +162,7 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
     int x = 1, y = 1, w = 1, h = 1;
     char *image = NULL;
     Widget_t *tabbox = NULL;
+    Widget_t *win = NULL;
     while (fgets(buf, 128, fp) != NULL) {
         if (strstr(buf, "{") != NULL) {
             continue;
@@ -207,6 +208,7 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 wid[elems]->func.enter_callback = null_callback;
                 wid[elems]->func.leave_callback = null_callback;
                 XLowerWindow(wi->app->dpy, wid[elems]->widget);
+                win = wid[elems];
                 elems++;
 
             } else if (strstr(type, "\"add_lv2_tabbox\"") != NULL) {
@@ -222,6 +224,7 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 tabbox->func.enter_callback = null_callback;
                 tabbox->func.leave_callback = null_callback;
                 XLowerWindow(wi->app->dpy, tabbox->widget);
+                win = tabbox;
                 elems++;
             } else if (strstr(type, "\"add_lv2_tab\"") != NULL) {
                 tab[tabs] = tabbox_add_tab(tabbox, label);
@@ -246,30 +249,19 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 wid[elems]->func.enter_callback = null_callback;
                 wid[elems]->func.leave_callback = null_callback;
                 XLowerWindow(wi->app->dpy, wid[elems]->widget);
-
+                win = wid[elems];
             } else {
                 continue;
             }
             if (image != NULL) 
                 load_single_controller_image(designer, image);
+        } else if  (strstr(buf, "\"COLOR\"") != NULL) {
+            read_controller_color(win, buf);
         }
     }
     free(type);
     free(label);
     free(image);
-}
-
-unsigned int get_enums(char* buf, char **enums, unsigned int enum_size) {
-    char *entrys = get_key(buf, "[", "]");
-    char *ptr = strtok(entrys, ",");
-    while(ptr != NULL) {
-        strdecode(ptr, "\"", "");
-        enum_size++;
-        enums = (char**)realloc(enums, enum_size * sizeof(char*));
-        asprintf(&enums[enum_size-1], "%s", ptr);
-        ptr = strtok(NULL, ",");
-    }
-    return enum_size;
 }
 
 Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems, Widget_t **tabs, FILE *fp, char *buf) {
@@ -284,8 +276,7 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
     int in_tab = 0;
     int f = 0;
     double std = 0.5, minvalue = 0.0, maxvalue = 1.0, stepsize = 0.01;
-    char **enums = NULL;
-    unsigned int enum_size = 0;
+    char *entrys = NULL;
     Widget_t *wi = designer->ui;
     while (fgets(buf, 128, fp) != NULL) {
         if (strstr(buf, "{") != NULL) {
@@ -345,8 +336,7 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
         } else if  (strstr(buf, "\"Step Size\"") != NULL) {
             stepsize =  strtod(substr(buf, ":", ","), NULL);
         } else if (strstr(buf, "\"Enums\"") != NULL) {
-            enums = (char**)malloc(sizeof(char*));
-            enum_size = get_enums(buf, enums, enum_size);
+            entrys = get_key(buf, "[", "]");
         } else if (strstr(buf, "}") != NULL) {
             //fprintf(stderr, "Stop object\n");
         } else if (strstr(buf, "]") != NULL) {            
@@ -391,9 +381,11 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
                 wid = add_combobox(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
-                unsigned int i = 0;
-                for (; i<enum_size;i++) {
-                    combobox_add_entry(wid, enums[i]);
+                char *ptr = strtok(entrys, ",");
+                while(ptr != NULL) {
+                    strdecode(ptr, "\"", "");
+                    combobox_add_entry(wid, ptr);
+                    ptr = strtok(NULL, ",");
                 }
                 wi = designer->ui;
             } else if (strstr(type, "\"add_lv2_valuedisplay\"") != NULL) {
@@ -455,12 +447,7 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
     free(symbol);
     free(image);
     free(adjustment);
-    unsigned int j = 0;
-    for(;j<enum_size;j++) {
-        free(enums[j]);
-        enums[j] = NULL;
-    }
-    free(enums);
+    free(entrys);
     return wid;
 }
 
