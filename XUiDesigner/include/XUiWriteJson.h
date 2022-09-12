@@ -32,8 +32,6 @@
 extern "C" {
 #endif
 
-void read_json(XUiDesigner *designer, const char *filename);
-
 void print_json(XUiDesigner *designer, const char* filepath);
 
 #ifdef __cplusplus

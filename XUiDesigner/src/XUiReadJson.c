@@ -505,7 +505,7 @@ void read_json(XUiDesigner *designer, const char *filename) {
         } else if (strstr(buf, "\"Window size\"") != NULL) {
             designer->ui->width = (int)strtod(substr(buf, "[", ","), NULL);
             designer->ui->height = (int)strtod(substr(buf, ",", "]"), NULL);
-            XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
+            XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height+1);
         } else if (strstr(buf, "\"Image\"") != NULL) {
             asprintf(&ui_image, "%s", get_string(buf, ":", ","));
             image_load_response(designer->image_loader, (void*)&ui_image);
@@ -532,6 +532,7 @@ void read_json(XUiDesigner *designer, const char *filename) {
     free(ui_image);
     designer->is_json_file = true;
     designer->is_project = false;
+    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
     if (fclose(fp)) {
         printf("Command not found or exited with error status\n");
         free(tmp);
