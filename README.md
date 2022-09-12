@@ -5,8 +5,6 @@ A WYSIWYG LV2 X11UI GUI creator tool
 
 ## Goal
 Provide a easy to use GUI generator tool to create X11 UI's for LV2 plugins.
-Currently only libxputty is supported, but the generated GUI C file could be used probably with other 
-widget tool-kits as well, just a wrapper file is needed to translate the generated file to the needs of a toolkit.
 
 ## Currently state
 XUiDesigner parse the ttl file from a selected plugin and generate the needed controller widgets.
@@ -16,8 +14,9 @@ XUiDesigner use the environment variable LV2_PATH to scan for plugins when no pa
 -p command-line parameter.
 So you could easily create a GUI for a existing plugin.
 A integrated Color chooser allow to create a Color theme for your GUI.
+Each Widget could be colored individual, or, when selected, a color theme could be used for all widgets.
 The created GUI could be saved as UI-Bundle, which then could be build (just make) and installed (just make install)
-to replace or provide a new GUI for the plugin. 
+to replace a exsiting one or provide a new GUI for the LV2 plugin. 
 
 You could as well create a LV2 plugin from scratch and save it as Full Plugin-Bundle to a selected location.
 The project settings window allow to setup the specs (like Author name, URI, Audio/Midi ports, etc.) for your plugin 
@@ -25,9 +24,11 @@ XUIDesigner save the bundle in a git repository format, contain a working LV2 pl
 (ttl files, converted C files from used images, etc.) and build files to build, install and run the new generated plugin.
 All you need to do to finish your plug is to implement your DSP part.
 
-XUiDesigner could now parse faust (*.dsp) files and generate a full LV2 Bundle for them. 
+XUiDesigner could also parse faust (*.dsp) files and generate a full LV2 Bundle for them (including MIDI support). 
 A faust (*.dsp) file could be given by the command-line parameter -f or simply by drag it on the Designer window. 
 It will create all control widgets which you could then rework to your needs before you save your Bundle.
+
+when going to save your work, best choice is pre-selected in the format selector, change that only when you know what you do.
 
 Control widgets could be created and moved/resized freely around in the top Window.
 A grid could be displayed and widgets could snap to grid (left, right, Center) to order them easily. 
@@ -40,6 +41,9 @@ Most Control widgets could be replaced with images you could select from a inclu
 
 XUIDesigner have a test-mode as well, which will build and run the created GUI, and give some useful information out in the terminal.
 
+XUiDesigner saved the UI settings also into a json file which could be used to rework the UI at any time later.
+This could be loaded by drag 'n drop into the designer interface.
+
 ## Workflow
 Here is a short introducion 
 [Wiki](https://github.com/brummer10/XUiDesigner/wiki/XUiDesigner)
@@ -47,9 +51,9 @@ Here is a short introducion
 ## Currently supported widget types
 
  - Knob          -> support horizontal framed png
- - HSlider
- - VSlider
- - Button        -> support png/horizontal framed png
+ - HSlider       -> support horizontal framed png
+ - VSlider       -> support horizontal framed png
+ - Button        -> support single png/horizontal framed png
  - Toggle Button -> support horizontal framed png
  - ComboBox
  - Value Display
