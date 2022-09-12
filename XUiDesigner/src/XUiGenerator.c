@@ -635,7 +635,7 @@ void run_save(void *w_, void* user_data) {
             asprintf(&filepath, "%s%s_ui/resources",*(const char**)user_data,name);
             if (stat(filepath, &st) == -1) {
                 mkdir(filepath, 0700);
-            } else {
+            } else if (!designer->regenerate_ui) {
                 asprintf(&cmd, "rm -rf \'%s\'", filepath);
                 int retu = system(cmd);
                 if (!retu) {
@@ -662,22 +662,24 @@ void run_save(void *w_, void* user_data) {
                 strdecode(xldl, "_png", ".png");
                 char* fxldl = NULL;
                 asprintf(&fxldl, "%s/%s", filepath, xldl);
-                asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
-                int retu = system(cmd);
-                if (!retu) {
-                    char* xldc =  strdup(xldl);
-                    strdecode(xldc, ".png", ".c");
-                    free(cmd);
-                    cmd = NULL;
-                    asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
-                    retu = system(cmd);
-                    free(xldc);
-                    free(cmd);
-                    cmd = NULL;
-                } else {
-                    free(cmd);
-                    cmd = NULL;
-                    fprintf(stderr, "Fail to copy image\n");
+                if (strcmp(designer->image,fxldl)) {
+                    asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
+                    int retu = system(cmd);
+                    if (!retu) {
+                        char* xldc =  strdup(xldl);
+                        strdecode(xldc, ".png", ".c");
+                        free(cmd);
+                        cmd = NULL;
+                        asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
+                        retu = system(cmd);
+                        free(xldc);
+                        free(cmd);
+                        cmd = NULL;
+                    } else {
+                        free(cmd);
+                        cmd = NULL;
+                        fprintf(stderr, "Fail to copy image\n");
+                    }
                 }
                 free(fxldl);
             } else if (strstr(designer->image, ".svg")) {
@@ -685,23 +687,24 @@ void run_save(void *w_, void* user_data) {
                 strdecode(xldl, "_svg", ".svg");
                 char* fxldl = NULL;
                 asprintf(&fxldl, "%s/%s", filepath, xldl);
-                asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
-                        fprintf(stderr, "%s  %s\n", cmd,xldl);
-                int retu = system(cmd);
-                if (!retu) {
-                    char* xldc =  strdup(xldl);
-                    strdecode(xldc, ".svg", ".c");
-                    free(cmd);
-                    cmd = NULL;
-                    asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s && echo '\";' >> %s", filepath, xldv, xldc, xldl, xldc, xldc);
-                    retu = system(cmd);
-                    free(xldc);
-                    free(cmd);
-                    cmd = NULL;
-                } else {
-                    free(cmd);
-                    cmd = NULL;
-                    fprintf(stderr, "Fail to copy image\n");
+                if (strcmp(designer->image,fxldl)) {
+                    asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
+                    int retu = system(cmd);
+                    if (!retu) {
+                        char* xldc =  strdup(xldl);
+                        strdecode(xldc, ".svg", ".c");
+                        free(cmd);
+                        cmd = NULL;
+                        asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s && echo '\";' >> %s", filepath, xldv, xldc, xldl, xldc, xldc);
+                        retu = system(cmd);
+                        free(xldc);
+                        free(cmd);
+                        cmd = NULL;
+                    } else {
+                        free(cmd);
+                        cmd = NULL;
+                        fprintf(stderr, "Fail to copy image\n");
+                    }
                 }
                 free(fxldl);
                 free(xldv);
@@ -724,22 +727,24 @@ void run_save(void *w_, void* user_data) {
                         strdecode(xldl, "_png", ".png");
                         char* fxldl = NULL;
                         asprintf(&fxldl, "%s/%s", filepath, xldl);
-                        asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,fxldl);
-                        int retu = system(cmd);
-                        if (!retu) {
-                            char* xldc = strdup(xldl);
-                            strdecode(xldc, ".png", ".c");
-                            free(cmd);
-                            cmd = NULL;
-                            asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
-                            retu = system(cmd);
-                            free(xldc);
-                            free(cmd);
-                            cmd = NULL;
-                        } else {
-                            free(cmd);
-                            cmd = NULL;
-                            fprintf(stderr, "Fail to copy image\n");
+                        if (strcmp(designer->controls[i].image,fxldl)) {
+                            asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,fxldl);
+                            int retu = system(cmd);
+                            if (!retu) {
+                                char* xldc = strdup(xldl);
+                                strdecode(xldc, ".png", ".c");
+                                free(cmd);
+                                cmd = NULL;
+                                asprintf(&cmd, "cd %s && xxd -i %s > %s", filepath, xldl, xldc);
+                                retu = system(cmd);
+                                free(xldc);
+                                free(cmd);
+                                cmd = NULL;
+                            } else {
+                                free(cmd);
+                                cmd = NULL;
+                                fprintf(stderr, "Fail to copy image\n");
+                            }
                         }
                         free(fxldl);
                     } else if (strstr(designer->controls[i].image, ".svg")) {
@@ -747,22 +752,24 @@ void run_save(void *w_, void* user_data) {
                         strdecode(xldl, "_svg", ".svg");
                         char* fxldl = NULL;
                         asprintf(&fxldl, "%s/%s", filepath, xldl);
-                        asprintf(&cmd, "cp \'%s\' \'%s\'", designer->image,fxldl);
-                        int retu = system(cmd);
-                        if (!retu) {
-                            char* xldc =  strdup(xldl);
-                            strdecode(xldc, ".svg", ".c");
-                            free(cmd);
-                            cmd = NULL;
-                            asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s && echo '\";' >> %s", filepath, xldv, xldc, xldl, xldc, xldc);
-                            retu = system(cmd);
-                            free(xldc);
-                            free(cmd);
-                            cmd = NULL;
-                        } else {
-                            free(cmd);
-                            cmd = NULL;
-                            fprintf(stderr, "Fail to copy image\n");
+                        if (strcmp(designer->controls[i].image,fxldl)) {
+                            asprintf(&cmd, "cp \'%s\' \'%s\'", designer->controls[i].image,fxldl);
+                            int retu = system(cmd);
+                            if (!retu) {
+                                char* xldc =  strdup(xldl);
+                                strdecode(xldc, ".svg", ".c");
+                                free(cmd);
+                                cmd = NULL;
+                                asprintf(&cmd, "cd %s && echo 'const char* %s = \"'| tr -d '\r\n' > %s && base64 %s | tr -d '\r\n' >> %s && echo '\";' >> %s", filepath, xldv, xldc, xldl, xldc, xldc);
+                                retu = system(cmd);
+                                free(xldc);
+                                free(cmd);
+                                cmd = NULL;
+                            } else {
+                                free(cmd);
+                                cmd = NULL;
+                                fprintf(stderr, "Fail to copy image\n");
+                            }
                         }
                         free(fxldl);
                         free(xldv);

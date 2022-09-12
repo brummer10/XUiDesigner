@@ -340,13 +340,11 @@ void print_json(XUiDesigner *designer, const char* filepath) {
     json_add_int(designer->ui->height);
     json_close_array();
 
-    json_add_key ("Image");
     if (designer->image != NULL ) {
+        json_add_key ("Image");
         char *image = set_resource_path(designer, filepath, designer->image);
         json_add_string(image);
         free(image);
-    } else {
-        json_add_string("None");
     }
     
     json_add_key ("Contolls");

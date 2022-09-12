@@ -369,7 +369,7 @@ void controller_image_load_response(void *w_, void* user_data) {
             designer->global_hslider_image_file = NULL;
             asprintf(&designer->global_hslider_image_file, "%s", filename);
             cairo_surface_destroy(getpng);
-        } else if (designer->controls[designer->active_widget_num].is_type == IS_BUTTON &&
+        } else if (designer->controls[designer->active_widget_num].is_type == IS_IMAGE_BUTTON &&
                                     adj_get_value(designer->global_button_image->adj)) {
             int i = 0;
             for (;i<MAX_CONTROLS;i++) {
@@ -377,7 +377,7 @@ void controller_image_load_response(void *w_, void* user_data) {
                     set_all_image_button(designer, designer->controls[i].wid, i, designer->controls[i].is_type);
                 }
             }
-            load_for_all_global(designer, IS_BUTTON, getpng, filename, width, height);
+            load_for_all_global(designer, IS_IMAGE_BUTTON, getpng, filename, width, height);
             free(designer->global_button_image_file);
             designer->global_button_image_file = NULL;
             asprintf(&designer->global_button_image_file, "%s", filename);

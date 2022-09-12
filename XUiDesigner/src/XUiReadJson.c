@@ -40,6 +40,11 @@ static char *get_string(const char *buf, char *s, char *e) {
     return c;
 }
 
+static char *get_key(const char *buf, char *s, char *e) {
+    char *get = substr(buf, s, e);
+    return get;
+}
+
 static void get_color (char *buf, double *c) {
     char *ptr = strtok(buf, "[");
     ptr = strtok(NULL, ",");
@@ -161,7 +166,7 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
         if (strstr(buf, "{") != NULL) {
             continue;
         } else if  (strstr(buf, "\"Type\"") != NULL) {
-            type =  get_string(buf, ":", ",");
+            type =  get_key(buf, ":", ",");
         } else if  (strstr(buf, "\"Label\"") != NULL) {
             label =  get_string(buf, ":", ",");
         } else if (strstr(buf, "\"Size\"") != NULL) {
@@ -189,7 +194,7 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
         } else if (strstr(buf, "]") != NULL) {
             Widget_t *wi = designer->ui;
             asprintf(&designer->controls[designer->wid_counter].name, "%s", label);
-            if (strstr(type, "add_lv2_frame") != NULL) {
+            if (strstr(type, "\"add_lv2_frame\"") != NULL) {
                 wid[elems] = add_frame(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid[elems], true);
                 adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
@@ -204,7 +209,7 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 XLowerWindow(wi->app->dpy, wid[elems]->widget);
                 elems++;
 
-            } else if (strstr(type, "add_lv2_tabbox") != NULL) {
+            } else if (strstr(type, "\"add_lv2_tabbox\"") != NULL) {
                 tabbox = add_tabbox(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, tabbox, true);
                 adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
@@ -218,7 +223,7 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 tabbox->func.leave_callback = null_callback;
                 XLowerWindow(wi->app->dpy, tabbox->widget);
                 elems++;
-            } else if (strstr(type, "add_lv2_tab") != NULL) {
+            } else if (strstr(type, "\"add_lv2_tab\"") != NULL) {
                 tab[tabs] = tabbox_add_tab(tabbox, label);
                 tab[tabs]->parent_struct = designer;
                 tab[tabs]->func.expose_callback = draw_tab;
@@ -227,7 +232,7 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 tab[tabs]->func.motion_callback = move_tab;
                 tabs++;
 
-            } else if (strstr(type, "add_lv2_image") != NULL) {
+            } else if (strstr(type, "\"add_lv2_image\"") != NULL) {
                 wid[elems] = add_image(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 wid[elems]->label = designer->controls[designer->wid_counter].name;
                 set_controller_callbacks(designer, wid[elems], true);
@@ -242,6 +247,8 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 wid[elems]->func.leave_callback = null_callback;
                 XLowerWindow(wi->app->dpy, wid[elems]->widget);
 
+            } else {
+                continue;
             }
             if (image != NULL) 
                 load_single_controller_image(designer, image);
@@ -250,6 +257,19 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
     free(type);
     free(label);
     free(image);
+}
+
+unsigned int get_enums(char* buf, char **enums, unsigned int enum_size) {
+    char *entrys = get_key(buf, "[", "]");
+    char *ptr = strtok(entrys, ",");
+    while(ptr != NULL) {
+        strdecode(ptr, "\"", "");
+        enum_size++;
+        enums = (char**)realloc(enums, enum_size * sizeof(char*));
+        asprintf(&enums[enum_size-1], "%s", ptr);
+        ptr = strtok(NULL, ",");
+    }
+    return enum_size;
 }
 
 Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems, Widget_t **tabs, FILE *fp, char *buf) {
@@ -264,12 +284,14 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
     int in_tab = 0;
     int f = 0;
     double std = 0.5, minvalue = 0.0, maxvalue = 1.0, stepsize = 0.01;
+    char **enums = NULL;
+    unsigned int enum_size = 0;
     Widget_t *wi = designer->ui;
     while (fgets(buf, 128, fp) != NULL) {
         if (strstr(buf, "{") != NULL) {
             continue;
         } else if  (strstr(buf, "\"Type\"") != NULL) {
-            type =  get_string(buf, ":", ",");
+            type =  get_key(buf, ":", ",");
         } else if  (strstr(buf, "\"Label\"") != NULL) {
             label =  get_string(buf, ":", ",");
         } else if  (strstr(buf, "\"Port\"") != NULL) {
@@ -322,61 +344,69 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
             maxvalue =  strtod(substr(buf, ":", ","), NULL);
         } else if  (strstr(buf, "\"Step Size\"") != NULL) {
             stepsize =  strtod(substr(buf, ":", ","), NULL);
+        } else if (strstr(buf, "\"Enums\"") != NULL) {
+            enums = (char**)malloc(sizeof(char*));
+            enum_size = get_enums(buf, enums, enum_size);
         } else if (strstr(buf, "}") != NULL) {
             //fprintf(stderr, "Stop object\n");
         } else if (strstr(buf, "]") != NULL) {            
             asprintf(&designer->controls[designer->wid_counter].name, "%s", label);
-            if (strstr(type, "add_lv2_knob") != NULL) {
+            if (strstr(type, "\"add_lv2_knob\"") != NULL) {
                 wid = add_knob(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_hslider") != NULL) {
+            } else if (strstr(type, "\"add_lv2_hslider\"") != NULL) {
                 wid = add_hslider(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_hslider", true, IS_HSLIDER);
+                add_to_list(designer, wid, "\"add_lv2_hslider\"", true, IS_HSLIDER);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_vslider") != NULL) {
+            } else if (strstr(type, "\"add_lv2_vslider\"") != NULL) {
                 wid = add_vslider(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_vslider", true, IS_VSLIDER);
+                add_to_list(designer, wid, "\"add_lv2_vslider\"", true, IS_VSLIDER);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_button") != NULL) {
+            } else if (strstr(type, "\"add_lv2_button\"") != NULL) {
+                fprintf(stderr, "add_lv2_button \n");
                 wid = add_button(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_image_button") != NULL) {
+            } else if (strstr(type, "\"add_lv2_image_button\"") != NULL) {
                 wid = add_image_button(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_image_button", false, IS_BUTTON);
+                add_to_list(designer, wid, "add_lv2_image_button", false, IS_IMAGE_BUTTON);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_toggle_button") != NULL) {
+            } else if (strstr(type, "\"add_lv2_toggle_button\"") != NULL) {
                 wid = add_toggle_button(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_image_toggle") != NULL) {
+            } else if (strstr(type, "\"add_lv2_image_toggle\"") != NULL) {
                 wid = add_switch_image_button(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "add_lv2_image_toggle", false, IS_TOGGLE_BUTTON);
+                add_to_list(designer, wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_combobox") != NULL) {
+            } else if (strstr(type, "\"add_lv2_combobox\"") != NULL) {
                 wid = add_combobox(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_combobox", true, IS_COMBOBOX);
+                unsigned int i = 0;
+                for (; i<enum_size;i++) {
+                    combobox_add_entry(wid, enums[i]);
+                }
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_valuedisplay") != NULL) {
+            } else if (strstr(type, "\"add_lv2_valuedisplay\"") != NULL) {
                 wid = add_valuedisplay(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_label") != NULL) {
+            } else if (strstr(type, "\"add_lv2_label\"") != NULL) {
                 wid = add_label(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_label", false, IS_LABEL);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_vmeter") != NULL) {
+            } else if (strstr(type, "\"add_lv2_vmeter\"") != NULL) {
                 wid = add_vmeter(wi, designer->controls[designer->wid_counter].name, false, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
@@ -386,13 +416,15 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_waveview") != NULL) {
+            } else if (strstr(type, "\"add_lv2_waveview\"") != NULL) {
                 wid = add_waveview(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_waveview", false, IS_WAVEVIEW);
                 float v[9] = { 0.0,-0.5, 0.0, 0.5, 0.0, -0.5, 0.0, 0.5, 0.0};
                 update_waveview(wid, &v[0],9);
                 wi = designer->ui;
+            } else {
+                continue;
             }
             if (image != NULL) 
                 load_single_controller_image(designer, image);
@@ -423,6 +455,12 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
     free(symbol);
     free(image);
     free(adjustment);
+    unsigned int j = 0;
+    for(;j<enum_size;j++) {
+        free(enums[j]);
+        enums[j] = NULL;
+    }
+    free(enums);
     return wid;
 }
 
