@@ -458,19 +458,33 @@ static void set_selected_scheme(void *w_, void* UNUSED(user_data)) {
     set_selected_color(color_chooser->color_sel,NULL);
 }
 
-static void get_pixel(Widget_t *w, int x, int y, XColor *color) {
-    XImage *image;
-    image = XGetImage (w->app->dpy, DefaultRootWindow(w->app->dpy), x, y, 1, 1, AllPlanes, ZPixmap);
-    color->pixel = XGetPixel(image, 0, 0);
-    XDestroyImage (image);
-    XQueryColor (w->app->dpy, DefaultColormap(w->app->dpy, DefaultScreen (w->app->dpy)), color);
-}
-
 static bool is_in_circle(ColorChooser_t *color_chooser, int x, int y) {
     int a = (x - color_chooser->center_x);
     int b = (y - color_chooser->center_y);
     int c = (color_chooser->radius - 3);
     return (((a*a) + (b*b)) < (c * c));
+}
+
+static bool get_pixel(Widget_t *w, int x, int y, XColor *color) {
+    XImage *image = NULL;
+    default_error_handler = XSetErrorHandler(dummy_error_handler);
+    image = XGetImage (w->app->dpy, DefaultRootWindow(w->app->dpy), x, y, 1, 1, AllPlanes, ZPixmap);
+    if (!image) {
+        ColorChooser_t *color_chooser = (ColorChooser_t*)w->private_struct;
+        int x1, y1;
+        Window child;
+        XTranslateCoordinates( w->app->dpy, DefaultRootWindow(
+                    w->app->dpy), color_chooser->color_widget->widget, x, y, &x1, &y1, &child );
+        if (is_in_circle(color_chooser, x1, y1)) {
+            image = XGetImage (w->app->dpy, color_chooser->color_widget->widget, x1, y1, 1, 1, AllPlanes, ZPixmap);
+        }
+    }
+    XSetErrorHandler(default_error_handler);
+    if (!image) return false;
+    color->pixel = XGetPixel(image, 0, 0);
+    XDestroyImage (image);
+    XQueryColor (w->app->dpy, DefaultColormap(w->app->dpy, DefaultScreen (w->app->dpy)), color);
+    return true;
 }
 
 static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {
@@ -484,7 +498,7 @@ static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {
         Window child;
         XTranslateCoordinates( w->app->dpy, xbutton->window, DefaultRootWindow(
                             w->app->dpy), xbutton->x, xbutton->y, &x1, &y1, &child );
-        get_pixel(w, x1, y1, &c);
+        if (!get_pixel(w, x1, y1, &c)) return;
         double r = (double)c.red/65535.0;
         double g = (double)c.green/65535.0;
         double b = (double)c.blue/65535.0;
@@ -499,7 +513,7 @@ static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {
             Window child;
             XTranslateCoordinates( w->app->dpy, w->widget, DefaultRootWindow(
                             w->app->dpy), xbutton->x, xbutton->y, &x1, &y1, &child );
-            get_pixel(w, x1, y1, &c);
+            if (!get_pixel(w, x1, y1, &c)) return;
             double r = (double)c.red/65535.0;
             double g = (double)c.green/65535.0;
             double b = (double)c.blue/65535.0;
@@ -522,7 +536,7 @@ static void lum_callback(void *w_, void* UNUSED(user_data)) {
     Window child;
     XTranslateCoordinates( w->app->dpy, color_chooser->color_widget->widget, DefaultRootWindow(
             w->app->dpy), color_chooser->focus_x, color_chooser->focus_y, &x1, &y1, &child );
-    get_pixel(p, x1, y1, &c);
+    if (!get_pixel(p, x1, y1, &c)) return;
     double r = (double)c.red/65535.0;
     double g = (double)c.green/65535.0;
     double b = (double)c.blue/65535.0;
@@ -611,7 +625,7 @@ static void set_focus_motion(void *w_, void *xmotion_, void* UNUSED(user_data)) 
         Window child;
         XTranslateCoordinates( w->app->dpy, w->widget, DefaultRootWindow(
                         w->app->dpy), xmotion->x, xmotion->y, &x1, &y1, &child );
-        get_pixel(w, x1, y1, &c);
+        if (!get_pixel(w, x1, y1, &c)) return;
         double r = (double)c.red/65535.0;
         double g = (double)c.green/65535.0;
         double b = (double)c.blue/65535.0;
@@ -690,7 +704,7 @@ static void set_focus_on_key(void *w_, void *key_, void* UNUSED(user_data)) {
         Window child;
         XTranslateCoordinates( w->app->dpy, color_chooser->color_widget->widget, DefaultRootWindow(
                 w->app->dpy), color_chooser->focus_x, color_chooser->focus_y, &x1, &y1, &child );
-        get_pixel(w, x1, y1, &c);
+        if (!get_pixel(w, x1, y1, &c)) return;
         double r = (double)c.red/65535.0;
         double g = (double)c.green/65535.0;
         double b = (double)c.blue/65535.0;
