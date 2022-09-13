@@ -465,6 +465,20 @@ static bool is_in_circle(ColorChooser_t *color_chooser, int x, int y) {
     return (((a*a) + (b*b)) < (c * c));
 }
 
+static void get_pixel_fallback(ColorChooser_t *color_chooser, int x, int y, XColor *color) {
+    cairo_surface_t *pixel = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
+    cairo_t *cri = cairo_create (pixel);
+    cairo_set_source_surface (cri, color_chooser->color_widget->buffer, -x, -y);
+    cairo_paint (cri);
+
+    const unsigned char *data = cairo_image_surface_get_data(pixel);
+    color->red = (data[2]/255.0) * 65535.0;
+    color->green = (data[1]/255.0) * 65535.0;
+    color->blue = (data[0]/255.0) * 65535.0;
+    cairo_surface_destroy(pixel);
+    cairo_destroy(cri);
+}
+
 static bool get_pixel(Widget_t *w, int x, int y, XColor *color) {
     XImage *image = NULL;
     default_error_handler = XSetErrorHandler(dummy_error_handler);
@@ -476,14 +490,15 @@ static bool get_pixel(Widget_t *w, int x, int y, XColor *color) {
         XTranslateCoordinates( w->app->dpy, DefaultRootWindow(
                     w->app->dpy), color_chooser->color_widget->widget, x, y, &x1, &y1, &child );
         if (is_in_circle(color_chooser, x1, y1)) {
-            image = XGetImage (w->app->dpy, color_chooser->color_widget->widget, x1, y1, 1, 1, AllPlanes, ZPixmap);
+            get_pixel_fallback(color_chooser, x1, y1, color);
         }
     }
     XSetErrorHandler(default_error_handler);
-    if (!image) return false;
-    color->pixel = XGetPixel(image, 0, 0);
-    XDestroyImage (image);
-    XQueryColor (w->app->dpy, DefaultColormap(w->app->dpy, DefaultScreen (w->app->dpy)), color);
+    if (image) {
+        color->pixel = XGetPixel(image, 0, 0);
+        XDestroyImage (image);
+        XQueryColor (w->app->dpy, DefaultColormap(w->app->dpy, DefaultScreen (w->app->dpy)), color);
+    }
     return true;
 }
 
