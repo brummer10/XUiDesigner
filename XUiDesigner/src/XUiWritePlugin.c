@@ -21,6 +21,16 @@
 #include "XUiWritePlugin.h"
 #include "XUiGenerator.h"
 
+static void append(char **str, const char *buf) {
+    char *nstr;
+    if (*str == NULL) {
+        asprintf(&nstr, ", %s", buf);
+    } else {
+        asprintf(&nstr, "%s, %s", *str, buf);
+        free(*str);
+    }
+    *str = nstr;
+}
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -409,11 +419,11 @@ void print_plugin(XUiDesigner *designer) {
         }
     } else {
         for (;i<designer->lv2c.audio_input;i++) {
-            asprintf(&oports, ", %s",a_inputs[i]);
+            append(&oports, a_inputs[i]);
         }
         i = 0;
         for (;i<designer->lv2c.audio_output;i++) {
-            asprintf(&oports, ", %s",a_outputs[i]);
+            append(&oports, a_outputs[i]);
         }
     }
 

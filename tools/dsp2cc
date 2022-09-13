@@ -1589,7 +1589,7 @@ class Output(object):
             has_standalone_header = plugin_standalone,
             includes = self.parser_sect("includes"),
             incl_class = self.parser_sect("incl_class"),
-            namespace = self.parser.modname.replace("-","_"),
+            namespace = self.parser.modname.replace("-","_").lower(),
             var_decl = self.parser_sect("var-decl", indent=indent) % dd,
             static_decl = static_decl,
             has_activate = self.has_activate,
