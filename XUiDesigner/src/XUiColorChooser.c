@@ -480,6 +480,7 @@ static void get_pixel_fallback(ColorChooser_t *color_chooser, int x, int y, XCol
 }
 
 static bool get_pixel(Widget_t *w, int x, int y, XColor *color) {
+    bool ret = true;
     XImage *image = NULL;
     default_error_handler = XSetErrorHandler(dummy_error_handler);
     image = XGetImage (w->app->dpy, DefaultRootWindow(w->app->dpy), x, y, 1, 1, AllPlanes, ZPixmap);
@@ -491,6 +492,8 @@ static bool get_pixel(Widget_t *w, int x, int y, XColor *color) {
                     w->app->dpy), color_chooser->color_widget->widget, x, y, &x1, &y1, &child );
         if (is_in_circle(color_chooser, x1, y1)) {
             get_pixel_fallback(color_chooser, x1, y1, color);
+        } else {
+            ret = false;
         }
     }
     XSetErrorHandler(default_error_handler);
@@ -499,7 +502,7 @@ static bool get_pixel(Widget_t *w, int x, int y, XColor *color) {
         XDestroyImage (image);
         XQueryColor (w->app->dpy, DefaultColormap(w->app->dpy, DefaultScreen (w->app->dpy)), color);
     }
-    return true;
+    return ret;
 }
 
 static void get_color(void *w_, void* button_, void* UNUSED(user_data)) {

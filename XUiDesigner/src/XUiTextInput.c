@@ -256,7 +256,21 @@ void box_entry_set_value(Widget_t *w, float value) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
     char buffer[30] = { 0 };
-    snprintf(buffer, sizeof buffer, "%.3f", value);
+    const char* format[] = {"%.1f", "%.2f", "%.3f", "%.4f", "%.5f"};
+
+    float v = value - (int)value;
+    if (v>0.0099) {
+        snprintf(buffer, 29, format[1], value);
+    } else  if (v>0.00099) {
+        snprintf(buffer, 29, format[2], value);
+    } else  if (v>0.000099) {
+        snprintf(buffer, 29, format[3], value);
+    } else  if (v>0.0000099) {
+        snprintf(buffer, 29, format[4], value);
+    } else {
+        snprintf(buffer, 29, format[0], value);
+    }
+
     strcat(text_box->input_label, buffer);
     box_entry_set_curser_pos(w, strlen(text_box->input_label));
     expose_widget(w);
@@ -619,7 +633,8 @@ static void box_entry_get_text(void *w_, void *key_, void* UNUSED(user_data)) {
                     key->keycode == XKeysymToKeycode(w->app->dpy, XK_7) ||
                     key->keycode == XKeysymToKeycode(w->app->dpy, XK_8) ||
                     key->keycode == XKeysymToKeycode(w->app->dpy, XK_9) ||
-                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_period)) {
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_period) ||
+                    key->keycode == XKeysymToKeycode(w->app->dpy, XK_minus)) {
                     box_entry_add_text(w, buf);
                 }
             } else {
