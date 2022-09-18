@@ -176,14 +176,17 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
         return;
     }
     int p = 1;
+    int j = 0;
     designer->lv2c.audio_input = 0;
     designer->lv2c.audio_output = 0;
     designer->ui->flags |= FAST_REDRAW;
     while (fgets(buf, 128, fp) != NULL) {
         if (strstr(buf, "input") != NULL) {
             designer->lv2c.audio_input += 1;
+            j++;
         } else if (strstr(buf, "output") != NULL) {
             designer->lv2c.audio_output += 1;
+            j++;
         } else if (strstr(buf, "bypass") != NULL) {
             designer->lv2c.bypass = 1;
             if (designer->lv2c.bypass) {
@@ -191,10 +194,12 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
                 set_controller_callbacks(designer, wid, true);
                 designer->controls[designer->active_widget_num].destignation_enabled = true;
                 add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+                designer->controls[designer->active_widget_num].port_index = j;
                 if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
                     load_single_controller_image(designer, designer->global_switch_image_file);
                 designer->prev_active_widget = wid;
                 p++;
+                j++;
             }
         } else {
             char *ptr = strtok(buf, ",");
@@ -219,9 +224,11 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
             set_controller_callbacks(designer, wid, true);
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
+            designer->controls[designer->active_widget_num].port_index = j;
             if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
                 load_single_controller_image(designer, designer->global_knob_image_file);
             p++;
+            j++;
 
             free(label);
             label = NULL;

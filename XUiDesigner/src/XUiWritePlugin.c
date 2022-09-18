@@ -106,6 +106,7 @@ void print_plugin(XUiDesigner *designer) {
         }
         i = 0;
     }
+    bool have_bypass = false;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME ||
@@ -132,10 +133,15 @@ void print_plugin(XUiDesigner *designer) {
                 var = NULL;
             } else {
                 designer->lv2c.bypass = 1;
+                have_bypass = true;
                 printf ("    float* bypass;\n"
                 "    float bypass_;\n");
             }
         }
+    }
+    if (designer->is_faust_file && !have_bypass) {
+        printf ("    float* bypass;\n"
+        "    float bypass_;\n");
     }
     if (designer->lv2c.bypass) {
         printf ("    // bypass ramping\n"
@@ -220,6 +226,11 @@ void print_plugin(XUiDesigner *designer) {
                 printf ("%s\n    bypass_(2)",add_comma ? "," : "");
             }
         }
+    }
+    if (designer->is_faust_file && !have_bypass) {
+        printf ("%s\n    bypass(NULL)",add_comma ? "," : "");
+        add_comma = true;
+        printf ("%s\n    bypass_(2)",add_comma ? "," : "");
     }
     if (designer->lv2c.bypass) {
         printf ("%s\n    needs_ramp_down(false),\n"
@@ -316,9 +327,14 @@ void print_plugin(XUiDesigner *designer) {
             }
         }
     }
-        printf ("        default:\n"
-                "            break;\n"
-                "    }\n"
+    if (designer->is_faust_file && !have_bypass) {
+        printf ("        case %i:\n"
+                "            bypass = static_cast<float*>(data);\n"
+                "            break;\n", p);
+    }
+    printf ("        default:\n"
+            "            break;\n"
+            "    }\n"
     "}\n\n");
 
     printf ("void X%s::activate_f()\n"
