@@ -343,6 +343,24 @@ static void check_for_elem_colors(XUiDesigner *designer) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+int format(float value) {
+    float v = value - (int)value;
+    char s[30] = {0};
+    snprintf(s, 29, "%f", v);
+    unsigned int l = strlen(s)-1;
+    for(;l>0;l--) {
+        if (strstr(&s[l],"0")) {
+            s[l] = '\0';
+        } else {
+            break;
+        }
+    }
+    if (strstr(&s[l],".")) {
+        l++;
+    }
+    return l-1;
+}
+
 void print_list(XUiDesigner *designer) {
     int i = 0;
     int j = 0;
@@ -717,7 +735,9 @@ void print_list(XUiDesigner *designer) {
                 }
                 printf ("    ui->widget[%i] = %s (ui->widget[%i], %s, %i, \"%s\", ui, %i,  %i, %i * scale, %i * scale);\n", 
                     j, designer->controls[i].type, j, parent,
-                    designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
+                    designer->is_project ? designer->is_faust_file ?
+                    designer->controls[i].port_index : p : designer->controls[i].port_index,
+                    designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
                     designer->controls[i].wid-> width, designer->controls[i].wid->height);
                 free(parent);
@@ -774,9 +794,13 @@ void print_list(XUiDesigner *designer) {
                 }
             }
             if (designer->controls[i].have_adjustment) {
-                printf ("    set_adjustment(ui->widget[%i]->adj, %.3f, %.3f, %.3f, %.3f, %.3f, %s);\n", 
-                    j, adj_get_std_value(wid->adj), adj_get_std_value(wid->adj), adj_get_min_value(wid->adj),
-                    adj_get_max_value(wid->adj), wid->adj->step, parse_adjusment_type(wid->adj->type));
+                printf ("    set_adjustment(ui->widget[%i]->adj, %.*f, %.*f, %.*f, %.*f, %.*f, %s);\n", 
+                    j, format(adj_get_std_value(wid->adj)),adj_get_std_value(wid->adj),
+                    format(adj_get_std_value(wid->adj)), adj_get_std_value(wid->adj),
+                    format(adj_get_min_value(wid->adj)),adj_get_min_value(wid->adj),
+                    format(adj_get_max_value(wid->adj)), adj_get_max_value(wid->adj),
+                    format(wid->adj->step), wid->adj->step,
+                    parse_adjusment_type(wid->adj->type));
             }
             printf ("\n");
             if (designer->controls[i].is_type != IS_FRAME) {

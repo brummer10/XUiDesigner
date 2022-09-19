@@ -251,26 +251,27 @@ static void box_entry_set_curser_pos(Widget_t *w, int s) {
     expose_widget(w);
 }
 
+void remove_trailing_zeros(char* s) {
+    unsigned int l = strlen(s)-1;
+    for(;l>0;l--) {
+        if (strstr(&s[l],"0")) {
+            s[l] = '\0';
+        } else {
+            break;
+        }
+    }
+    if (strstr(&s[l],".")) {
+        s[l+1] = '0';
+    }
+}
+
 // public function, insert a value when used as numbox
 void box_entry_set_value(Widget_t *w, float value) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     memset(text_box->input_label, 0, 256 * (sizeof text_box->input_label[0]));
     char buffer[30] = { 0 };
-    const char* format[] = {"%.1f", "%.2f", "%.3f", "%.4f", "%.5f"};
-
-    float v = value - (int)value;
-    if (v>0.0099) {
-        snprintf(buffer, 29, format[1], value);
-    } else  if (v>0.00099) {
-        snprintf(buffer, 29, format[2], value);
-    } else  if (v>0.000099) {
-        snprintf(buffer, 29, format[3], value);
-    } else  if (v>0.0000099) {
-        snprintf(buffer, 29, format[4], value);
-    } else {
-        snprintf(buffer, 29, format[0], value);
-    }
-
+    snprintf(buffer, 29, "%f", value);
+    remove_trailing_zeros(buffer);
     strcat(text_box->input_label, buffer);
     box_entry_set_curser_pos(w, strlen(text_box->input_label));
     expose_widget(w);

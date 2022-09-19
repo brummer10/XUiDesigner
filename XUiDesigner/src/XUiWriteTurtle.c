@@ -210,8 +210,8 @@ void print_ttl(XUiDesigner *designer) {
                     "      lv2:index %i ;\n"
                     "      lv2:designation lv2:enabled ;\n"
                     "      lv2:portProperty lv2:toggled, pprop:trigger ;\n"
-                    "      lv2:symbol Bypass ;\n"
-                    "      lv2:name bypass ;\n"
+                    "      lv2:symbol \"Bypass\" ;\n"
+                    "      lv2:name \"bypass\" ;\n"
                     "      lv2:default 1 ;\n"
                     "      lv2:minimum 0 ;\n"
                     "      lv2:maximum 1 ;\n"
@@ -359,7 +359,7 @@ void print_ttl(XUiDesigner *designer) {
                             add_comma = true;
                     } else if (designer->controls[i].is_type == IS_BUTTON ||
                             designer->controls[i].is_type == IS_IMAGE_BUTTON) {
-                        printf ("%s, [\n"
+                        printf ("%s [\n"
                             "      a lv2:InputPort ,\n"
                             "          lv2:ControlPort ;\n"
                             "      lv2:index %i ;\n"
