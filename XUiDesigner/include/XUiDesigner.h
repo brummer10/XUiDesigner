@@ -109,6 +109,7 @@ typedef enum {
     IS_FRAME          ,
     IS_TABBOX         ,
     IS_IMAGE          ,
+    IS_MIDIKEYBOARD   ,
     // keep those below
     IS_FILE_BUTTON    ,
     IS_IMAGE_TOGGLE   ,
@@ -136,6 +137,7 @@ typedef struct {
     int slider_image_sprites;
     bool destignation_enabled;
     bool is_atom_patch;
+    bool is_midi_patch;
     bool is_audio_output;
     bool is_audio_input;
     bool is_atom_output;
@@ -297,6 +299,7 @@ typedef struct {
     int modify_mod;
     int wid_counter;
     int select_widget_num;
+    int MIDIPORT;
     char** new_label;
     char** tab_label;
     char* image_path;

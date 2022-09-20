@@ -399,6 +399,10 @@ static void set_widget_callback(void *w_, void* UNUSED(user_data)) {
             designer->drag_icon.w = 120;
             designer->drag_icon.h = 120;
         break;
+        case 15:
+            designer->drag_icon.w = 120;
+            designer->drag_icon.h = 60;
+        break;
         default:
             designer->drag_icon.w = 1;
             designer->drag_icon.h = 1;
@@ -839,7 +843,8 @@ void fix_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
             designer->controls[designer->active_widget_num].is_type == IS_HMETER ||
             designer->controls[designer->active_widget_num].is_type == IS_LABEL ||
             designer->controls[designer->active_widget_num].is_type == IS_WAVEVIEW ||
-            designer->controls[designer->active_widget_num].is_type == IS_TABBOX) {
+            designer->controls[designer->active_widget_num].is_type == IS_TABBOX ||
+            designer->controls[designer->active_widget_num].is_type == IS_MIDIKEYBOARD) {
             designer->menu_item_load->state = 4;
             designer->menu_item_unload->state = 4;
         } else {
@@ -860,7 +865,8 @@ void fix_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
         if (designer->controls[designer->active_widget_num].is_type == IS_FRAME ||
             designer->controls[designer->active_widget_num].is_type == IS_IMAGE ||
             designer->controls[designer->active_widget_num].is_type == IS_TABBOX ||
-            designer->controls[designer->active_widget_num].is_type == IS_WAVEVIEW ) {
+            designer->controls[designer->active_widget_num].is_type == IS_WAVEVIEW ||
+            designer->controls[designer->active_widget_num].is_type == IS_MIDIKEYBOARD ) {
             designer->ctype_switch->state = 4;
         } else {
             designer->ctype_switch->state = 0;
@@ -1291,6 +1297,7 @@ int main (int argc, char ** argv) {
     designer->tabbox_settings = NULL;
     designer->controller_settings = NULL;
     designer->cursor = 0;
+    designer->MIDIPORT = -1;
     reset_selection(designer);
     if (path !=NULL) asprintf(&designer->path, "%s", path);
     designer->new_label = NULL;
@@ -1402,6 +1409,7 @@ int main (int argc, char ** argv) {
     combobox_add_entry(designer->widgets,_("Frame"));
     combobox_add_entry(designer->widgets,_("Tab Box"));
     combobox_add_entry(designer->widgets,_("Image"));
+    combobox_add_entry(designer->widgets,_("MIDI Keyboard"));
     combobox_set_active_entry(designer->widgets, 0);
     tooltip_set_text(designer->widgets->childlist->childs[0], _("Select Controller Type"));
     combobox_set_menu_size(designer->widgets, 15);

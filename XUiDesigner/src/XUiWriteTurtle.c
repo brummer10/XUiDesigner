@@ -224,7 +224,8 @@ void print_ttl(XUiDesigner *designer) {
                 Widget_t * wid = designer->controls[i].wid;
                 if (designer->controls[i].is_type == IS_FRAME ||
                     designer->controls[i].is_type == IS_IMAGE ||
-                    designer->controls[i].is_type == IS_TABBOX) {
+                    designer->controls[i].is_type == IS_TABBOX ||
+                    designer->controls[i].is_type == IS_MIDIKEYBOARD) {
                     continue;
                 } else {
                     if (designer->controls[i].is_atom_patch) {

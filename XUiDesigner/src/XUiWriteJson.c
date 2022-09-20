@@ -145,7 +145,7 @@ static void print_colors(XUiDesigner *designer) {
     "        \".shadow\" :   [ %.3f, %.3f, %.3f, %.3f] ,\n"
     "        \".frame\" :    [ %.3f, %.3f, %.3f, %.3f] ,\n"
     "        \".light\" :    [ %.3f, %.3f, %.3f, %.3f] \n"
-    "      ] ,"
+    "      ] "
             ,c->fg[0],c->fg[1],c->fg[2],c->fg[3],
             c->bg[0],c->bg[1],c->bg[2],c->bg[3],
             c->base[0],c->base[1],c->base[2],c->base[3],
@@ -199,6 +199,9 @@ static const char* parse_type(WidgetType is_type) {
         break;
         case IS_IMAGE :
         return "IS_IMAGE";
+        break;
+        case IS_MIDIKEYBOARD :
+        return "IS_MIDIKEYBOARD";
         break;
         // keep those below
         case IS_FILE_BUTTON:
@@ -315,6 +318,7 @@ void print_json(XUiDesigner *designer, const char* filepath) {
 
     int i = 0;
     int j = 0;
+    int MIDI_PORT = -1;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && (designer->controls[i].is_type != IS_FRAME &&
                                                 designer->controls[i].is_type != IS_TABBOX &&
@@ -324,6 +328,12 @@ void print_json(XUiDesigner *designer, const char* filepath) {
                                                 !designer->controls[i].is_atom_output)) {
             j++;
         }
+        if (designer->controls[i].is_atom_input) {
+            MIDI_PORT = i;
+        }
+    }
+    if (designer->MIDIPORT > -1 && MIDI_PORT == -1) {
+        MIDI_PORT = designer->MIDIPORT;
     }
     json_start_object ("Project");
     json_add_string(designer->lv2c.ui_uri);
@@ -490,6 +500,10 @@ void print_json(XUiDesigner *designer, const char* filepath) {
                         json_add_string(comboboxlist->list_names[k]);
                     }
                     json_close_array();
+                }
+                if (designer->controls[i].is_type == IS_MIDIKEYBOARD) {
+                    json_add_key ("MIDIPORT");
+                    json_add_int(MIDI_PORT);
                 }
                 json_close_value_pair();
                 json_close_array();

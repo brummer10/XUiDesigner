@@ -285,6 +285,14 @@ Widget_t* add_lv2_file_button(Widget_t *w, Widget_t *p, PortIndex index, const c
     return w;
 }
 
+Widget_t* add_lv2_midikeyboard(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_midi_keyboard(p, label, x, y, width, height);
+    w->parent_struct = ui;
+    w->data = index;
+    return w;
+}
+
 void load_bg_image(X11_UI* ui, const char* image) {
     cairo_surface_t *getpng = cairo_image_surface_create_from_png (image);
     int width = cairo_image_surface_get_width(getpng);
@@ -365,6 +373,14 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
         free(ui);
         return NULL;
     }
+
+#ifdef USE_MIDI
+    lv2_atom_forge_init(&ui->forge,ui->map);
+    ui->atom_eventTransfer  = ui->map->map(ui->map->handle, LV2_ATOM__eventTransfer);
+    ui->midi_MidiEvent = ui->map->map(ui->map->handle, LV2_MIDI__MidiEvent);
+    ui->midiatom.type = ui->midi_MidiEvent;
+    ui->midiatom.size = 3;
+#endif
 
     float scale = 1.0;
     if (opts != NULL) {

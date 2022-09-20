@@ -371,6 +371,15 @@ void print_list(XUiDesigner *designer) {
     bool have_image = false;
     bool have_atom_in = false;
     bool have_atom_out = false;
+    bool have_midi_out = false;
+    int MIDI_PORT = -1;
+    int MIDIKEYBOARD = -1;
+    if (designer->lv2c.midi_input) {
+        MIDI_PORT = designer->lv2c.audio_input + designer->lv2c.audio_output +
+                    designer->lv2c.midi_input -1;
+    }
+    
+    i = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && (designer->controls[i].is_type != IS_FRAME &&
                                                 designer->controls[i].is_type != IS_IMAGE &&
@@ -388,11 +397,22 @@ void print_list(XUiDesigner *designer) {
                 l += designer->controls[i].wid->childlist->elem;
             }
         }
+        if (designer->controls[i].is_atom_input) {
+            MIDI_PORT = i;
+        }
+        if (designer->controls[i].is_midi_patch) {
+            have_midi_out = true;
+            MIDIKEYBOARD = j-1;
+        }
         if (designer->controls[i].is_atom_patch && designer->controls[i].is_type == IS_FILE_BUTTON) {
             have_atom_in = true;
         } else if (designer->controls[i].is_atom_patch && designer->controls[i].is_type != IS_FILE_BUTTON) {
             have_atom_out = true;
         }
+    }
+    
+    if (have_midi_out && designer->MIDIPORT > -1) {
+        MIDI_PORT = designer->MIDIPORT;
     }
     if (j) {
         printf ("\n#define CONTROLS %i\n", j);
@@ -430,8 +450,10 @@ void print_list(XUiDesigner *designer) {
     if (designer->image != NULL) {
         have_image = true;
     }
+    if (have_atom_in || have_atom_out || have_midi_out) {
+        printf ( "\n#define OBJ_BUF_SIZE 1024\n");
+    }
     if (have_atom_in || have_atom_out) {
-        printf ( "\n#define OBJ_BUF_SIZE 1024");
         printf ( "\n\ntypedef struct {\n");
         i = 0;
         for (;i<MAX_CONTROLS;i++) {
@@ -506,6 +528,43 @@ void print_list(XUiDesigner *designer) {
         print_colors(designer);
         printf ("#include \"%s\"\n\n\n"
         , designer->run_test? "ui_test.cc": "lv2_plugin.cc");
+        
+        if (have_midi_out && MIDI_PORT > -1) {
+            printf ("#ifdef USE_MIDI\n");
+            printf("static void send_midi_data(Widget_t *w, const int *key, const int control) {\n"
+            "    X11_UI *ui = (X11_UI*) w->parent_struct;\n"
+            "    MidiKeyboard *keys = (MidiKeyboard*)ui->widget[%i]->private_struct;\n"
+            "    uint8_t obj_buf[OBJ_BUF_SIZE];\n"
+            "    uint8_t vec[3];\n"
+            "    vec[0] = (int)control;\n"// Note On/Off or controller number
+            "    vec[0] |= keys->channel;\n" //channel
+            "    vec[1] = (*key);\n" // note
+            "    vec[2] = keys->velocity;\n" // velocity
+            "    lv2_atom_forge_set_buffer(&ui->forge, obj_buf, OBJ_BUF_SIZE);\n\n"
+
+            "    lv2_atom_forge_frame_time(&ui->forge,0);\n"
+            "    LV2_Atom* msg = (LV2_Atom*)lv2_atom_forge_raw(&ui->forge,&ui->midiatom,sizeof(LV2_Atom));\n"
+            "    lv2_atom_forge_raw(&ui->forge,vec, sizeof(vec));\n"
+            "    lv2_atom_forge_pad(&ui->forge,sizeof(vec)+sizeof(LV2_Atom));\n\n"
+            "    ui->write_function(ui->controller, %i, lv2_atom_total_size(msg),\n"
+            "                       ui->atom_eventTransfer, msg);\n\n"
+            "}\n", MIDIKEYBOARD, MIDI_PORT);
+
+            printf("static void xkey_press(void *w_, void *key_, void *user_data) {\n"
+            "        Widget_t *w = (Widget_t*)w_;\n"
+            "        X11_UI *ui = (X11_UI*) w->parent_struct;\n"
+            "        ui->widget[%i]->func.key_press_callback(ui->widget[%i], key_, user_data);\n\n"
+            "}\n", MIDIKEYBOARD, MIDIKEYBOARD);
+
+            printf("static void xkey_release(void *w_, void *key_, void *user_data) {\n"
+            "        Widget_t *w = (Widget_t*)w_;\n"
+            "        X11_UI *ui = (X11_UI*) w->parent_struct;\n"
+            "        ui->widget[%i]->func.key_release_callback(ui->widget[%i], key_, user_data);\n\n"
+            "}\n", MIDIKEYBOARD, MIDIKEYBOARD);
+            
+            printf("#endif\n");
+        }
+        
         if (have_atom_in) {
             printf ("#ifdef USE_ATOM\n");
 
@@ -614,6 +673,18 @@ void print_list(XUiDesigner *designer) {
         "void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri, float scale) {\n"
         "    set_costum_theme(ui->win);\n"
         , designer->ui->width, designer->ui->height, name? name:"Test");
+
+        if (have_midi_out && MIDI_PORT > -1) {
+                printf ("#ifdef USE_MIDI\n"
+                "    XSelectInput(ui->win->app->dpy, ui->win->widget,StructureNotifyMask|ExposureMask|KeyPressMask \n"
+                "        |EnterWindowMask|LeaveWindowMask|ButtonReleaseMask|KeyReleaseMask\n"
+                "        |ButtonPressMask|Button1MotionMask|PointerMotionMask);\n"
+                "    ui->win->flags |= NO_AUTOREPEAT | NO_PROPAGATE;\n"
+                "    ui->win->func.key_press_callback = xkey_press;\n"
+                "    ui->win->func.key_release_callback = xkey_release;\n"
+                "#endif\n\n");
+        }
+
         if (designer->image != NULL) {
             if (designer->run_test) {
                 printf ("    load_bg_image(ui,\"%s\");\n", designer->image);
@@ -735,7 +806,7 @@ void print_list(XUiDesigner *designer) {
                 }
                 printf ("    ui->widget[%i] = %s (ui->widget[%i], %s, %i, \"%s\", ui, %i,  %i, %i * scale, %i * scale);\n", 
                     j, designer->controls[i].type, j, parent,
-                    designer->is_project ? designer->is_faust_file ?
+                    designer->controls[i].is_midi_patch ? -1 : designer->is_project ? designer->is_faust_file ?
                     designer->controls[i].port_index : p : designer->controls[i].port_index,
                     designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
@@ -793,7 +864,7 @@ void print_list(XUiDesigner *designer) {
                     printf ("    combobox_add_entry (ui->widget[%i], \"%s\");\n", j, comboboxlist->list_names[ka]);
                 }
             }
-            if (designer->controls[i].have_adjustment) {
+            if (designer->controls[i].have_adjustment && !designer->controls[i].is_midi_patch) {
                 printf ("    set_adjustment(ui->widget[%i]->adj, %.*f, %.*f, %.*f, %.*f, %.*f, %s);\n", 
                     j, format(adj_get_std_value(wid->adj)),adj_get_std_value(wid->adj),
                     format(adj_get_std_value(wid->adj)), adj_get_std_value(wid->adj),
@@ -801,6 +872,20 @@ void print_list(XUiDesigner *designer) {
                     format(adj_get_max_value(wid->adj)), adj_get_max_value(wid->adj),
                     format(wid->adj->step), wid->adj->step,
                     parse_adjusment_type(wid->adj->type));
+            }
+            if (designer->controls[i].is_midi_patch && MIDI_PORT > -1) {
+                printf ("#ifdef USE_MIDI\n"
+                        "    MidiKeyboard *keys = (MidiKeyboard*)ui->widget[%i]->private_struct;\n"
+                        "    keys->mk_send_note = send_midi_data;\n"
+                        "#endif\n", j);
+                p--;
+            }
+            if (have_midi_out && MIDI_PORT > -1 && ! designer->controls[i].is_midi_patch) {
+                    printf ("#ifdef USE_MIDI\n"
+                            "    ui->widget[%i]->func.key_press_callback = xkey_press;\n"
+                            "    ui->widget[%i]->func.key_release_callback = xkey_release;\n"
+                            "#endif\n", j, j);
+
             }
             printf ("\n");
             if (designer->controls[i].is_type != IS_FRAME) {

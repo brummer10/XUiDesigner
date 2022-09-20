@@ -370,6 +370,27 @@ Widget_t *add_controller(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t 
             wid->func.leave_callback = null_callback;
             XLowerWindow(w->app->dpy, wid->widget);
         break;
+        case 15:
+            if (designer->is_json_file) {
+                Widget_t *dia = open_message_dialog(w, ERROR_BOX, "MIDI Keyboard",
+                                                _("Couldn't add MIDI Keyboard when work with a json file, sorry"),NULL);
+                XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+                return NULL;
+            }
+            asprintf(&designer->controls[designer->wid_counter].name, "Midikeyboard%i", designer->wid_counter);
+            wid = add_midi_keyboard(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-30, 120, 60);
+            wid->label = designer->controls[designer->wid_counter].name;
+            set_controller_callbacks(designer, wid, true);
+            designer->controls[wid->data].is_midi_patch = true;
+            adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)-1.0);
+            designer->controls[wid->data].port_index = -1;
+            add_to_list(designer, wid, "add_lv2_midikeyboard", false, IS_MIDIKEYBOARD);
+            wid->parent_struct = designer;
+            free(designer->controls[wid->data].image);
+            designer->controls[wid->data].image = NULL;
+            wid->func.enter_callback = null_callback;
+            wid->func.leave_callback = null_callback;
+        break;
         default:
             return NULL;
         break;

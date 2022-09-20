@@ -235,6 +235,14 @@ Widget_t* add_lv2_tab(Widget_t *w, Widget_t *p, PortIndex index, const char * la
     return w;
 }
 
+Widget_t* add_lv2_midikeyboard(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_midi_keyboard(p, label, x, y, width, height);
+    w->parent_struct = ui;
+    w->data = index;
+    return w;
+}
+
 void load_bg_image(X11_UI* ui, const char* image) {
     cairo_surface_t *getpng = NULL;
     if (strstr(image, ".png")) {

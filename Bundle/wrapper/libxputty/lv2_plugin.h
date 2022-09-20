@@ -25,7 +25,7 @@
 #include "lv2/lv2plug.in/ns/ext/worker/worker.h"
 #include <lv2/lv2plug.in/ns/ext/atom/atom.h>
 #include "lv2/lv2plug.in/ns/ext/options/options.h"
-#ifdef USE_ATOM
+#if defined USE_ATOM || defined USE_MIDI
 #include <lv2/lv2plug.in/ns/ext/atom/util.h>
 #include "lv2/lv2plug.in/ns/ext/atom/forge.h"
 #include <lv2/lv2plug.in/ns/ext/midi/midi.h>
@@ -75,6 +75,13 @@ typedef int PortIndex;
 
 // main window struct
 typedef struct {
+#ifdef USE_MIDI
+    LV2_URID midi_MidiEvent;
+    LV2_URID atom_eventTransfer;
+
+    LV2_Atom midiatom; 
+    LV2_Atom_Forge forge;
+#endif
     void *parentXwindow;
     Xputty main;
     Widget_t *win;
@@ -154,6 +161,9 @@ Widget_t* add_lv2_tabbox(Widget_t *w, Widget_t *p, PortIndex index, const char *
 Widget_t* add_lv2_tab(Widget_t *w, Widget_t *p, PortIndex index, const char * label, X11_UI* ui);
 
 Widget_t* add_lv2_file_button(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height);
+
+Widget_t* add_lv2_midikeyboard(Widget_t *w, Widget_t *p, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height);
 
 void load_bg_image(X11_UI* ui, const char* image);

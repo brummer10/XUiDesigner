@@ -279,6 +279,7 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
     int in_frame = 0;
     int in_tab = 0;
     int f = 0;
+    int MIDI_PORT = -1;
     double std = 0.5, minvalue = 0.0, maxvalue = 1.0, stepsize = 0.01;
     char *entrys = NULL;
     Widget_t *wi = designer->ui;
@@ -341,6 +342,11 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
             stepsize =  strtod(substr(buf, ":", ","), NULL);
         } else if (strstr(buf, "\"Enums\"") != NULL) {
             entrys = get_key(buf, "[", "]");
+        } else if (strstr(buf, "\"MIDIPORT\"") != NULL) {
+            char *ptr = strtok(buf, ":");
+            ptr = strtok(NULL, ",");
+            if (ptr != NULL)
+                MIDI_PORT = (int)strtod(ptr, NULL);
         } else if (strstr(buf, "}") != NULL) {
             //fprintf(stderr, "Stop object\n");
         } else if (strstr(buf, "]") != NULL) {            
@@ -407,7 +413,7 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
                 wi = designer->ui;
-            } else if (strstr(type, "add_lv2_hmeter") != NULL) {
+            } else if (strstr(type, "\"add_lv2_hmeter\"") != NULL) {
                 wid = add_hmeter(wi, designer->controls[designer->wid_counter].name, false, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
                 add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
@@ -418,6 +424,16 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
                 add_to_list(designer, wid, "add_lv2_waveview", false, IS_WAVEVIEW);
                 float v[9] = { 0.0,-0.5, 0.0, 0.5, 0.0, -0.5, 0.0, 0.5, 0.0};
                 update_waveview(wid, &v[0],9);
+                wi = designer->ui;
+            } else if (strstr(type, "\"add_lv2_midikeyboard\"") != NULL) {
+                wid = add_midi_keyboard(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
+                set_controller_callbacks(designer, wid, true);
+                designer->controls[wid->data].is_midi_patch = true;
+                designer->lv2c.midi_input = 1;
+                designer->MIDIPORT = MIDI_PORT;
+                wid->func.enter_callback = null_callback;
+                wid->func.leave_callback = null_callback;
+                add_to_list(designer, wid, "add_lv2_midikeyboard", false, IS_MIDIKEYBOARD);
                 wi = designer->ui;
             } else {
                 continue;

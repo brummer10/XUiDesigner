@@ -143,12 +143,14 @@ void print_makefile(XUiDesigner *designer) {
     char* cmd = NULL;
     char* cmd2 = NULL;
     bool use_atom = false;
+    bool use_midi = false;
     int i = 0;
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].is_atom_patch) {
             use_atom = true;
-            break;
-        }
+        } else if(designer->controls[i].is_midi_patch) {
+            use_midi = true;
+        } 
     }
     if (!designer->generate_ui_only) {
         char *uri = NULL;
@@ -239,9 +241,9 @@ void print_makefile(XUiDesigner *designer) {
             "endif\n\n"
             "$(EXEC_NAME):$(RESOURCES_OBJ)\n"
             "	@# use this line when you include libxputty as submodule\n"
-            "	@$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) $(GUI_LDFLAGS) -I./\n"
+            "	@$(CC) %s %s $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) $(GUI_LDFLAGS) -I./\n"
             "	$(CXX) $(CXXFLAGS) $(FAUSTFLAGS) $(EXEC_NAME).cpp $(LDFLAGS) -o $(EXEC_NAME).so\n"
-            "	@#$(CC) %s $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) -o \'$(EXEC_NAME)_ui.so\' $(SLP_LDFLAGS) -I./\n"
+            "	@#$(CC) %s %s $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) -o \'$(EXEC_NAME)_ui.so\' $(SLP_LDFLAGS) -I./\n"
             "	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(EXEC_NAME).so\n"
             "	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(EXEC_NAME)_ui.so\n\n"
             "install :\n"
@@ -261,7 +263,10 @@ void print_makefile(XUiDesigner *designer) {
                 designer->is_faust_synth_file ? " -DFAUST_META=1 -DFAUST_MIDICC=1 -DFAUST_MTS=1 -DFAUST_UI=0 -DVOICE_CTRLS=1 " : "",
                 designer->is_faust_synth_file ?  voices  : "",
                 "\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%",
-                "\%","\%","\%","\%","\%", use_atom ? "-DUSE_ATOM" : "");
+                "\%","\%","\%","\%","\%", use_atom ? "-DUSE_ATOM" : "",
+                use_midi ? "-DUSE_MIDI" : "",
+                use_atom ? "-DUSE_ATOM" : "",
+                use_midi ? "-DUSE_MIDI" : "");
         free(uri);
         uri = NULL;
         free(voices);
@@ -355,8 +360,8 @@ void print_makefile(XUiDesigner *designer) {
             "	$(AR) rcs $(patsubst %s.o,%s.a,$@) $@\n\n"
             "$(EXEC_NAME):$(RESOURCES_OBJ) $(SVGRESOURCES_OBJ)\n"
             "	@# use this line when you include libxputty as submodule\n"
-            "	@$(CC) $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) -L. $(SVGRESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR)\n"
-            "	@#$(CC) %s $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) -L. $(SVGRESOURCES_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./\n"
+            "	@$(CC) %s %s $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) -L. $(SVGRESOURCES_LIB) $(UI_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./ -I$(HEADER_DIR)\n"
+            "	@#$(CC) %s %s $(CFLAGS) \'$(NAME).c\' -L. $(RESOURCES_LIB) -L. $(SVGRESOURCES_LIB) -o \'$(EXEC_NAME)_ui.so\' $(LDFLAGS) -I./\n"
             "	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(EXEC_NAME)_ui.so\n\n"
             "install :\n"
             "ifneq (\"$(wildcard ./$(BUNDLE))\",\"\")\n"
@@ -375,7 +380,9 @@ void print_makefile(XUiDesigner *designer) {
                 "\%","\%","\%","\%","\%","\%","\%","\%","\%","\%",
                 "\%","\%","\%","\%","\%","\%","\%","\%","\%","\%",
                 "\%","\%","\\r\\n","\%","\%",
-                "\%","\%","\\r\\n","\%","\%","\%","\%","\%","\%","\%","\%", use_atom ? "-DUSE_ATOM" : "");
+                "\%","\%","\\r\\n","\%","\%","\%","\%","\%","\%","\%","\%",
+                use_atom ? "-DUSE_ATOM" : "", use_midi ? "-DUSE_MIDI" : "",
+                use_atom ? "-DUSE_ATOM" : "", use_midi ? "-DUSE_MIDI" : "");
     }
     printf("%s",cmd);
     printf("%s",cmd2);
