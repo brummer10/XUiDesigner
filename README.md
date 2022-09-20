@@ -16,7 +16,8 @@ So you could easily create a GUI for a existing plugin.
 A integrated Color chooser allow to create a Color theme for your GUI.
 Each Widget could be colored individual, or, when selected, a color theme could be used for all widgets.
 The created GUI could be saved as UI-Bundle, which then could be build (just make) and installed (just make install)
-to replace a exsiting one or provide a new GUI for the LV2 plugin. 
+to replace a exsiting one or provide a new GUI for the LV2 plugin.
+For later rework the UI, a json file is added, which you could load per drag 'n drop into XUiDesigner.
 
 You could as well create a LV2 plugin from scratch and save it as Full Plugin-Bundle to a selected location.
 The project settings window allow to setup the specs (like Author name, URI, Audio/Midi ports, etc.) for your plugin 
@@ -27,6 +28,7 @@ All you need to do to finish your plug is to implement your DSP part.
 XUiDesigner could also parse faust (*.dsp) files and generate a full LV2 Bundle for them (including MIDI support). 
 A faust (*.dsp) file could be given by the command-line parameter -f or simply by drag it on the Designer window. 
 It will create all control widgets which you could then rework to your needs before you save your Bundle.
+If you wish you could add a Virtual MIDI Keyboard to the UI for a fuast synth.
 
 when going to save your work, best choice is pre-selected in the format selector, change that only when you know what you do.
 
@@ -64,6 +66,7 @@ Here is a short introducion
  - TabBox
  - WaveView
  - File Chooser Button
+ - Virtual MIDI Keyboard 
 
 ## Build
 
