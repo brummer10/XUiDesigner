@@ -322,14 +322,26 @@ void print_json(XUiDesigner *designer, const char* filepath) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && (designer->controls[i].is_type != IS_FRAME &&
                                                 designer->controls[i].is_type != IS_TABBOX &&
+                                                designer->controls[i].is_type != IS_IMAGE &&
                                                 !designer->controls[i].is_audio_input &&
                                                 !designer->controls[i].is_audio_output &&
                                                 !designer->controls[i].is_atom_input &&
                                                 !designer->controls[i].is_atom_output)) {
             j++;
         }
-        if (designer->controls[i].is_atom_input) {
-            MIDI_PORT = i;
+    }
+    i = 0;
+    int m = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].wid != NULL && (designer->controls[i].is_type != IS_FRAME &&
+                                                designer->controls[i].is_type != IS_IMAGE &&
+                                                designer->controls[i].is_type != IS_TABBOX &&
+                                                designer->controls[i].is_type != IS_MIDIKEYBOARD)) {
+            if (designer->controls[i].is_atom_input) {
+                MIDI_PORT = m;
+                break;
+            }
+            m++;
         }
     }
     if (designer->MIDIPORT > -1 && MIDI_PORT == -1) {
