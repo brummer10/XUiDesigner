@@ -80,8 +80,14 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
     }
     if (is_synth) {
         if (voices == NULL) voices = strdup("8");
-        asprintf(&cmd, "faust2lv2 -nvoices %s -keep %s", voices, tmp);
+        char *tmp2 = strdup(tmp);
+        char *b = basename(tmp2);
+        asprintf(&cmd, "cp %s /tmp/%s", tmp, b);
         int ret = system(cmd);
+        free(cmd);
+        cmd = NULL;
+        asprintf(&cmd, "faust2lv2 -nvoices %s -keep /tmp/%s", voices, b);
+        ret = system(cmd);
         if (ret) {
             open_message_dialog(designer->ui, ERROR_BOX, "",
                 "Fail to parse faust file", NULL);        
@@ -93,16 +99,15 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
             lilv_world_free(designer->world);
             designer->world = NULL;
         }
-        char *tmp2 = strdup(tmp);
-        char *b = basename(tmp2);
         strdecode(b, ".dsp", ".cpp");
         strdecode(tmp, ".dsp", "");
+        char *folder = basename(tmp);
         free(designer->faust_synth_voices);
         designer->faust_synth_voices = NULL;
         asprintf(&designer->faust_synth_voices, "%s", voices);
         free(designer->faust_synth_file);
         designer->faust_synth_file = NULL;
-        asprintf(&designer->faust_synth_file, "%s/%s", tmp, b);
+        asprintf(&designer->faust_synth_file, "/tmp/%s/%s", folder, b);
         designer->is_faust_synth_file = true;
 
         combobox_delete_entrys(designer->lv2_uris);
@@ -112,14 +117,14 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
         designer->world = lilv_world_new();
         free(designer->path);
         designer->path = NULL;
-        asprintf(&designer->path, "%s", tmp);
+        asprintf(&designer->path, "/tmp/%s", folder);
         load_lv2_uris (designer);
         combobox_set_active_entry(designer->lv2_uris, 1);
         combobox_set_active_entry(designer->lv2_names, 1);
 
         free(designer->lv2c.ui_uri);
         designer->lv2c.ui_uri = NULL;
-        asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), basename(tmp),"_ui");
+        asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), folder,"_ui");
 
         free(voices);
         voices = NULL;
