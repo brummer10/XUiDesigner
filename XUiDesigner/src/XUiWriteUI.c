@@ -558,20 +558,26 @@ void print_list(XUiDesigner *designer) {
             "    lv2_atom_forge_raw(&ui->forge,vec, sizeof(vec));\n"
             "    lv2_atom_forge_pad(&ui->forge,sizeof(vec)+sizeof(LV2_Atom));\n\n"
             "    ui->write_function(ui->controller, %i, lv2_atom_total_size(msg),\n"
-            "                       ui->atom_eventTransfer, msg);\n\n"
-            "}\n", MIDIKEYBOARD, MIDI_PORT);
+            "                       ui->atom_eventTransfer, msg);\n"
+            "}\n\n", MIDIKEYBOARD, MIDI_PORT);
+
+            printf("static void send_all_notes_off(Widget_t *w, const int *value){\n"
+            "        X11_UI *ui = (X11_UI*) w->parent_struct;\n"
+            "        int key = 120;\n"
+            "        send_midi_data(ui->widget[%i], &key, 0xB0);\n"
+            "}\n\n", MIDIKEYBOARD);
 
             printf("static void xkey_press(void *w_, void *key_, void *user_data) {\n"
             "        Widget_t *w = (Widget_t*)w_;\n"
             "        X11_UI *ui = (X11_UI*) w->parent_struct;\n"
-            "        ui->widget[%i]->func.key_press_callback(ui->widget[%i], key_, user_data);\n\n"
-            "}\n", MIDIKEYBOARD, MIDIKEYBOARD);
+            "        ui->widget[%i]->func.key_press_callback(ui->widget[%i], key_, user_data);\n"
+            "}\n\n", MIDIKEYBOARD, MIDIKEYBOARD);
 
             printf("static void xkey_release(void *w_, void *key_, void *user_data) {\n"
             "        Widget_t *w = (Widget_t*)w_;\n"
             "        X11_UI *ui = (X11_UI*) w->parent_struct;\n"
-            "        ui->widget[%i]->func.key_release_callback(ui->widget[%i], key_, user_data);\n\n"
-            "}\n", MIDIKEYBOARD, MIDIKEYBOARD);
+            "        ui->widget[%i]->func.key_release_callback(ui->widget[%i], key_, user_data);\n"
+            "}\n\n", MIDIKEYBOARD, MIDIKEYBOARD);
             
             printf("#endif\n");
         }
@@ -888,6 +894,7 @@ void print_list(XUiDesigner *designer) {
                 printf ("#ifdef USE_MIDI\n"
                         "    MidiKeyboard *keys = (MidiKeyboard*)ui->widget[%i]->private_struct;\n"
                         "    keys->mk_send_note = send_midi_data;\n"
+                        "    keys->mk_send_all_sound_off = send_all_notes_off;\n"
                         "#endif\n", j);
                 p--;
             }
