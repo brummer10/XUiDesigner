@@ -334,9 +334,9 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
             adjustment =  get_string(buf, ":", ",");
         } else if  (strstr(buf, "\"Default Value\"") != NULL) {
             std =  strtod(substr(buf, ":", ","), NULL);
-        } else if  (strstr(buf, "\"min Value\"") != NULL) {
+        } else if  (strstr(buf, "\"Min Value\"") != NULL) {
             minvalue =  strtod(substr(buf, ":", ","), NULL);
-        } else if  (strstr(buf, "\"max Value\"") != NULL) {
+        } else if  (strstr(buf, "\"Max Value\"") != NULL) {
             maxvalue =  strtod(substr(buf, ":", ","), NULL);
         } else if  (strstr(buf, "\"Step Size\"") != NULL) {
             stepsize =  strtod(substr(buf, ":", ","), NULL);

@@ -400,7 +400,7 @@ static void set_widget_callback(void *w_, void* UNUSED(user_data)) {
             designer->drag_icon.h = 120;
         break;
         case 15:
-            designer->drag_icon.w = 120;
+            designer->drag_icon.w = 147;
             designer->drag_icon.h = 60;
         break;
         default:

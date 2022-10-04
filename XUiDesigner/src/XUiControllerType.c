@@ -378,7 +378,7 @@ Widget_t *add_controller(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t 
                 return NULL;
             }
             asprintf(&designer->controls[designer->wid_counter].name, "Midikeyboard%i", designer->wid_counter);
-            wid = add_midi_keyboard(w, designer->controls[designer->wid_counter].name, xbutton->x-60, xbutton->y-30, 120, 60);
+            wid = add_midi_keyboard(w, designer->controls[designer->wid_counter].name, xbutton->x-73, xbutton->y-30, 147, 60);
             wid->label = designer->controls[designer->wid_counter].name;
             set_controller_callbacks(designer, wid, true);
             designer->controls[wid->data].is_midi_patch = true;
