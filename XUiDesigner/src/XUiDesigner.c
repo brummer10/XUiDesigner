@@ -1245,6 +1245,7 @@ int main (int argc, char ** argv) {
     designer->wid_counter = 0;
     designer->image_path = NULL;
     designer->image = NULL;
+    designer->cc_file = NULL;
     designer->faust_file = NULL;
     designer->faust_path = NULL;
     designer->faust_synth_file = NULL;
@@ -1280,6 +1281,7 @@ int main (int argc, char ** argv) {
     designer->grid_view = false;
     designer->is_project = true;
     designer->set_project = NULL;
+    designer->is_cc_file = false;
     designer->is_faust_file = false;
     designer->is_faust_synth_file = false;
     designer->is_json_file = false;
@@ -1618,6 +1620,7 @@ int main (int argc, char ** argv) {
     free(designer->tab_label);
     free(designer->image_path);
     free(designer->image);
+    free(designer->cc_file);
     free(designer->faust_file);
     free(designer->faust_path);
     free(designer->faust_synth_file);

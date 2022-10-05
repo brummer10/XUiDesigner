@@ -270,6 +270,7 @@ typedef struct {
     bool run_test;
     bool grid_view;
     bool is_project;
+    bool is_cc_file;
     bool is_faust_file;
     bool is_faust_synth_file;
     bool is_json_file;
@@ -304,6 +305,7 @@ typedef struct {
     char** tab_label;
     char* image_path;
     char* image;
+    char* cc_file;
     char* faust_file;
     char* faust_path;
     char* faust_synth_file;

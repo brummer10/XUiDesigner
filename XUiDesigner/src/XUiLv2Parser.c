@@ -73,6 +73,8 @@ void reset_plugin_ui(XUiDesigner *designer) {
     designer->modify_mod = XUI_NONE;
     designer->active_widget = NULL;
     designer->is_project = true;
+    designer->is_cc_file = false;
+    designer->is_faust_synth_file = false;
     designer->is_faust_file = false;
     designer->is_json_file = false;
     designer->regenerate_ui = false;

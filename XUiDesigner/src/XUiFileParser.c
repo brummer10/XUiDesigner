@@ -275,29 +275,110 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
 }
 
 static void parse_c_file (XUiDesigner *designer, char* filename) {
-    fprintf(stderr, "Parse C file\n");
+    char* cmd = NULL;
+    char* outname = strdup(filename);
+    free(designer->cc_file);
+    designer->cc_file = NULL;
+    asprintf(&designer->cc_file, "%s", filename);
     char buf[128];
     FILE *fp;
-    if((fp = fopen(filename, "r")) == NULL) {
+    asprintf(&cmd, "cat %s | sed -n '/typedef enum/,/} PortIndex;/p' |  sed '/typedef enum/d;/} PortIndex;/d;/{/d;/}/d'", outname);
+    if((fp = popen(cmd, "r")) == NULL) {
         printf("Error opening pipe!\n");
         return;
     }
-
+    int p = 1;
+    int j = 0;
     designer->lv2c.audio_input = 0;
     designer->lv2c.audio_output = 0;
+    designer->ui->flags |= FAST_REDRAW;
     while (fgets(buf, 128, fp) != NULL) {
         if (strstr(buf, "input") != NULL) {
             designer->lv2c.audio_input += 1;
+            j++;
         } else if (strstr(buf, "output") != NULL) {
             designer->lv2c.audio_output += 1;
+            j++;
+        } else if (strstr(buf, "bypass") != NULL) {
+            designer->lv2c.bypass = 1;
+            if (designer->lv2c.bypass) {
+                Widget_t *wid = add_toggle_button(designer->ui, "Bypass", 60*p, 60, 60, 60);
+                set_controller_callbacks(designer, wid, true);
+                designer->controls[designer->active_widget_num].destignation_enabled = true;
+                add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+                designer->controls[designer->active_widget_num].port_index = j;
+                if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
+                    load_single_controller_image(designer, designer->global_switch_image_file);
+                designer->prev_active_widget = wid;
+                p++;
+                j++;
+            }
+        } else {
+            char *ptr = strtok(buf, ",");
+            strdecode(ptr, " ", "");
+            char *label;
+            float v[8] = {0,0,0,0};
+            int i = 0;
+            asprintf(&label, "%s", ptr);
+            while(ptr != NULL) {
+                ptr = strtok(NULL, ",");
+                if (ptr != NULL) {
+                    if (strstr(ptr, "//") == NULL) {
+                        v[i] = strtod(ptr, NULL);
+                        i++;
+                    }
+                }
+            }
+            
+            asprintf(&designer->controls[designer->wid_counter].name, "%s", label);
+            Widget_t *wid = add_knob(designer->ui, designer->controls[designer->wid_counter].name, 60*p + 10*p, 60, 60, 80);
+            set_adjustment(wid->adj, v[0], v[0], v[1], v[2], v[3], CL_CONTINUOS);
+            set_controller_callbacks(designer, wid, true);
+            tooltip_set_text(wid, wid->label);
+            add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
+            designer->controls[designer->active_widget_num].port_index = j;
+            if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
+                load_single_controller_image(designer, designer->global_knob_image_file);
+            p++;
+            j++;
+
+            free(label);
+            label = NULL;
         }
-        fprintf(stderr, "%s", buf);
+        //printf("OUTPUT: %s", buf);
     }
-  
-    if (fclose(fp)) {
+    if (pclose(fp)) {
         printf("Command not found or exited with error status\n");
         return;
     }
+    designer->ui->width = min(1200, 60 + 70*p);
+    designer->ui->height = 120;
+    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
+
+    strdecode(outname, ".cc", "");
+    widget_set_title(designer->ui,basename(outname));
+    free(designer->lv2c.ui_uri);
+    designer->lv2c.ui_uri = NULL;
+    asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), basename(outname),"_ui");
+    free(designer->lv2c.uri);
+    designer->lv2c.uri = NULL;
+    asprintf(&designer->lv2c.uri, "urn:%s:%s", getUserName(), basename(outname));
+    designer->is_cc_file = true;
+    free(cmd);
+    cmd = NULL;    
+    free(outname);
+    outname = NULL;
+    if (!designer->ttlfile_view) create_text_view_window(designer);
+    XWindowAttributes attrs;
+    XGetWindowAttributes(designer->ttlfile_view->app->dpy, (Window)designer->ttlfile_view->widget, &attrs);
+    if (attrs.map_state == IsViewable) {
+        run_generate_ttl(designer->ttlfile, NULL);
+    }
+    pthread_t rf;
+    pthread_create(&rf, NULL, reset_flag, (void *)designer);
+    //print_ttl(designer);
+    //print_plugin(designer);
+    //print_makefile(designer);
 }
 
 void dnd_load_response(void *w_, void* user_data) {
@@ -310,7 +391,7 @@ void dnd_load_response(void *w_, void* user_data) {
         while (dndfile != NULL) {
             if (strstr(dndfile, ".dsp") ) {
                 parse_faust_file (designer, dndfile);
-            } else if (strstr(dndfile, ".c") ) {
+            } else if (strstr(dndfile, ".cc") ) {
                 parse_c_file (designer, dndfile);
             } else if (strstr(dndfile, ".json") ) {
                 read_json (designer, dndfile);

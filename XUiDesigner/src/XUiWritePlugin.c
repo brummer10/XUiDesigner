@@ -43,6 +43,7 @@ void print_plugin(XUiDesigner *designer) {
     int a = 0;
     char * a_outputs[16];
     int o = 0;
+    bool parse_file = designer->is_faust_file ? true : designer->is_cc_file ? true : false;
     char *name = NULL;
     XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
     if (name == NULL) asprintf(&name, "%s", "noname");
@@ -68,6 +69,11 @@ void print_plugin(XUiDesigner *designer) {
     if (designer->is_faust_file) {
         char* tmp = strdup(designer->faust_file);
         printf ("#define __rt_data __attribute__((section(\".rt.data\")))\n");
+        printf ("#include \"%s\"\n\n", basename(tmp));
+        free(tmp);
+        tmp = NULL;
+    } else if (designer->is_cc_file) {
+        char* tmp = strdup(designer->cc_file);
         printf ("#include \"%s\"\n\n", basename(tmp));
         free(tmp);
         tmp = NULL;
@@ -125,7 +131,7 @@ void print_plugin(XUiDesigner *designer) {
                     printf ("    float* %s;\n", var);
                     a_outputs[o] = strdup(var);
                     o++;
-                } else if (!designer->is_faust_file) {
+                } else if (!parse_file) {
                     printf ("    float* %s;\n"
                     "    float %s_;\n", var, var);
                 }
@@ -139,7 +145,7 @@ void print_plugin(XUiDesigner *designer) {
             }
         }
     }
-    if (designer->is_faust_file && !have_bypass) {
+    if (parse_file && !have_bypass) {
         printf ("    float* bypass;\n"
         "    float bypass_;\n");
     }
@@ -153,7 +159,7 @@ void print_plugin(XUiDesigner *designer) {
         "    float ramp_down_step;\n"
         "    bool bypassed;\n\n");
     }
-    if (designer->is_faust_file) {
+    if (parse_file) {
         printf ("    %s::Dsp* plugin;\n\n", name);
     }
 
@@ -213,7 +219,7 @@ void print_plugin(XUiDesigner *designer) {
                 designer->controls[i].is_type == IS_TABBOX) {
                 continue;
             }
-            if (!designer->controls[i].destignation_enabled && !designer->is_faust_file) {
+            if (!designer->controls[i].destignation_enabled && !parse_file) {
                 char* var = strdup(designer->controls[i].wid->label);
                 strtovar(var);
                 printf ("%s\n    %s(NULL)",add_comma ? "," : "", var);
@@ -227,7 +233,7 @@ void print_plugin(XUiDesigner *designer) {
             }
         }
     }
-    if (designer->is_faust_file && !have_bypass) {
+    if (parse_file && !have_bypass) {
         printf ("%s\n    bypass(NULL)",add_comma ? "," : "");
         add_comma = true;
         printf ("%s\n    bypass_(2)",add_comma ? "," : "");
@@ -237,7 +243,7 @@ void print_plugin(XUiDesigner *designer) {
         "    needs_ramp_up(false),\n"
         "    bypassed(false)", add_comma ? "," : "");
     }
-    if (designer->is_faust_file) {
+    if (parse_file) {
         printf (",\n"
         "    plugin(%s::plugin())", name);
     }
@@ -245,7 +251,7 @@ void print_plugin(XUiDesigner *designer) {
 
     printf ("// destructor\n"
     "X%s::~X%s() {", name, name);
-    if (designer->is_faust_file) {
+    if (parse_file) {
         printf ("\n    plugin->del_instance(plugin);\n");
     }
     printf ("};\n\n");
@@ -254,7 +260,7 @@ void print_plugin(XUiDesigner *designer) {
     printf ("///////////////////////// PRIVATE CLASS  FUNCTIONS /////////////////////\n\n"
     "void X%s::init_dsp_(uint32_t rate)\n"
     "{\n", name);
-    if (designer->is_faust_file) {
+    if (parse_file) {
         printf ("    plugin->init(rate);\n");
     }
     if (designer->lv2c.bypass) {
@@ -310,7 +316,7 @@ void print_plugin(XUiDesigner *designer) {
                 designer->controls[i].is_atom_output ) {
                 continue;
             }
-            if (!designer->controls[i].destignation_enabled && !designer->is_faust_file) {
+            if (!designer->controls[i].destignation_enabled && !parse_file) {
                 char* var = strdup(designer->controls[i].wid->label);
                 strtovar(var);
                 printf ("        case %i:\n"
@@ -327,7 +333,7 @@ void print_plugin(XUiDesigner *designer) {
             }
         }
     }
-    if (designer->is_faust_file && !have_bypass) {
+    if (parse_file && !have_bypass) {
         printf ("        case %i:\n"
                 "            bypass = static_cast<float*>(data);\n"
                 "            break;\n", p);
@@ -357,7 +363,7 @@ void print_plugin(XUiDesigner *designer) {
     "    if(n_samples<1) return;\n\n", name);
 
     i = 0;
-    if (!designer->controls[i].destignation_enabled && !designer->is_faust_file) {
+    if (!designer->controls[i].destignation_enabled && !parse_file) {
         printf ("    // get controller values\n");
         for (;i<MAX_CONTROLS;i++) {
             if (designer->controls[i].wid != NULL) {
@@ -475,7 +481,7 @@ void print_plugin(XUiDesigner *designer) {
         }
         printf ("    if (!bypassed) {\n    ");
     }
-    if (!designer->is_faust_file) {
+    if (!parse_file) {
         printf ("    for (uint32_t i = 0; i<n_samples; i++) {\n");
         i = 0;
         for (;i<designer->lv2c.audio_output;i++) {
@@ -533,7 +539,7 @@ void print_plugin(XUiDesigner *designer) {
             "                ++ramp_up ;\n"
             "            }\n"
             "            fade = min(ramp_up_step,ramp_up) /ramp_up_step ;\n",
-            designer->is_faust_file ? "plugin->clear_state_f();\n" : "");
+            parse_file ? "plugin->clear_state_f();\n" : "");
             i = 0;
             for (;i<designer->lv2c.audio_input;i++) {            
                 printf ("            %s[i] = %s[i] * fade + buf%i[i] * (1.0 - fade);\n",
@@ -563,7 +569,7 @@ void print_plugin(XUiDesigner *designer) {
                 designer->controls[i].is_atom_output) {
                 continue;
             }
-            if (!designer->controls[i].destignation_enabled && !designer->is_faust_file) {
+            if (!designer->controls[i].destignation_enabled && !parse_file) {
                 char* var = strdup(designer->controls[i].wid->label);
                 strtovar(var);
                 printf ("#undef  %s_\n", var);
@@ -578,7 +584,7 @@ void print_plugin(XUiDesigner *designer) {
     "{\n"
     "    // connect the Ports used by the plug-in class\n"
     "    connect_(port,data); \n", name);
-    if (designer->is_faust_file) {
+    if (parse_file) {
         printf("    plugin->connect(port,data);");
     }
     

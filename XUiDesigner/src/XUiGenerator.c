@@ -598,6 +598,16 @@ void run_save(void *w_, void* user_data) {
                     free(directory);
                     directory = NULL;
                 }
+                if (designer->is_cc_file) {
+                    asprintf(&cmd, "cp %s \'%s\'", designer->cc_file, filepath);
+                    ret = system(cmd);
+                    if (!ret) {
+                        free(cmd);
+                        cmd = NULL;
+                    }
+                    free(cmd);
+                    cmd = NULL;
+                }
 
                 asprintf(&filename, "%s/XUiDesigner/wrapper/libxputty/lv2_plugin.h", SHARE_DIR);
                 if (access(filename, F_OK) == 0) {
