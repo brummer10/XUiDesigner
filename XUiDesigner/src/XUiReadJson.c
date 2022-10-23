@@ -197,6 +197,7 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
         } else if (strstr(buf, "}") != NULL) {
             //fprintf(stderr, "Stop object\n");
         } else if (strstr(buf, "]") != NULL) {
+            if (!type) continue;
             Widget_t *wi = designer->ui;
             asprintf(&designer->controls[designer->wid_counter].name, "%s", label);
             if (strstr(type, "\"add_lv2_frame\"") != NULL) {
@@ -213,6 +214,8 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 wid[elems]->func.leave_callback = null_callback;
                 XLowerWindow(wi->app->dpy, wid[elems]->widget);
                 win = wid[elems];
+                free(type);
+                type = NULL;
                 elems++;
 
             } else if (strstr(type, "\"add_lv2_tabbox\"") != NULL) {
@@ -229,6 +232,8 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 tabbox->func.leave_callback = null_callback;
                 XLowerWindow(wi->app->dpy, tabbox->widget);
                 win = tabbox;
+                free(type);
+                type = NULL;
                 elems++;
             } else if (strstr(type, "\"add_lv2_tab\"") != NULL) {
                 tab[tabs] = tabbox_add_tab(tabbox, label);
@@ -237,6 +242,8 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 tab[tabs]->func.button_press_callback = set_pos_tab;
                 tab[tabs]->func.button_release_callback = fix_pos_tab;
                 tab[tabs]->func.motion_callback = move_tab;
+                free(type);
+                type = NULL;
                 tabs++;
 
             } else if (strstr(type, "\"add_lv2_image\"") != NULL) {
@@ -254,7 +261,11 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
                 wid[elems]->func.leave_callback = null_callback;
                 XLowerWindow(wi->app->dpy, wid[elems]->widget);
                 win = wid[elems];
+                free(type);
+                type = NULL;
             } else {
+                free(type);
+                type = NULL;
                 continue;
             }
             if (image != NULL) 
