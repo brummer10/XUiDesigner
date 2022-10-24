@@ -317,6 +317,7 @@ typedef struct {
     char* global_hslider_image_file;
     char* path;
     char* json_file_path;
+    char* resource_path;
     LV2_CONTROLLER lv2c;
     Controller controls[MAX_CONTROLS];
 } XUiDesigner;

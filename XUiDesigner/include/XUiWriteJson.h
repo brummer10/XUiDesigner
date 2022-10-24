@@ -32,7 +32,7 @@
 extern "C" {
 #endif
 
-void print_json(XUiDesigner *designer, const char* filepath);
+void print_json(XUiDesigner *designer);
 
 #ifdef __cplusplus
 }

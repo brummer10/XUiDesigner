@@ -49,6 +49,13 @@ static char *get_key(const char *buf, char *s, char *e) {
     return get;
 }
 
+static char *get_resource_path(char *path, char *image) {
+    char *s = NULL;
+    char *b = basename(image);
+    asprintf(&s, "%sresources/%s", path, b);
+    return s;
+}
+
 static void get_color (char *buf, double *c) {
     char *ptr = strtok(buf, "[");
     ptr = strtok(NULL, ",");
@@ -189,7 +196,7 @@ void get_ui_elem(XUiDesigner *designer, Widget_t **wid, Widget_t **tab, FILE *fp
             if (ptr != NULL)
                 h = (int)strtod(ptr, NULL);      
         } else if  (strstr(buf, "\"Image\"") != NULL) {
-            image =  get_string(buf, ":", ",");
+            image =  get_resource_path(designer->resource_path, get_string(buf, ":", ","));
             if (strstr(image, "None") != NULL) {
                 free(image);
                 image = NULL;
@@ -320,7 +327,7 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
             if (ptr != NULL)
                 h = (int)strtod(ptr, NULL);      
         } else if  (strstr(buf, "\"Image\"") != NULL) {
-            image =  get_string(buf, ":", ",");
+            image =  get_resource_path(designer->resource_path, get_string(buf, ":", ","));
             if (strstr(image, "None") != NULL) {
                 free(image);
                 image = NULL;
@@ -487,7 +494,15 @@ void read_json(XUiDesigner *designer, const char *filename) {
     free(designer->json_file_path);
     designer->json_file_path = NULL;
     asprintf(&designer->json_file_path, "%s/", dirname(dirname(tmp)));
-    //fprintf(stderr, "%s\n", designer->json_file_path);
+    free(tmp);
+    tmp = NULL;
+    tmp = strdup(filename);
+    free(designer->resource_path);
+    designer->resource_path = NULL;
+    asprintf(&designer->resource_path, "%s/", dirname(tmp));
+    free(tmp);
+    tmp = NULL;
+    
     char* ui_image = NULL;
     char buf[128];
     static bool r = true;
@@ -526,7 +541,8 @@ void read_json(XUiDesigner *designer, const char *filename) {
             designer->ui->height = (int)strtod(substr(buf, ",", "]"), NULL);
             XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height+1);
         } else if (strstr(buf, "\"Image\"") != NULL) {
-            asprintf(&ui_image, "%s", get_string(buf, ":", ","));
+            ui_image = get_resource_path(designer->resource_path, get_string(buf, ":", ","));
+            //asprintf(&ui_image, "%s", get_string(buf, ":", ","));
             image_load_response(designer->image_loader, (void*)&ui_image);
         } else if (strstr(buf, "IS_") != NULL) {
             if (r) { // don't read again after fseek the read pointer

@@ -1258,6 +1258,7 @@ int main (int argc, char ** argv) {
     designer->global_vslider_image_sprites = 101;
     designer->global_hslider_image_sprites = 101;
     designer->json_file_path = NULL;
+    designer->resource_path = NULL;
     designer->run_test = false;
     designer->lv2c.ui_uri = NULL;
     asprintf(&designer->lv2c.ui_uri, "urn:%s:%s", getUserName(), "test_ui");
@@ -1631,6 +1632,7 @@ int main (int argc, char ** argv) {
     free(designer->global_vslider_image_file);
     free(designer->global_hslider_image_file);
     free(designer->json_file_path);
+    free(designer->resource_path);
     free(designer->lv2c.ui_uri);
     free(designer->lv2c.uri);
     free(designer->lv2c.author);

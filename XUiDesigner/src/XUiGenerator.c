@@ -487,7 +487,7 @@ void run_save(void *w_, void* user_data) {
         if((fpm=freopen(json_file, "w" ,stdout))==NULL) {
             printf("open failed\n");
         }
-        print_json(designer, filepath);
+        print_json(designer);
         fclose(fpm);
         fpm = NULL;
         free(json_file);

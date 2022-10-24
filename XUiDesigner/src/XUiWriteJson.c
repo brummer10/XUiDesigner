@@ -292,7 +292,7 @@ static void check_for_Widget_color(XUiDesigner *designer, Widget_t * wid) {
     }
 }
 
-char *set_resource_path(XUiDesigner *designer, const char* filepath, const char* image) {
+char *set_resource_path(XUiDesigner *designer, const char* image) {
     char* tmp = strdup(image);
     char* xldl = strdup(basename(tmp));
     free(tmp);
@@ -306,12 +306,12 @@ char *set_resource_path(XUiDesigner *designer, const char* filepath, const char*
     } else if (strstr(designer->image, ".svg")) {
         strdecode(xldl, "_svg", ".svg");
     }
-    asprintf(&fxldl, "%s/resources/%s", filepath, xldl);
+    asprintf(&fxldl, "resources/%s", xldl);
     free(xldl);
     return fxldl;
 }
 
-void print_json(XUiDesigner *designer, const char* filepath) {
+void print_json(XUiDesigner *designer) {
     char *name = NULL;
     XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
     if (name == NULL) asprintf(&name, "%s", "noname");
@@ -364,7 +364,7 @@ void print_json(XUiDesigner *designer, const char* filepath) {
 
     if (designer->image != NULL ) {
         json_add_key ("Image");
-        char *image = set_resource_path(designer, filepath, designer->image);
+        char *image = set_resource_path(designer, designer->image);
         json_add_string(image);
         free(image);
     }
@@ -399,7 +399,9 @@ void print_json(XUiDesigner *designer, const char* filepath) {
                 json_close_array();
                 json_add_key ("Image");
                 if (designer->controls[i].image != NULL ) {
-                    json_add_string(designer->controls[i].image);
+                    char *image = set_resource_path(designer, designer->controls[i].image);
+                    json_add_string(image);
+                    free(image);
                 } else {
                     json_add_string("None");
                 }
@@ -423,7 +425,9 @@ void print_json(XUiDesigner *designer, const char* filepath) {
                 json_close_array();
                 json_add_key ("Image");
                 if (designer->controls[i].image != NULL ) {
-                    json_add_string(designer->controls[i].image);
+                    char *image = set_resource_path(designer, designer->controls[i].image);
+                    json_add_string(image);
+                    free(image);
                 } else {
                     json_add_string("None");
                 }
@@ -475,7 +479,7 @@ void print_json(XUiDesigner *designer, const char* filepath) {
                 json_close_array();
                 json_add_key ("Image");
                 if (designer->controls[i].image != NULL ) {
-                    char *image = set_resource_path(designer, filepath, designer->controls[i].image);
+                    char *image = set_resource_path(designer, designer->controls[i].image);
                     json_add_string(image);
                     free(image);
                 } else {
