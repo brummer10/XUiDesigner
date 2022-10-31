@@ -44,6 +44,9 @@ void print_plugin(XUiDesigner *designer) {
     char * a_outputs[16];
     int o = 0;
     bool parse_file = designer->is_faust_file ? true : designer->is_cc_file ? true : false;
+    
+    //the loaded json should have set all relevant data in the project
+    bool is_project = designer->is_project || designer->is_json_file;
     char *name = NULL;
     XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);
     if (name == NULL) asprintf(&name, "%s", "noname");
@@ -92,7 +95,7 @@ void print_plugin(XUiDesigner *designer) {
     }
 
     int i = 0;
-    if (designer->is_project) {
+    if ( is_project ) {
         for (;i<designer->lv2c.audio_input;i++) {
             printf ("    float* input%i;\n", i);
             asprintf((char**)&a_inputs[a],"input%i", i);
@@ -191,7 +194,7 @@ void print_plugin(XUiDesigner *designer) {
     printf ("// constructor\n"
     "X%s::X%s() :\n", name, name);
     bool add_comma = false;
-    if (designer->is_project) {
+    if (is_project) {
         i = 0;
         for (;i<designer->lv2c.audio_input;i++) {
             printf ("%s\n    input%i(NULL)", add_comma ? "," : "", i);
@@ -279,7 +282,7 @@ void print_plugin(XUiDesigner *designer) {
     "    {\n", name);
     i = 0;
     int p = 0;
-    if (designer->is_project) {
+    if (is_project) {
         for (;i<designer->lv2c.audio_input;i++) {
             printf ("        case %i:\n"
                     "            input%i = static_cast<float*>(data);\n"
@@ -498,6 +501,9 @@ void print_plugin(XUiDesigner *designer) {
         free(oports);
         oports = NULL;
     }
+    
+    if (designer->lv2c.bypass) 
+        printf ("    }\n\n");
     
     if (designer->lv2c.bypass) {
         if (designer->lv2c.audio_input != designer->lv2c.audio_output) {
