@@ -350,6 +350,9 @@ void print_json(XUiDesigner *designer) {
     json_start_object ("Project");
     json_add_string(designer->lv2c.ui_uri);
 
+    json_add_key ("Base project");
+    json_add_string(designer->lv2c.uri);
+
     json_add_key ("Name");
     json_add_string(name);
 
@@ -368,8 +371,21 @@ void print_json(XUiDesigner *designer) {
         json_add_string(image);
         free(image);
     }
+
+    json_add_key ("Audio Inputs");
+    json_add_int (designer->lv2c.audio_input);
+    json_add_key ("Audio Outputs");
+    json_add_int (designer->lv2c.audio_output);
+
+    json_add_key ("MIDI Input");
+    json_add_int (designer->lv2c.midi_input);
+    json_add_key ("MIDI Output");
+    json_add_int (designer->lv2c.midi_output);
+
+    json_add_key ("LV2 bypass");
+    json_add_int (designer->lv2c.bypass);
     
-    json_add_key ("Contolls");
+    json_add_key ("Controls");
     json_add_int(j);
 
     json_add_key ("Colors");

@@ -531,11 +531,23 @@ void read_json(XUiDesigner *designer, const char *filename) {
             continue;
         } else if (strstr(buf, "\"Project\"") != NULL) {
             designer->lv2c.ui_uri = get_string(buf, ":", ",");
+        } else if (strstr(buf, "\"Base project\"") != NULL) {
+            designer->lv2c.uri = get_string(buf, ":", ",");
         } else if (strstr(buf, "\"Name\"") != NULL) {
             designer->lv2c.name = get_string(buf, ":", ",");
             widget_set_title(designer->ui, designer->lv2c.name);
         } else if (strstr(buf, "\"Author\"") != NULL) {
             designer->lv2c.author = get_string(buf, ":", ",");
+        } else if (strstr(buf, "\"Audio Inputs\"") != NULL) {
+            designer->lv2c.audio_input = (int)strtod(substr(buf, ":", ","), NULL);
+        } else if (strstr(buf, "\"Audio Outputs\"") != NULL) {
+            designer->lv2c.audio_output = (int)strtod(substr(buf, ":", ","), NULL);
+        } else if (strstr(buf, "\"MIDI Input\"") != NULL) {
+            designer->lv2c.midi_input = (int)strtod(substr(buf, ":", ","), NULL);
+        } else if (strstr(buf, "\"MIDI Output\"") != NULL) {
+            designer->lv2c.midi_output = (int)strtod(substr(buf, ":", ","), NULL);
+        } else if (strstr(buf, "\"LV2 bypass\"") != NULL) {
+            designer->lv2c.bypass = (int)strtod(substr(buf, ":", "," ), NULL);
         } else if (strstr(buf, "\"Window size\"") != NULL) {
             designer->ui->width = (int)strtod(substr(buf, "[", ","), NULL);
             designer->ui->height = (int)strtod(substr(buf, ",", "]"), NULL);
