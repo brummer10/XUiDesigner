@@ -1170,12 +1170,21 @@ static void check_world(void *w_, void* UNUSED(button_), void* UNUSED(user_data)
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+static void *load_plugins(void *designer_) {
+    XUiDesigner *designer = (XUiDesigner*)designer_;
+    if (!designer->world) load_lv2_uris (designer);
+    pthread_exit(NULL);
+}
+
 static void win_configure_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     XWindowAttributes attrs;
     XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
     if (attrs.map_state != IsViewable) return;
+
+    pthread_t rf;
+    pthread_create(&rf, NULL, load_plugins, (void *)designer);
 
     int width = attrs.width;
     int height = attrs.height;
@@ -1189,6 +1198,7 @@ static void win_configure_callback(void *w_, void* UNUSED(user_data)) {
 
     XMoveWindow(w->app->dpy,designer->ui->widget, x1 +
         ((width - attrs.width)/2), y1 + ((height - attrs.height)/2));
+
 }
 
 
@@ -1208,6 +1218,9 @@ int main (int argc, char ** argv) {
     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
     textdomain(GETTEXT_PACKAGE);
 #endif
+
+    if(0 == XInitThreads()) 
+        fprintf(stderr, "Warning: XInitThreads() failed\n");
 
     // set Ctype to C to avoid symbol clashes from different locales
     setlocale (LC_CTYPE, "C");
