@@ -65,6 +65,7 @@ static void ibutton_callback(void *w_, void* UNUSED(user_data)) {
         XChangeProperty(w->app->dpy, imagebutton->w->widget, wmNetWmState, XA_ATOM, 32, 
             PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
         imagebutton->is_active = true;
+        XResizeWindow(w->app->dpy, imagebutton->w->widget, 760, 565);
     } else if (w->flags & HAS_POINTER && !adj_get_value(w->adj)){
         if(imagebutton->is_active)
             destroy_widget(imagebutton->w,w->app);
@@ -503,6 +504,7 @@ void pop_menu_response(void *w_, void* item_, void* UNUSED(user_data)) {
             designer->controls[designer->active_widget_num].is_type == IS_LABEL) break;
             Widget_t *dia = open_file_dialog(designer->ui, designer->image_path, "image");
             XSetTransientForHint(designer->ui->app->dpy, dia->widget, designer->ui->widget);
+            XResizeWindow(w->app->dpy, dia->widget, 760, 565);
             if (designer->controls[designer->active_widget_num].is_type == IS_FRAME ||
                 designer->controls[designer->active_widget_num].is_type == IS_IMAGE) {
                 designer->ui->func.dialog_callback = background_image_load_response;
