@@ -491,18 +491,17 @@ void print_plugin(XUiDesigner *designer) {
             "            %s[i] = tmp%i;\n", i, a_outputs[i], a_outputs[i], i);
         }
         printf ("        }\n\n");
-        if (designer->lv2c.bypass)
-            printf ("    }\n\n");
     } else {
         //if (designer->lv2c.audio_input == designer->lv2c.audio_output) {
             
-            printf ("    plugin->compute(n_samples%s);\n    }\n\n", oports);
+            printf ("    plugin->compute(n_samples%s);\n", oports);
         //}
         free(oports);
         oports = NULL;
     }
     
     if (designer->lv2c.bypass) {
+        printf ("    }\n\n");
         if (designer->lv2c.audio_input != designer->lv2c.audio_output) {
             printf ("     // audio input and output count is not equal\n"
             "    // you must handle ramping yourself\n\n");
