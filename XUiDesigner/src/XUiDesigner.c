@@ -1022,6 +1022,7 @@ static void run_save_as(void *w_, void* UNUSED(user_data)) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     const char* home = getenv("HOME");
     Widget_t *dia = open_directory_dialog(designer->ui, home);
+    XResizeWindow(w->app->dpy, dia->widget, 660, 570);
     XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
     designer->ui->func.dialog_callback = run_save;
 }
