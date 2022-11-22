@@ -490,6 +490,7 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
 }
 
 void read_json(XUiDesigner *designer, const char *filename) {
+    int adjust_port_index = 0;
     char* tmp = strdup(filename);
     free(designer->json_file_path);
     designer->json_file_path = NULL;
@@ -572,13 +573,16 @@ void read_json(XUiDesigner *designer, const char *filename) {
             //fprintf(stderr, "Stop object\n");
         }
     }
-
+    // adjust port index counter for the case new widgets been added
+    adjust_port_index = designer->lv2c.audio_input + designer->lv2c.audio_output +
+        designer->lv2c.midi_input + designer->lv2c.midi_output -1;
     r = true; // reset static bool to allow rescan of json file
     free(ui_elems);
     free(ui_tabs);
     free(ui_image);
     designer->is_json_file = true;
     designer->is_project = false;
+    adj_set_value(designer->index->adj, adj_get_value(designer->index->adj)+adjust_port_index);
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
     pthread_t rf;
     pthread_create(&rf, NULL, reset_flag, (void *)designer);
