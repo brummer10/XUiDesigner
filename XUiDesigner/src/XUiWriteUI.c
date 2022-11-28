@@ -425,6 +425,9 @@ void print_list(XUiDesigner *designer) {
     if (have_midi_in && designer->MIDIPORT > -1) {
         MIDI_PORT = designer->MIDIPORT;
     }
+    if (!adj_get_value(designer->display_name->adj)) {
+        printf ("\n#define HIDE_NAME \n");
+    }
     if (j) {
         printf ("\n#define CONTROLS %i\n", j);
         printf ("\n#define GUI_ELEMENTS %i\n", k);

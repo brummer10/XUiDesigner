@@ -237,6 +237,7 @@ typedef struct {
     Widget_t *global_switch_image;
     Widget_t *global_vslider_image;
     Widget_t *global_hslider_image;
+    Widget_t *display_name;
     Widget_t *tabbox_settings;
     Widget_t *tabbox_entry[2];
     Widget_t *set_adjust;

@@ -39,19 +39,23 @@ static void draw_window(void *w_, void* user_data) {
     cairo_set_line_width(w->crb,4);
     cairo_stroke(w->crb);
 
+#ifndef HIDE_NAME
     cairo_text_extents_t extents;
     cairo_set_font_size (w->crb, w->app->big_font/w->scale.ascale);
     cairo_text_extents(w->crb,w->label , &extents);
     double tw = extents.width/2.0;
+#endif
 
     widget_set_scale(w);
     if (w->image) {
         cairo_set_source_surface (w->crb, w->image, 0, 0);
         cairo_paint (w->crb);
     }
+#ifndef HIDE_NAME
     use_text_color_scheme(w, get_color_state(w));
     cairo_move_to (w->crb, (w->scale.init_width*0.5)-tw, w->scale.init_height-10 );
     cairo_show_text(w->crb, w->label);
+#endif
     widget_reset_scale(w);
     cairo_new_path (w->crb);
 }

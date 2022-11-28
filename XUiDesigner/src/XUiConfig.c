@@ -60,6 +60,7 @@ void save_config(XUiDesigner *designer) {
     printf("[Global HSlider Sprites]=%i\n", designer->global_hslider_image_sprites);
     printf("[Keep Aspect Ratio]=%f\n", adj_get_value(designer->aspect_ratio->adj));
     printf("[Use Global Size]=%f\n", adj_get_value(designer->resize_all->adj));
+    printf("[Show Plugin Name]=%f\n", adj_get_value(designer->display_name->adj));
     fclose(fpm);
     free(config_file);
 }
@@ -122,6 +123,9 @@ void read_config(XUiDesigner *designer) {
             } else if (strstr(ptr, "[Use Global Size]") != NULL) {
                 ptr = strtok(NULL, "\n");
                 adj_set_value(designer->resize_all->adj, strtod(ptr, NULL));
+            } else if (strstr(ptr, "[Show Plugin Name]") != NULL) {
+                ptr = strtok(NULL, "\n");
+                adj_set_value(designer->display_name->adj, strtod(ptr, NULL));
             } else if (strstr(ptr, "[Global VSlider Sprites]") != NULL) {
                 ptr = strtok(NULL, "\n");
                 designer->global_vslider_image_sprites = strtod(ptr, NULL);

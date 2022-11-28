@@ -37,7 +37,8 @@
 ----------------------------------------------------------------------*/
 
 void reset_plugin_ui(XUiDesigner *designer) {
-    widget_set_title(designer->ui, "NoName");
+    widget_set_title(designer->ui, _("NoName"));
+    designer->ui->label =  _("NoName");
     designer->ui->width = 600;
     designer->ui->height = 400;
     widget_hide(designer->ui);
@@ -468,6 +469,7 @@ int load_plugin_ui(Widget_t *w) {
                 strdecode(designer->lv2c.name, "(", "_");
                 strdecode(designer->lv2c.name, ")", "_");
                 widget_set_title(designer->ui, designer->lv2c.name);
+                designer->ui->label = designer->lv2c.name;
             }
             int n_in = 0;
             int n_out = 0;

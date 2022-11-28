@@ -87,11 +87,13 @@ static void draw_window(void *w_, void* user_data) {
     cairo_set_line_width(w->crb,4);
     cairo_stroke(w->crb);
 
+#ifndef HIDE_NAME
     cairo_text_extents_t extents;
     use_text_color_scheme(w, get_color_state(w));
     cairo_set_font_size (w->crb, w->app->big_font/w->scale.ascale);
     cairo_text_extents(w->crb,w->label , &extents);
     double tw = extents.width/2.0;
+#endif
 
     widget_set_scale(w);
     if (w->image) {
@@ -103,14 +105,17 @@ static void draw_window(void *w_, void* user_data) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     X11_UI_Private_t *ps = (X11_UI_Private_t*)ui->private_ptr;
     if (strlen(ps->filename)) {
-        cairo_text_extents(w->crb, basename(ps->filename), &extents);
-        double twf = extents.width/2.0;
+        cairo_text_extents_t extents_f;
+        cairo_text_extents(w->crb, basename(ps->filename), &extents_f);
+        double twf = extents_f.width/2.0;
         cairo_move_to (w->crb, max(5,(w->scale.init_width*0.5)-twf), w->scale.init_y+20 );
         cairo_show_text(w->crb, basename(ps->filename));       
     }
 #endif
+#ifndef HIDE_NAME
     cairo_move_to (w->crb, (w->scale.init_width*0.5)-tw, w->scale.init_height-10 );
     cairo_show_text(w->crb, w->label);
+#endif
     widget_reset_scale(w);
     cairo_new_path (w->crb);
 }

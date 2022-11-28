@@ -287,6 +287,11 @@ void hide_show_as_needed(XUiDesigner *designer) {
         widget_hide(designer->grid_size_x);
         widget_hide(designer->grid_size_y);
     }
+    if (designer->controls[designer->active_widget_num].is_type == IS_NONE) {
+        widget_show(designer->display_name);
+    } else {
+        widget_hide(designer->display_name);
+    }
 
 }
 
@@ -1202,6 +1207,11 @@ static void win_configure_callback(void *w_, void* UNUSED(user_data)) {
 
 }
 
+static void show_name(void *w_, void* UNUSED(user_data)) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    expose_widget(designer->ui);
+}
 
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
@@ -1397,6 +1407,7 @@ int main (int argc, char ** argv) {
    //     PropModeReplace, (unsigned char *) &wmStateAbove, 1); 
     XSetTransientForHint(app.dpy, designer->ui->widget, designer->w->widget);
     widget_set_title(designer->ui, _("NoName"));
+    designer->ui->label =  _("NoName");
     designer->ui->parent_struct = designer;
     designer->ui->flags |= HIDE_ON_DELETE | NO_PROPAGATE;
     designer->ui->func.expose_callback = draw_ui;
@@ -1568,6 +1579,11 @@ int main (int argc, char ** argv) {
     designer->global_hslider_image = add_check_box(designer->w, _("Use Global HSlider Image"), 1000, 450, 180, 20);
     tooltip_set_text(designer->global_vslider_image,_("Use the Image loaded on one Slider for all HSliders"));
     designer->global_vslider_image->parent_struct = designer;
+
+    designer->display_name = add_check_box(designer->w, _("Show Plugin Name in UI"), 1000, 450, 180, 20);
+    tooltip_set_text(designer->display_name,_("Show the Plugin Name in the UI"));
+    designer->display_name->parent_struct = designer;
+    designer->display_name->func.value_changed_callback = show_name;
 
     designer->context_menu = create_menu(designer->w,25);
     designer->context_menu->parent_struct = designer;

@@ -32,6 +32,7 @@ static void set_project_title(void *w_, void* UNUSED(user_data)) {
     TextBox_t *text_box = (TextBox_t*)w->private_struct;
     if (strlen(text_box->input_label)>1) {
         widget_set_title(designer->ui,text_box->input_label);
+        designer->ui->label = text_box->input_label;
         expose_widget(designer->ui);
     }
 }

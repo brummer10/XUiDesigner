@@ -82,6 +82,16 @@ void draw_ui(void *w_, void* UNUSED(user_data)) {
                                 designer->select_width-designer->select_x, designer->select_height-designer->select_y);
         cairo_stroke(w->crb);
     }
+    if (adj_get_value(designer->display_name->adj)) {
+        cairo_text_extents_t extents;
+        cairo_set_font_size (w->crb, w->app->big_font);
+        cairo_text_extents(w->crb,w->label , &extents);
+        double tw = extents.width/2.0;
+        use_text_color_scheme(w, get_color_state(w));
+        cairo_move_to (w->crb, (w->width*0.5)-tw, w->height-10 );
+        cairo_show_text(w->crb, w->label);
+        cairo_new_path (w->crb);
+    }
 }
 
 static void rounded_frame(cairo_t *cr,float x, float y, float w, float h, float lsize) {
