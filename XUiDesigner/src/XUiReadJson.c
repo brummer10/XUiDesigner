@@ -377,12 +377,12 @@ Widget_t *get_controller(XUiDesigner *designer, Widget_t *wid, Widget_t **elems,
             } else if (strstr(type, "\"add_lv2_hslider\"") != NULL) {
                 wid = add_hslider(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "\"add_lv2_hslider\"", true, IS_HSLIDER);
+                add_to_list(designer, wid, "add_lv2_hslider", true, IS_HSLIDER);
                 wi = designer->ui;
             } else if (strstr(type, "\"add_lv2_vslider\"") != NULL) {
                 wid = add_vslider(wi, designer->controls[designer->wid_counter].name, x, y, w, h);
                 set_controller_callbacks(designer, wid, true);
-                add_to_list(designer, wid, "\"add_lv2_vslider\"", true, IS_VSLIDER);
+                add_to_list(designer, wid, "add_lv2_vslider", true, IS_VSLIDER);
                 wi = designer->ui;
             } else if (strstr(type, "\"add_lv2_button\"") != NULL) {
                 fprintf(stderr, "add_lv2_button \n");
@@ -552,7 +552,7 @@ void read_json(XUiDesigner *designer, const char *filename) {
         } else if (strstr(buf, "\"Window size\"") != NULL) {
             designer->ui->width = (int)strtod(substr(buf, "[", ","), NULL);
             designer->ui->height = (int)strtod(substr(buf, ",", "]"), NULL);
-            XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height+1);
+            XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height+2);
         } else if (strstr(buf, "\"Image\"") != NULL) {
             ui_image = get_resource_path(designer->resource_path, get_string(buf, ":", ","));
             //asprintf(&ui_image, "%s", get_string(buf, ":", ","));
