@@ -249,8 +249,11 @@ void parse_faust_file (XUiDesigner *designer, const char* filename) {
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
 
     strdecode(outname, ".cc", "");
-    widget_set_title(designer->ui,basename(outname));
-    designer->ui->label = basename(outname);
+    free(designer->lv2c.name);
+    designer->lv2c.name = NULL;
+    asprintf(&designer->lv2c.name, "%s",basename(outname));
+    widget_set_title(designer->ui, designer->lv2c.name);
+    designer->ui->label = designer->lv2c.name;
     free(designer->lv2c.ui_uri);
     designer->lv2c.ui_uri = NULL;
     asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), basename(outname),"_ui");
@@ -357,8 +360,11 @@ static void parse_c_file (XUiDesigner *designer, char* filename) {
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
 
     strdecode(outname, ".cc", "");
-    widget_set_title(designer->ui,basename(outname));
-    designer->ui->label = basename(outname);
+    free(designer->lv2c.name);
+    designer->lv2c.name = NULL;
+    asprintf(&designer->lv2c.name, "%s",basename(outname));
+    widget_set_title(designer->ui, designer->lv2c.name);
+    designer->ui->label = designer->lv2c.name;
     free(designer->lv2c.ui_uri);
     designer->lv2c.ui_uri = NULL;
     asprintf(&designer->lv2c.ui_uri, "urn:%s:%s%s", getUserName(), basename(outname),"_ui");

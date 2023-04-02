@@ -537,6 +537,7 @@ void read_json(XUiDesigner *designer, const char *filename) {
         } else if (strstr(buf, "\"Name\"") != NULL) {
             designer->lv2c.name = get_string(buf, ":", ",");
             widget_set_title(designer->ui, designer->lv2c.name);
+            designer->ui->label = designer->lv2c.name;
         } else if (strstr(buf, "\"Author\"") != NULL) {
             designer->lv2c.author = get_string(buf, ":", ",");
         } else if (strstr(buf, "\"Audio Inputs\"") != NULL) {
