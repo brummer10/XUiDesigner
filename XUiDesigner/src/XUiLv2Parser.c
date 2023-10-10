@@ -109,6 +109,7 @@ void reset_plugin_ui(XUiDesigner *designer) {
         widget_hide(designer->combobox_settings);
     if (designer->controller_settings)
         widget_hide(designer->controller_settings);
+    memcpy(designer->ui->color_scheme, designer->w->color_scheme, sizeof (struct XColor_t));
     XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
 
     adj_set_value(designer->index->adj,0.0);

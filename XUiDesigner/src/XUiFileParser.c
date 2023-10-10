@@ -132,6 +132,7 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
         cmd = NULL;
         free(tmp2);
         tmp2 = NULL;
+        designer->is_faust_synth_file = true;
     }
     free(tmp);
     return is_synth;
