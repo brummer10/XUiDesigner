@@ -696,9 +696,7 @@ void print_list(XUiDesigner *designer) {
 
         if (have_midi_in && MIDI_PORT > -1) {
                 printf ("#ifdef USE_MIDI\n"
-                "    XSelectInput(ui->win->app->dpy, ui->win->widget,StructureNotifyMask|ExposureMask|KeyPressMask \n"
-                "        |EnterWindowMask|LeaveWindowMask|ButtonReleaseMask|KeyReleaseMask\n"
-                "        |ButtonPressMask|Button1MotionMask|PointerMotionMask);\n"
+                "    os_set_input_mask(ui->win);\n"
                 "    ui->win->flags |= NO_AUTOREPEAT | NO_PROPAGATE;\n"
                 "    ui->win->func.key_press_callback = xkey_press;\n"
                 "    ui->win->func.key_release_callback = xkey_release;\n"

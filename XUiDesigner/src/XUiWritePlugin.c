@@ -55,12 +55,15 @@ void print_plugin(XUiDesigner *designer) {
     "#include <iostream>\n"
     "#include <cstring>\n"
     "#include <unistd.h>\n\n"
-    "#include <lv2/lv2plug.in/ns/lv2core/lv2.h>\n");
+    "#include <lv2/core/lv2.h>\n");
     if (designer->lv2c.midi_input || designer->lv2c.midi_output) {
-        printf ("#include <lv2/lv2plug.in/ns/ext/atom/atom.h>\n"
-        "#include <lv2/lv2plug.in/ns/ext/atom/util.h>\n"
-        "#include <lv2/lv2plug.in/ns/ext/midi/midi.h>\n"
-        "#include <lv2/lv2plug.in/ns/ext/urid/urid.h>\n\n");
+        printf ("#include <lv2/atom/atom.h>\n"
+        "#include <lv2/atom/util.h>\n"
+        "#include <lv2/midi/midi.h>\n"
+        "#include <lv2/urid/urid.h>\n\n");
+    }
+    if (designer->lv2c.midi_output) {
+        printf ("#include <lv2/atom/forge.h>\n");
     }
 
     printf ("///////////////////////// MACRO SUPPORT ////////////////////////////////\n\n"
@@ -110,6 +113,11 @@ void print_plugin(XUiDesigner *designer) {
         }
         if (designer->lv2c.midi_output) {
             printf ("    LV2_Atom_Sequence* midi_out;\n");
+            printf ("    LV2_Atom midiatom;\n");
+            printf ("    LV2_Atom_Forge forge;\n");
+            printf ("    LV2_Atom_Forge_Frame frame;\n");
+            printf ("    uint8_t data[3];\n");
+
         }
         i = 0;
     }
@@ -164,8 +172,12 @@ void print_plugin(XUiDesigner *designer) {
         printf ("    %s::Dsp* plugin;\n\n", name);
     }
 
-    printf ("    // private functions\n"
-    "    inline void run_dsp_(uint32_t n_samples);\n"
+    printf ("    // private functions\n");
+    if (designer->lv2c.midi_output) {
+         printf ("    void send_midi_data(int count, uint8_t controller,\n"
+         "                         uint8_t note, uint8_t velocity);\n");
+    }
+    printf ("    inline void run_dsp_(uint32_t n_samples);\n"
     "    inline void connect_(uint32_t port,void* data);\n"
     "    inline void init_dsp_(uint32_t rate);\n"
     "    inline void connect_all__ports(uint32_t port, void* data);\n"
@@ -359,9 +371,31 @@ void print_plugin(XUiDesigner *designer) {
     "    // delete the internal DSP mem\n"
     "}\n\n", name, name, name);
 
+    if (designer->lv2c.midi_output) {
+        printf ("// send midi data to the midi output port\n"
+    "void X%s::send_midi_data(int count, uint8_t controller,\n"
+    "                             uint8_t note, uint8_t velocity)\n"
+    "{\n"
+    "    if(!midi_out) return;\n"
+    "    data[0] = controller;\n"
+    "    data[1] = note;\n"
+    "    data[2] = velocity;\n"
+    "    lv2_atom_forge_frame_time(&forge,count);\n"
+    "    lv2_atom_forge_raw(&forge,&midiatom,sizeof(LV2_Atom));\n"
+    "    lv2_atom_forge_raw(&forge,data, sizeof(data));\n"
+    "    lv2_atom_forge_pad(&forge,sizeof(data)+sizeof(LV2_Atom));\n"
+    "}\n", name);
+
+    }
+
     printf ("void X%s::run_dsp_(uint32_t n_samples)\n"
     "{\n"
     "    if(n_samples<1) return;\n\n", name);
+
+    if (designer->lv2c.midi_output) {
+        printf ("    lv2_atom_forge_set_buffer(&forge,(uint8_t*)midi_out, midi_out->atom.size);\n"
+        "    lv2_atom_forge_sequence_head(&forge, &frame, 0);\n");
+    }
 
     i = 0;
     if (!designer->controls[i].destignation_enabled && !parse_file) {
@@ -389,8 +423,12 @@ void print_plugin(XUiDesigner *designer) {
     if (designer->lv2c.midi_input) {
         printf ("    LV2_ATOM_SEQUENCE_FOREACH(midi_in, ev) {\n"
         "        if (ev->body.type == midi_MidiEvent) {\n"
-        "            const uint8_t* const msg = (const uint8_t*)(ev + 1);\n"
-        "            switch (lv2_midi_message_type(msg)) {\n"
+        "            const uint8_t* const msg = (const uint8_t*)(ev + 1);\n");
+        if (designer->lv2c.midi_output) {
+            printf ("            //forward all incoming MIDI data to output\n"
+            "            send_midi_data(0, msg[0], msg[1], msg[2]);\n");
+        }
+        printf ("            switch (lv2_midi_message_type(msg)) {\n"
         "            case LV2_MIDI_MSG_NOTE_ON:\n"
         "                //note_on = msg[1];\n"
         "            break;\n"
@@ -619,6 +657,11 @@ void print_plugin(XUiDesigner *designer) {
     if (designer->lv2c.midi_input) {
         printf("    self->map = map;\n"
         "    self->midi_MidiEvent = map->map(map->handle, LV2_MIDI__MidiEvent);\n");
+    }
+    if (designer->lv2c.midi_output) {
+        printf("    lv2_atom_forge_init(&self->forge,self->map);\n"
+        "    self->midiatom.type  = self->midi_MidiEvent;\n"
+        "    self->midiatom.size  = sizeof(self->data);\n");
     }
     printf("    self->init_dsp_((uint32_t)rate);\n"
 

@@ -64,6 +64,7 @@ all : check $(NAME)
 	@#if [ -f ./$(BUILD_DIR)/$(EXEC_NAME) ]; then echo $(BLUE)"build finish, now run make install"; \
 	#else echo $(RED)"sorry, build failed"; fi
 	@#echo $(NONE)
+	@$(B_ECHO) "=================== DONE =======================$(reset)"
 
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS) 
 debug: all
@@ -80,42 +81,41 @@ LANGW=$(words  $(MSGLANGS))
 gettext: $(MSGOBJS)
 
 locale/%/LC_MESSAGES/$(EXEC_NAME).mo: po/%.po
-	mkdir -p $(dir $@)
-	msgfmt -c -o $@ po/$*.po
+	$(QUIET)mkdir -p $(dir $@)
+	$(QUIET)msgfmt -c -o $@ po/$*.po
 
 updatepot:
-	@mkdir -p ./po/
-	xgettext --keyword=_ --language=C++ --add-comments --sort-output --package-name=$(EXEC_NAME) --package-version=$(VER) -o po/$(EXEC_NAME).pot $(OBJECTS) $(LOCALIZE)
-	for POFILE in $(MSGLANGS) ; do msgmerge --update po/$$POFILE po/$(EXEC_NAME).pot ; done
+	$(QUIET)mkdir -p ./po/
+	$(QUIET)xgettext --keyword=_ --language=C++ --add-comments --sort-output --package-name=$(EXEC_NAME) --package-version=$(VER) -o po/$(EXEC_NAME).pot $(OBJECTS) $(LOCALIZE)
+	$(QUIET)for POFILE in $(MSGLANGS) ; do msgmerge --update po/$$POFILE po/$(EXEC_NAME).pot ; done
 
 po:
-	msginit --input=po/$(EXEC_NAME).pot --locale=$(LANG) --output=po/$(basename $(LANG)).po
-	echo $(LANG)
+	$(QUIET)msginit --input=po/$(EXEC_NAME).pot --locale=$(LANG) --output=po/$(basename $(LANG)).po
+	@$(ECHO) "$(LANG)$(reset)"
 
 check :
 ifdef ARMCPU
-	@echo $(RED)ARM CPU DEDECTED, please check the optimization flags
-	@echo $(NONE)
+	@$(R_ECHO) "ARM CPU DEDECTED, please check the optimization flags$(reset)"
 endif
 
 clean :
-	@rm -f ./$(BUILD_DIR)/$(EXEC_NAME)
-	@rm -rf ./$(BUILD_DIR)
-	@echo ". ." $(BLUE)", clean up"$(NONE)
+	$(QUIET)rm -f ./$(BUILD_DIR)/$(EXEC_NAME)
+	$(QUIET)rm -rf ./$(BUILD_DIR)
+	@$(ECHO) "clean up$(reset)"
 
 install :
 ifneq ("$(wildcard ./$(BUILD_DIR))","")
-	@cd ../libxputty/Build && $(MAKE) install
-	@mkdir -p $(DESTDIR)$(BIN_DIR)
-	@cp ./$(BUILD_DIR)/$(EXEC_NAME) $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
-	@install -m 0755 ../tools/dsp2cc $(DESTDIR)$(BIN_DIR)/dsp2cc
-	@mkdir -p $(DESTDIR)$(DESKAPPS_DIR)
-	@cp $(NAME).desktop $(DESTDIR)$(DESKAPPS_DIR)
-	@mkdir -p $(DESTDIR)$(PIXMAPS_DIR)
-	@cp ../$(NAME).svg $(DESTDIR)$(PIXMAPS_DIR)
-	@mkdir -p $(DESTDIR)$(SHARE_DIR)/XUiDesigner/wrapper
-	@cp -r ../Bundle/wrapper/* $(DESTDIR)$(SHARE_DIR)/XUiDesigner/wrapper
-	@if [ ${LANGW} -gt 1 ]; then \
+	$(QUIET)cd ../libxputty/Build && $(MAKE) install
+	$(QUIET)mkdir -p $(DESTDIR)$(BIN_DIR)
+	$(QUIET)cp ./$(BUILD_DIR)/$(EXEC_NAME) $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
+	$(QUIET)install -m 0755 ../tools/dsp2cc $(DESTDIR)$(BIN_DIR)/dsp2cc
+	$(QUIET)mkdir -p $(DESTDIR)$(DESKAPPS_DIR)
+	$(QUIET)cp $(NAME).desktop $(DESTDIR)$(DESKAPPS_DIR)
+	$(QUIET)mkdir -p $(DESTDIR)$(PIXMAPS_DIR)
+	$(QUIET)cp ../$(NAME).svg $(DESTDIR)$(PIXMAPS_DIR)
+	$(QUIET)mkdir -p $(DESTDIR)$(SHARE_DIR)/XUiDesigner/wrapper
+	$(QUIET)cp -r ../Bundle/wrapper/* $(DESTDIR)$(SHARE_DIR)/XUiDesigner/wrapper
+	$(QUIET)if [ ${LANGW} -gt 1 ]; then \
 		for lang in $(LANGS) ; \
 		do \
 			if [ -f $$lang/$(EXEC_NAME).mo ]; then \
@@ -129,23 +129,24 @@ ifneq ("$(wildcard ./$(BUILD_DIR))","")
 				cp $(LANGS)/$(EXEC_NAME).mo $(DESTDIR)$(SHARE_DIR)/$(LANGS); \
 			fi \
 	fi
-	@update-desktop-database || true
-	@echo ". ." $(BLUE)", done"$(NONE)
+	$(QUIET)update-desktop-database || true
+	@$(B_ECHO) ". . , done$(reset)"
 else
-	@echo ". ." $(BLUE)", you must build first"$(NONE)
+	@$(R_ECHO) ". . , you must build first$(reset)"
 endif
 
 uninstall :
-	@rm -rf $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
-	@rm -rf $(DESTDIR)$(BIN_DIR)/dsp2cc
-	@rm -rf $(DESTDIR)$(DESKAPPS_DIR)/$(NAME).desktop
-	@rm -rf $(DESTDIR)$(PIXMAPS_DIR)/$(NAME).svg
-	@rm -rf $(DESTDIR)$(SHARE_DIR)/XUiDesigner
-	@rm -rf $(addprefix $(SHARE_DIR)/, $(MSGOBJS))
-	@echo ". ." $(BLUE)", done"$(NONE)
+	$(QUIET)rm -rf $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
+	$(QUIET)rm -rf $(DESTDIR)$(BIN_DIR)/dsp2cc
+	$(QUIET)rm -rf $(DESTDIR)$(DESKAPPS_DIR)/$(NAME).desktop
+	$(QUIET)rm -rf $(DESTDIR)$(PIXMAPS_DIR)/$(NAME).svg
+	$(QUIET)rm -rf $(DESTDIR)$(SHARE_DIR)/XUiDesigner
+	$(QUIET)rm -rf $(addprefix $(SHARE_DIR)/, $(MSGOBJS))
+	@$(B_ECHO) ". . , done$(reset)"
 
 $(NAME) :
-	$(CC) $(CXXFLAGS) $(OBJECTS) -L. ../libxputty/libxputty/libxputty.a -o $(EXEC_NAME) $(LDFLAGS)
+	@$(B_ECHO) "Compile $(EXEC_NAME) $(reset)"
+	$(QUIET)$(CC) $(CXXFLAGS) $(OBJECTS) -L. ../libxputty/libxputty/libxputty.a -o $(EXEC_NAME) $(LDFLAGS)
 
 doc:
 	#pass

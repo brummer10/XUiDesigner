@@ -4,7 +4,7 @@ A WYSIWYG LV2 X11UI GUI creator tool
 ![XUiDesigner](https://i.imgur.com/wKA2eqO.gif)
 
 ## Goal
-Provide a easy to use GUI generator tool to create X11 UIs for LV2 plugins.
+Provide a easy to use GUI generator tool to create UIs for LV2 plugins.
 
 ## Currently state
 XUiDesigner parse the ttl file from a selected plugin and generate the needed controller widgets.
@@ -31,6 +31,9 @@ It will create all control widgets which you could then rework to your needs bef
 If you wish you could add a Virtual MIDI Keyboard to the UI for a faust synth.
 
 When going to save your work, the best choice is pre-selected in the format selector, change that only when you know what you do.
+XUiDesigner save the generated source code as git repository to make it easy to share your work.
+The source code could be used to build LV2 plugs capable to run on Linux or Windows based machines.
+MacOS is currently not supported. 
 
 Control widgets could be created and moved/resized freely around in the top Window.
 A grid could be displayed and widgets could snap to grid (left, right, Center) to order them easily. 
