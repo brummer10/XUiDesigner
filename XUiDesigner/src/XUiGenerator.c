@@ -448,7 +448,7 @@ void run_save(void *w_, void* user_data) {
         }
         if (!j) {
             Widget_t *dia = open_message_dialog(designer->ui, INFO_BOX, _("INFO"),
-                                            _("Please create at least one Controller,|or load a LV2 URI to save a build "),NULL);
+                _("Please create at least one Controller,|or load a LV2 URI to save a build "),NULL);
             XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
             return;
         }
@@ -463,6 +463,11 @@ void run_save(void *w_, void* user_data) {
 
         if (stat(filepath, &st) == -1) {
             mkdir(filepath, 0700);
+        } else if (!designer->regenerate_ui) {
+            Widget_t *dia = open_message_dialog(w, ERROR_BOX, *(const char**)user_data,
+                _("The Directory already exist, please give your project a other name"),NULL);
+            XSetTransientForHint(w->app->dpy, dia->widget, w->widget);
+            return;
         }
 
         char* cmd = NULL;
