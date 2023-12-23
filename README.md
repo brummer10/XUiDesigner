@@ -77,6 +77,7 @@ Here is a short introduction
 Note that this project use submodule, so you best use the --recursive flag
 when clone the repository. Otherwise you must run 
  - git submodule update --init --recursive
+
 before run make!!
 So easiest way to get the source tree is:
 
