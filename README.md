@@ -1,10 +1,10 @@
 # XUiDesigner
-A WYSIWYG LV2 X11UI GUI creator tool
+A WYSIWYG LV2 X11UI GUI/Plugin creator tool
 
 ![XUiDesigner](https://i.imgur.com/wKA2eqO.gif)
 
 ## Goal
-Provide a easy to use GUI generator tool to create UIs for LV2 plugins.
+Provide a easy to use GUI/Plugin generator tool to create UIs for LV2 plugins.
 
 ## Currently state
 XUiDesigner parse the ttl file from a selected plugin and generate the needed controller widgets.
@@ -31,9 +31,10 @@ It will create all control widgets which you could then rework to your needs bef
 If you wish you could add a Virtual MIDI Keyboard to the UI for a faust synth.
 
 When going to save your work, the best choice is pre-selected in the format selector, change that only when you know what you do.
-XUiDesigner save the generated source code as git repository to make it easy to share your work.
 The source code could be used to build LV2 plugs capable to run on Linux or Windows based machines.
-MacOS is currently not supported. 
+MacOS is currently not supported.
+
+Here is a short instruction [HowTo cross compile to MSWindows](https://github.com/brummer10/XUiDesigner/blob/main/README.developer.md)
 
 Control widgets could be created and moved/resized freely around in the top Window.
 A grid could be displayed and widgets could snap to grid (left, right, Center) to order them easily. 
@@ -73,7 +74,13 @@ Here is a short introduction
 
 ## Build
 
-- git submodule init
-- git submodule update
+Note that this project use submodule, so you best use the --recursive flag
+when clone the repository. Otherwise you must run 
+ - git submodule update --init --recursive
+before run make!!
+So easiest way to get the source tree is:
+
+- git clone --recursive https://github.com/brummer10/XUiDesigner.git
+- cd XUiDesigner/
 - make
 - sudo make install # will install into /usr/bin
