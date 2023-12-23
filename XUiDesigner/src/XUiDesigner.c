@@ -296,9 +296,7 @@ void hide_show_as_needed(XUiDesigner *designer) {
 }
 
 void set_controller_callbacks(XUiDesigner *designer, Widget_t *wid, bool set_designer) {
-    XSelectInput(wid->app->dpy, wid->widget,StructureNotifyMask|ExposureMask|KeyPressMask 
-                    |EnterWindowMask|LeaveWindowMask|ButtonReleaseMask
-                    |ButtonPressMask|Button1MotionMask|PointerMotionMask);
+    os_set_input_mask(wid);
     wid->data = designer->wid_counter;
     wid->scale.gravity = NONE;
     //wid->parent_struct = designer;
@@ -443,8 +441,8 @@ static void set_x_axis_callback(void *w_, void* UNUSED(user_data)) {
             move_all_for_type(designer, designer->controls[designer->active_widget_num].is_type,
                 v - designer->active_widget->x, 0);
         } else {
-            XMoveWindow(designer->active_widget->app->dpy,
-                designer->active_widget->widget,v, (int)adj_get_value(designer->y_axis->adj));
+            os_move_window(designer->active_widget->app->dpy,
+                designer->active_widget,v, (int)adj_get_value(designer->y_axis->adj));
         }
     }
 }
@@ -459,8 +457,8 @@ static void set_y_axis_callback(void *w_, void* UNUSED(user_data)) {
             move_all_for_type(designer, designer->controls[designer->active_widget_num].is_type,
                 0, v - designer->active_widget->y);
         } else {
-            XMoveWindow(designer->active_widget->app->dpy,
-                designer->active_widget->widget, (int)adj_get_value(designer->x_axis->adj), v);
+            os_move_window(designer->active_widget->app->dpy,
+                designer->active_widget, (int)adj_get_value(designer->x_axis->adj), v);
         }
     }
 }
@@ -479,8 +477,8 @@ static void set_w_axis_callback(void *w_, void* UNUSED(user_data)) {
                 designer->controls[designer->active_widget_num].is_type,
                 v - designer->active_widget->width, 0);
         } else {
-            XResizeWindow(designer->active_widget->app->dpy,
-                designer->active_widget->widget, v, (int)adj_get_value(designer->h_axis->adj));
+            os_resize_window(designer->active_widget->app->dpy,
+                designer->active_widget, v, (int)adj_get_value(designer->h_axis->adj));
         }
     }
 }
@@ -499,8 +497,8 @@ static void set_h_axis_callback(void *w_, void* UNUSED(user_data)) {
                 designer->controls[designer->active_widget_num].is_type,
                 0, v - designer->active_widget->height);
         } else {
-            XResizeWindow(designer->active_widget->app->dpy,
-                designer->active_widget->widget, (int)adj_get_value(designer->w_axis->adj), v);
+            os_resize_window(designer->active_widget->app->dpy,
+                designer->active_widget, (int)adj_get_value(designer->w_axis->adj), v);
         }
     }
 }
@@ -576,7 +574,7 @@ void move_wid(void *w_, void *xmotion_, void* UNUSED(user_data)) {
                 }
                 pos_x = max(1, min(designer->ui->width - w->width, pos_x));
                 pos_y = max(1, min(designer->ui->height - w->height, pos_y));
-                XMoveWindow(w->app->dpy,w->widget,pos_x, pos_y);
+                os_move_window(w->app->dpy,w,pos_x, pos_y);
             }
             xevfunc store = designer->x_axis->func.value_changed_callback;
             designer->x_axis->func.value_changed_callback = null_callback;
@@ -595,13 +593,13 @@ void move_wid(void *w_, void *xmotion_, void* UNUSED(user_data)) {
             if (adj_get_value(designer->resize_all->adj)) {
                 resize_all_for_type(designer, w, designer->controls[w->data].is_type, v, v);
             } else {
-                XResizeWindow(w->app->dpy, w->widget, max(10,w->width + v), max(10,w->height + v));
+                os_resize_window(w->app->dpy, w, max(10,w->width + v), max(10,w->height + v));
                 if (designer->controls[w->data].is_type == IS_TABBOX) {
                     int elem = w->childlist->elem;
                     int i = 0;
                     for(;i<elem;i++) {
                         Widget_t *wi = w->childlist->childs[i];
-                        XResizeWindow(w->app->dpy, wi->widget, max(10,wi->width + v),
+                        os_resize_window(w->app->dpy, wi, max(10,wi->width + v),
                                                                max(10,wi->height + v));
                     }
                 }
@@ -629,13 +627,13 @@ void move_wid(void *w_, void *xmotion_, void* UNUSED(user_data)) {
                 resize_all_for_type(designer, w, designer->controls[w->data].is_type,
                             xmotion->x_root-designer->pos_x, 0);
             } else {
-                XResizeWindow(w->app->dpy, w->widget, max(10,w->width + (xmotion->x_root-designer->pos_x)), w->height);
+                os_resize_window(w->app->dpy, w, max(10,w->width + (xmotion->x_root-designer->pos_x)), w->height);
                 if (designer->controls[w->data].is_type == IS_TABBOX) {
                     int elem = w->childlist->elem;
                     int i = 0;
                     for(;i<elem;i++) {
                         Widget_t *wi = w->childlist->childs[i];
-                        XResizeWindow(w->app->dpy, wi->widget,
+                        os_resize_window(w->app->dpy, wi,
                             max(10,wi->width + (xmotion->x_root-designer->pos_x)), wi->height);
                     }
                 }
@@ -658,13 +656,13 @@ void move_wid(void *w_, void *xmotion_, void* UNUSED(user_data)) {
                 resize_all_for_type(designer, w, designer->controls[w->data].is_type,
                             0, xmotion->y_root-designer->pos_y);
             } else {
-                XResizeWindow(w->app->dpy, w->widget, w->width, max(10,w->height + (xmotion->y_root-designer->pos_y)));
+                os_resize_window(w->app->dpy, w, w->width, max(10,w->height + (xmotion->y_root-designer->pos_y)));
                 if (designer->controls[w->data].is_type == IS_TABBOX) {
                     int elem = w->childlist->elem;
                     int i = 0;
                     for(;i<elem;i++) {
                         Widget_t *wi = w->childlist->childs[i];
-                        XResizeWindow(w->app->dpy, wi->widget, wi->width,
+                        os_resize_window(w->app->dpy, wi, wi->width,
                             max(10,wi->height+ (xmotion->x_root-designer->pos_x)));
                     }
                 }
@@ -739,10 +737,10 @@ static void unset_cursor(void *w_, void* UNUSED(user_data)) {
 void set_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
-    XWindowAttributes attrs;
-    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
-    int width = attrs.width;
-    int height = attrs.height;
+    Metrics_t metrics;
+    os_get_window_metrics(w, &metrics);
+    int width = metrics.width;
+    int height = metrics.height;
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
     designer->active_widget_num = -1;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
@@ -782,12 +780,12 @@ void set_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
 void fix_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
-    XWindowAttributes attrs;
-    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
-    int x = attrs.x;
-    int y = attrs.y;
-    int width = attrs.width;
-    int height = attrs.height;
+    Metrics_t metrics;
+    os_get_window_metrics(w, &metrics);
+    int x = metrics.x;
+    int y = metrics.y;
+    int width = metrics.width;
+    int height = metrics.height;
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
     XButtonEvent *xbutton = (XButtonEvent*)button_;
     if(xbutton->button == Button1) {
@@ -1027,7 +1025,7 @@ static void run_save_as(void *w_, void* UNUSED(user_data)) {
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     const char* home = getenv("HOME");
     Widget_t *dia = open_directory_dialog(designer->ui, home);
-    XResizeWindow(w->app->dpy, dia->widget, 660, 570);
+    os_resize_window(w->app->dpy, dia, 660, 570);
     XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
     designer->ui->func.dialog_callback = run_save;
 }
@@ -1101,7 +1099,7 @@ void load_lv2_ui(void *w_, void* UNUSED(user_data)) {
     designer->ui->flags |= FAST_REDRAW;
     if (load_plugin_ui(w)) {
         widget_show_all(designer->ui);
-        XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-1);
+        os_resize_window(designer->ui->app->dpy, designer->ui, designer->ui->width, designer->ui->height-1);
     }
     pthread_t rf;
     pthread_create(&rf, NULL, reset_flag, (void *)designer);
@@ -1185,25 +1183,24 @@ static void *load_plugins(void *designer_) {
 static void win_configure_callback(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
-    XWindowAttributes attrs;
-    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
-    if (attrs.map_state != IsViewable) return;
+    Metrics_t metrics;
+    os_get_window_metrics(w, &metrics);
+    if (!metrics.visible) return;
 
     pthread_t rf;
     pthread_create(&rf, NULL, load_plugins, (void *)designer);
 
-    int width = attrs.width;
-    int height = attrs.height;
+    int width = metrics.width;
+    int height = metrics.height;
     int x1, y1;
-    Window child;
-    XTranslateCoordinates( w->app->dpy, w->widget, DefaultRootWindow(
-                    w->app->dpy), 0, 0, &x1, &y1, &child );
+    os_translate_coords(w, w->widget, os_get_root_window(w->app, IS_WINDOW),
+                                                    0, 0, &x1, &y1);
 
-    XGetWindowAttributes(w->app->dpy, (Window)designer->ui->widget, &attrs);
-    if (attrs.map_state != IsViewable) return;
+    os_get_window_metrics(designer->ui, &metrics);
+    if (!metrics.visible) return;
 
-    XMoveWindow(w->app->dpy,designer->ui->widget, x1 +
-        ((width - attrs.width)/2), y1 + ((height - attrs.height)/2));
+    os_move_window(w->app->dpy,designer->ui, x1 +
+        ((width - metrics.width)/2), y1 + ((height - metrics.height)/2));
 
 }
 

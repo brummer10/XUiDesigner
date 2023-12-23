@@ -106,6 +106,7 @@ clean :
 install :
 ifneq ("$(wildcard ./$(BUILD_DIR))","")
 	$(QUIET)cd ../libxputty/Build && $(MAKE) install
+	@$(B_ECHO) "Install XUiDesigner$(reset)"
 	$(QUIET)mkdir -p $(DESTDIR)$(BIN_DIR)
 	$(QUIET)cp ./$(BUILD_DIR)/$(EXEC_NAME) $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
 	$(QUIET)install -m 0755 ../tools/dsp2cc $(DESTDIR)$(BIN_DIR)/dsp2cc
@@ -130,7 +131,7 @@ ifneq ("$(wildcard ./$(BUILD_DIR))","")
 			fi \
 	fi
 	$(QUIET)update-desktop-database || true
-	@$(B_ECHO) ". . , done$(reset)"
+	@$(B_ECHO) "=================== DONE =======================$(reset)"
 else
 	@$(R_ECHO) ". . , you must build first$(reset)"
 endif
