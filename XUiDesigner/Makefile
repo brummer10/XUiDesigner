@@ -61,10 +61,11 @@ all : check $(NAME)
 	@cd ../libxputty/Build && $(MAKE) shared
 	@mkdir -p ./$(BUILD_DIR)
 	@mv ./$(EXEC_NAME) ./$(BUILD_DIR)
-	@#if [ -f ./$(BUILD_DIR)/$(EXEC_NAME) ]; then echo $(BLUE)"build finish, now run make install"; \
-	#else echo $(RED)"sorry, build failed"; fi
-	@#echo $(NONE)
-	@$(B_ECHO) "=================== DONE =======================$(reset)"
+	@if [ -f ./$(BUILD_DIR)/$(EXEC_NAME) ]; then \
+		$(B_ECHO) "=================== DONE =======================$(reset)"; \
+	else \
+		$(R_ECHO)"sorry, build failed$(reset)"; \
+	fi 
 
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS) 
 debug: all

@@ -218,7 +218,7 @@ void print_makefile(XUiDesigner *designer) {
             "	$(QUIET)if [ -f ../bin/$(BUNDLE)/$(EXEC_NAME).$(LIB_EXT) ]; then \\\n"
             "		$(B_ECHO) \"build finish, . . . $(reset)\"; \\\n"
             "	else \\\n"
-            "		$(R_ECHO) \"Sorry, build fail\"\\\n"
+            "		$(R_ECHO) \"Sorry, build fail\"; \\\n"
             "	fi\n"
             "	@$(B_ECHO) \"=================== DONE =======================$(reset)\"\n\n"
             "$(RESOURCEHEADER): $(RESOURCES_OBJ)\n"
@@ -424,6 +424,26 @@ void print_makefile(XUiDesigner *designer) {
     name = NULL;
 }
 
+static void should_we_overwrite(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if(user_data !=NULL) {
+        int response = *(int*)user_data;
+        if(response == 0) {
+            char* cmd = NULL;
+            asprintf(&cmd, "rm -rf \'%s\'", designer->save_path);
+            response = system(cmd);
+            free(cmd);
+            char* ptmp = strdup(designer->save_path);
+            free(designer->save_path);
+            designer->save_path = NULL;
+            asprintf(&designer->save_path, "%s/", dirname(ptmp));
+            free(ptmp);
+            run_save(w, (void*)&designer->save_path);
+        }
+    }
+}
+
 void run_save(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
@@ -464,9 +484,15 @@ void run_save(void *w_, void* user_data) {
         if (stat(filepath, &st) == -1) {
             mkdir(filepath, 0700);
         } else if (!designer->regenerate_ui) {
-            Widget_t *dia = open_message_dialog(w, ERROR_BOX, *(const char**)user_data,
-                _("The Directory already exist, please give your project a other name"),NULL);
+            Widget_t *dia = open_message_dialog(w, QUESTION_BOX, filepath,
+                _("The Directory already exist|should we overwrite it?"),NULL);
             XSetTransientForHint(w->app->dpy, dia->widget, w->widget);
+            w->func.dialog_callback = should_we_overwrite;
+            free(designer->save_path);
+            designer->save_path = NULL;
+            asprintf(&designer->save_path, "%s", filepath);
+            free(name);
+            free(filepath);
             return;
         }
 

@@ -1278,6 +1278,7 @@ int main (int argc, char ** argv) {
     designer->global_hslider_image_file = NULL;
     designer->global_vslider_image_sprites = 101;
     designer->global_hslider_image_sprites = 101;
+    designer->save_path = NULL;
     designer->json_file_path = NULL;
     designer->resource_path = NULL;
     designer->run_test = false;
@@ -1667,6 +1668,7 @@ int main (int argc, char ** argv) {
     free(designer->lv2c.plugintype);
     free(designer->lv2c.symbol);
     free(designer->path);
+    free(designer->save_path);
     m = 0;
     for (;m<MAX_CONTROLS;m++) {
         free(designer->controls[m].image);
