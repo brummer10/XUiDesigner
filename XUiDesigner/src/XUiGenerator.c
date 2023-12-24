@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <ctype.h>
+#include <limits.h>
 
 #include "XUiGenerator.h"
 #include "XUiGridControl.h"
@@ -129,11 +130,82 @@ void strtoguard(char* c) {
     }
 }
 
+
+static void r_mkdir(const char *dir) {
+    char tmp[PATH_MAX];
+    char *p = NULL;
+    size_t len;
+
+    snprintf(tmp, sizeof(tmp),"%s",dir);
+    len = strlen(tmp);
+    if (tmp[len - 1] == '/')
+        tmp[len - 1] = 0;
+    for (p = tmp + 1; *p; p++)
+        if (*p == '/') {
+            *p = 0;
+            mkdir(tmp, S_IRWXU);
+            *p = '/';
+        }
+    mkdir(tmp, S_IRWXU);
+}
+
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
             generate a LV2 bunlde containing all needed files
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
+
+void print_yml() {
+    char* cmd = NULL;
+    asprintf(&cmd, "name: build\n\n"
+    "on:\n"
+    "  push:\n"
+    "env:\n"
+    "  PAWPAW_SKIP_LV2: 0\n\n"
+    "jobs:\n"
+    "  linux:\n"
+    "    strategy:\n"
+    "      matrix:\n"
+    "        target: [linux-x86_64]\n"
+    "    runs-on: ubuntu-20.04\n"
+    "    permissions:\n"
+    "        contents: write\n"
+    "    steps:\n"
+    "      - uses: actions/checkout@v3\n"
+    "        with:\n"
+    "          submodules: recursive\n"
+    "      - uses: distrho/dpf-makefile-action@v1\n"
+    "        with:\n"
+    "          target: ${{ matrix.target }}\n"
+    "          pawpaw: true\n\n"
+    "  windows:\n"
+    "    strategy:\n"
+    "      matrix:\n"
+    "        target: [win64]\n"
+    "    runs-on: ubuntu-20.04\n"
+    "    permissions:\n"
+    "        contents: write\n"
+    "    steps:\n"
+    "      - uses: actions/checkout@v3\n"
+    "        with:\n"
+    "          submodules: recursive\n"
+    "      - uses: distrho/dpf-makefile-action@v1\n"
+    "        with:\n"
+    "          target: ${{ matrix.target }}\n"
+    "          pawpaw: true\n\n"
+    "  source:\n"
+    "    runs-on: ubuntu-20.04\n"
+    "    steps:\n"
+    "      - uses: actions/checkout@v3\n"
+    "        with:\n"
+    "          submodules: recursive\n"
+    "      - uses: distrho/dpf-makefile-action@v1\n"
+    "        with:\n"
+    "          target: source\n\n");
+
+    printf("%s",cmd);
+    free(cmd);
+}
 
 void print_makefile(XUiDesigner *designer) {
     char *name = NULL;
@@ -502,7 +574,7 @@ void run_save(void *w_, void* user_data) {
         char* makefile = NULL;
         int ret = 0;
         if (!designer->regenerate_ui) {
-            asprintf(&cmd, "cd %s && git init", filepath);
+            asprintf(&cmd, "cd %s && git init -b main", filepath);
             ret = system(cmd);
             free(cmd);
             cmd = NULL;
@@ -556,6 +628,24 @@ void run_save(void *w_, void* user_data) {
         free(json_file);
         json_file = NULL;
 
+        char *github_file = NULL;
+        asprintf(&github_file, "%s/.github/workflow",filepath);
+        if (stat(github_file, &st) == -1) {
+            r_mkdir(github_file);
+        }
+        asprintf(&filename, "%s/build.yml", github_file);
+        free(github_file);
+        github_file = NULL;
+
+        FILE *fp;
+        if((fp=freopen(filename, "w" ,stdout))==NULL) {
+            printf("open failed\n");
+        }
+
+        print_yml();
+
+        free(filename);
+        filename = NULL;
         free(filepath);
         filepath = NULL;
         asprintf(&filepath, "%s%s_ui/%s",*(const char**)user_data, name, name);
@@ -567,7 +657,6 @@ void run_save(void *w_, void* user_data) {
         asprintf(&filename, "%s%s_ui/%s/%s.c",*(const char**)user_data,name,name, name );
         remove (filename);
 
-        FILE *fp;
         if((fp=freopen(filename, "w" ,stdout))==NULL) {
             printf("open failed\n");
         }
