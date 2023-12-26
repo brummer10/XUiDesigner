@@ -878,6 +878,12 @@ void fix_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
             set_active_radio_entry_num(designer->ctype_switch, sel);
             designer->ctype_switch->func.value_changed_callback = store;
         }
+        if (designer->controls[designer->active_widget_num].destignation_enabled &&
+            (designer->is_faust_synth_file == true || designer->is_faust_file == true )) {
+            designer->del_control->state = 4;
+        } else {
+            designer->del_control->state = 0;
+        }
         pop_menu_show(w,designer->context_menu,5,true);
     }
 }
@@ -1187,9 +1193,6 @@ static void win_configure_callback(void *w_, void* UNUSED(user_data)) {
     os_get_window_metrics(w, &metrics);
     if (!metrics.visible) return;
 
-    pthread_t rf;
-    pthread_create(&rf, NULL, load_plugins, (void *)designer);
-
     int width = metrics.width;
     int height = metrics.height;
     int x1, y1;
@@ -1263,6 +1266,7 @@ int main (int argc, char ** argv) {
     designer->active_widget_num = 0;
     designer->active_widget = NULL;
     designer->prev_active_widget = NULL;
+    designer->ttlfile_view = NULL;
     designer->wid_counter = 0;
     designer->image_path = NULL;
     designer->image = NULL;
@@ -1614,7 +1618,7 @@ int main (int argc, char ** argv) {
     //menu_add_radio_entry(designer->ctype_switch,_("Image"));
     designer->ctype_switch->func.value_changed_callback = switch_controller_type;
 
-    menu_add_item(designer->context_menu,_("Delete Controller"));
+    designer->del_control = menu_add_item(designer->context_menu,_("Delete Controller"));
     designer->context_menu->func.button_release_callback = pop_menu_response;
 
     create_systray_widget(designer, 0, 0, 240, 240);
@@ -1624,10 +1628,16 @@ int main (int argc, char ** argv) {
     hide_show_as_needed(designer);
     read_config(designer);
     if (ffile != NULL) parse_faust_file(designer, ffile);
+    
+    pthread_t rf;
+    pthread_create(&rf, NULL, load_plugins, (void *)designer);
+
     main_run(&app);
 
     save_config(designer);
     //print_ttl(designer);
+    pthread_cancel(rf);
+    pthread_join(rf, NULL);
     lilv_world_free(designer->world);
     fprintf(stderr, "bye, bye\n");
     main_quit(&app);

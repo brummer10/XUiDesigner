@@ -138,25 +138,52 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
     return is_synth;
 }
 
+static void should_we_add_bypass(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
+    if(user_data !=NULL) {
+        int response = *(int*)user_data;
+        if(response <0) {
+            parse_faust_effect(designer, false);
+        } else if(response == 0) {
+            parse_faust_effect(designer, true);
+        }
+    }
+}
+
+static void ask_for_bypass(XUiDesigner *designer) {
+    Widget_t *dia = open_message_dialog(designer->w, QUESTION_BOX, "FAUST Bypass?",
+        _("Should we add a Bypass switch?"),NULL);
+    XSetTransientForHint(designer->w->app->dpy, dia->widget, designer->w->widget);
+    designer->w->func.dialog_callback = should_we_add_bypass;
+}
+
 void parse_faust_file (XUiDesigner *designer, const char* filename) {
     if (check_synth(designer, filename)) return;
+    free(designer->faust_file);
+    designer->faust_file = NULL;
+    asprintf(&designer->faust_file, "%s", filename);
+    ask_for_bypass(designer);
+}
+
+void parse_faust_effect(XUiDesigner *designer, bool bypass) {
     char* cmd = NULL;
-    char* tmp = strdup(filename);
+    char* tmp = strdup(designer->faust_file);
     strdecode(tmp, ".dsp", ".cc");
     char* outname = NULL;
     asprintf(&outname, "/tmp/%s", basename(tmp));
     free(tmp);
     tmp = NULL;
-    tmp = strdup(filename);
+    tmp = strdup(designer->faust_file);
     free(designer->faust_path);
     designer->faust_path = NULL;
     asprintf(&designer->faust_path, "%s/",dirname(tmp));
     free(tmp);
     tmp = NULL;    
     if (access("./tools/dsp2cc", F_OK) == 0) {
-        asprintf(&cmd, "./tools/dsp2cc -d %s -b -o %s", filename, outname);
+        asprintf(&cmd, "./tools/dsp2cc -d %s %s -o %s", designer->faust_file, bypass ? "-b" : " ", outname);
     } else {
-        asprintf(&cmd, "dsp2cc -d %s -b -o %s", filename, outname);
+        asprintf(&cmd, "dsp2cc -d %s %s -o %s", designer->faust_file, bypass ? "-b" : " ", outname);
     }
 
     int ret = system(cmd);
@@ -397,7 +424,7 @@ void dnd_load_response(void *w_, void* user_data) {
         reset_plugin_ui(designer);
         char* dndfile = NULL;
         dndfile = strtok(*(char**)user_data, "\r\n");
-        while (dndfile != NULL) {
+        //while (dndfile != NULL) {
             if (strstr(dndfile, ".dsp") ) {
                 parse_faust_file (designer, dndfile);
             } else if (strstr(dndfile, ".cc") ) {
@@ -405,7 +432,7 @@ void dnd_load_response(void *w_, void* user_data) {
             } else if (strstr(dndfile, ".json") ) {
                 read_json (designer, dndfile);
             }
-            dndfile = strtok(NULL, "\r\n");
-        }
+           // dndfile = strtok(NULL, "\r\n");
+        //}
     }
 }

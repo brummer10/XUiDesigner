@@ -52,6 +52,7 @@ void remove_from_list(XUiDesigner *designer, Widget_t *wid) {
     designer->controls[wid->data].is_audio_output = false;
     designer->controls[wid->data].is_atom_input = false;
     designer->controls[wid->data].is_atom_output = false;
+    designer->controls[wid->data].destignation_enabled = false;
 }
 
 void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,

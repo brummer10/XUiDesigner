@@ -166,6 +166,7 @@ void unload_background_image(void *w_, void* UNUSED(user_data)) {
 static void set_image_button(XUiDesigner *designer, WidgetType is_type) {
     Widget_t *wid = designer->active_widget;
     Widget_t *p = (Widget_t*)wid->parent;
+    bool is_bypass = designer->controls[designer->active_widget_num].destignation_enabled;
     remove_from_list(designer, wid);
     designer->prev_active_widget = NULL;
     Widget_t *new_wid = NULL;
@@ -175,6 +176,7 @@ static void set_image_button(XUiDesigner *designer, WidgetType is_type) {
                                                                 wid->x, wid->y, 60, 60);
         copy_widget_settings(designer, wid, new_wid);
         add_to_list(designer, new_wid, "add_lv2_image_toggle", false, IS_IMAGE_TOGGLE);
+        designer->controls[designer->active_widget_num].destignation_enabled = is_bypass;
     } else if (is_type == IS_BUTTON) {
         new_wid = add_image_button(p, designer->new_label[designer->active_widget_num],
                                                                 wid->x, wid->y, 60, 60);

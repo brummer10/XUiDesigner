@@ -203,7 +203,7 @@ void print_ttl(XUiDesigner *designer) {
                     }
                 }
             }
-            if (!have_bypass) {
+            if (have_bypass) {
                 printf (", [\n"
                     "      a lv2:InputPort ,\n"
                     "          lv2:ControlPort ;\n"
@@ -216,6 +216,7 @@ void print_ttl(XUiDesigner *designer) {
                     "      lv2:minimum 0 ;\n"
                     "      lv2:maximum 1 ;\n"
                     "   ]", p);
+                p++;
             }
         }
         i = 0;

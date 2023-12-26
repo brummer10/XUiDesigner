@@ -173,6 +173,9 @@ void run_settings(void *w_, void* UNUSED(user_data)) {
             adj_set_value(designer->project_audio_output->adj, (float)designer->lv2c.audio_output);
             adj_set_value(designer->project_midi_input->adj, (float)designer->lv2c.midi_input);
             adj_set_value(designer->project_midi_output->adj, (float)designer->lv2c.midi_output);
+            if (designer->is_faust_synth_file == true || designer->is_faust_file == true ) {
+                designer->project_bypass->state = 4;
+            }
             widget_show_all(designer->set_project);
             char *name = NULL;
             XFetchName(designer->ui->app->dpy, designer->ui->widget, &name);

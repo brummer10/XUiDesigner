@@ -36,6 +36,8 @@ char *substr(const char *str, const char *p1, const char *p2);
 
 void parse_faust_file (XUiDesigner *designer, const char* filename);
 
+void parse_faust_effect(XUiDesigner *designer, bool bypass);
+
 void dnd_load_response(void *w_, void* user_data);
 
 #ifdef __cplusplus
