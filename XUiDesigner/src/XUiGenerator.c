@@ -575,10 +575,13 @@ void run_save(void *w_, void* user_data) {
         char* makefile = NULL;
         int ret = 0;
         if (!designer->regenerate_ui) {
-            asprintf(&cmd, "cd %s && git init -b main", filepath);
+            asprintf(&cmd, "cd %s && git init", filepath);
             ret = system(cmd);
             free(cmd);
             cmd = NULL;
+            asprintf(&cmd, "cd %s && git checkout -b main", filepath);
+            ret = system(cmd);
+            free(cmd);
             struct stat sb;
             asprintf(&filename, "%s/libxputty",filepath);
             if (stat(filename, &sb) != 0 && !S_ISDIR(sb.st_mode)) {
