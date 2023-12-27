@@ -1,5 +1,5 @@
 # XUiDesigner
-A WYSIWYG LV2 X11UI GUI/Plugin creator tool
+A WYSIWYG LV2 GUI/Plugin creator tool
 
 ![XUiDesigner](https://i.imgur.com/wKA2eqO.gif)
 
@@ -7,6 +7,35 @@ A WYSIWYG LV2 X11UI GUI/Plugin creator tool
 Provide a easy to use GUI/Plugin generator tool to create UIs for LV2 plugins.
 
 ## Currently state
+
+ - Generate GUI Bundle for existing LV2 plugins to use system wide
+ - Generate LV2 plugin Bundle with GUI from scratch
+ - Generate LV2 plugin Bundle with GUI from plain C++ files
+ - Generate LV2 plugin Bundle with GUI from faust (MIDI/AUDIO) dsp files
+ - Rework GUI's of saved Bundles at any later state
+ - Generate cross platform compatible makefiles for Linux/Windows
+ - Support github workflow to build binaries for releases
+
+## Currently supported widget types
+
+ - Knob          -> could support horizontal framed png
+ - HSlider       -> could support horizontal framed png
+ - VSlider       -> could support horizontal framed png
+ - Button        -> could support single png/horizontal framed png
+ - Toggle Button -> could support horizontal framed png
+ - ComboBox
+ - Value Display
+ - Label
+ - VMeter
+ - HMeter
+ - Frame
+ - TabBox
+ - WaveView
+ - File Chooser Button
+ - Virtual MIDI Keyboard 
+
+## Details
+
 XUiDesigner parse the ttl file from a selected plugin and generate the needed controller widgets.
 Supported been the usual lv2:port parameter and as well the new atom based LV2_PATCH__writable and LV2_PATCH__readable
 so as LV2_ATOM__Path.
@@ -53,24 +82,6 @@ This could be loaded by drag 'n drop into the designer interface.
 ## Workflow
 Here is a short introduction 
 [Wiki](https://github.com/brummer10/XUiDesigner/wiki/XUiDesigner)
-
-## Currently supported widget types
-
- - Knob          -> support horizontal framed png
- - HSlider       -> support horizontal framed png
- - VSlider       -> support horizontal framed png
- - Button        -> support single png/horizontal framed png
- - Toggle Button -> support horizontal framed png
- - ComboBox
- - Value Display
- - Label
- - VMeter
- - HMeter
- - Frame
- - TabBox
- - WaveView
- - File Chooser Button
- - Virtual MIDI Keyboard 
 
 ## Build
 
