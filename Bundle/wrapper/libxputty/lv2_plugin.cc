@@ -27,56 +27,6 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-// setup a color theme
-static void set_default_theme(Xputty *main) {
-    main->color_scheme->normal = (Colors) {
-         /* cairo    / r  / g  / b  / a  /  */
-        /*fg */       { 0.68, 0.44, 0.00, 1.00},
-        /*bg */       { 0.1, 0.1, 0.1, 1.0},
-        /*base */     { 0.1, 0.1, 0.1, 1.0},
-        /*text */     { 0.85, 0.52, 0.00, 1.00},
-        /*shadow */   { 0.1, 0.1, 0.1, 0.2},
-        /*frame */    { 0.0, 0.0, 0.0, 1.0},
-        /*light */    { 0.1, 0.1, 0.2, 1.0}
-    };
-
-    main->color_scheme->prelight = (Colors) {
-        /*fg */       { 1.0, 1.0, 1.0, 1.0},
-        /*bg */       { 0.25, 0.25, 0.25, 1.0},
-        /*base */     { 0.2, 0.2, 0.2, 1.0},
-        /*text */     { 0.7, 0.7, 0.7, 1.0},
-        /*shadow */   { 0.1, 0.1, 0.1, 0.4},
-        /*frame */    { 0.3, 0.3, 0.3, 1.0},
-        /*light */    { 0.3, 0.3, 0.3, 1.0}
-    };
-
-    main->color_scheme->selected = (Colors) {
-        /*fg */       { 0.9, 0.9, 0.9, 1.0},
-        /*bg */       { 0.2, 0.2, 0.2, 1.0},
-        /*base */     { 0.1, 0.1, 0.1, 1.0},
-        /*text */     { 1.0, 1.0, 1.0, 1.0},
-        /*shadow */   { 0.18, 0.18, 0.18, 0.2},
-        /*frame */    { 0.18, 0.18, 0.18, 1.0},
-        /*light */    { 0.18, 0.18, 0.28, 1.0}
-    };
-}
-
-static void set_default_knob_color(KnobColors* kp) {
-    *kp = (KnobColors) {
-         /* cairo    / r  / g  / b  / a  /  */
-        /*p1f */       { 0.349, 0.313, 0.243, 1.0},
-        /*p2f */       { 0.349, 0.235, 0.011, 1.0},
-        /*p3f */       { 0.15, 0.15, 0.15, 1.0},
-        /*p4f */       { 0.1, 0.1, 0.1, 1.00},
-        /*p5f */       { 0.05, 0.05, 0.05, 1.0},
-        /*p1k */       { 0.349, 0.313, 0.243, 1.0},
-        /*p2k */       { 0.349, 0.235, 0.011, 1.0},
-        /*p3k */       { 0.15, 0.15, 0.15, 1.0},
-        /*p4k */       { 0.1, 0.1, 0.1, 1.00},
-        /*p5k */       { 0.05, 0.05, 0.05, 1.0},
-    };
-}
-
 // draw the window
 static void draw_window(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
@@ -403,9 +353,6 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
 
     // init Xputty
     main_init(&ui->main);
-    ui->kp = (KnobColors*)malloc(sizeof(KnobColors));
-    set_default_knob_color(ui->kp);
-    set_default_theme(&ui->main);
     int w = 1;
     int h = 1;
     plugin_set_window_size(&w,&h,plugin_uri, scale);
@@ -437,7 +384,6 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
 // cleanup after usage
 static void cleanup(LV2UI_Handle handle) {
     X11_UI* ui = (X11_UI*)handle;
-    free(ui->kp);
     plugin_cleanup(ui);
     // Xputty free all memory used
     main_quit(&ui->main);

@@ -19,18 +19,18 @@
  */
 
 
-#include "lv2/lv2plug.in/ns/lv2core/lv2.h"
-#include "lv2/lv2plug.in/ns/extensions/ui/ui.h"
-#include "lv2/lv2plug.in/ns/ext/state/state.h"
-#include "lv2/lv2plug.in/ns/ext/worker/worker.h"
-#include <lv2/lv2plug.in/ns/ext/atom/atom.h>
-#include "lv2/lv2plug.in/ns/ext/options/options.h"
+#include <lv2/core/lv2.h>
+#include <lv2/ui/ui.h>
+#include <lv2/state/state.h>
+#include <lv2/worker/worker.h>
+#include <lv2/atom/atom.h>
+#include <lv2/options/options.h>
 #if defined USE_ATOM || defined USE_MIDI
-#include <lv2/lv2plug.in/ns/ext/atom/util.h>
-#include "lv2/lv2plug.in/ns/ext/atom/forge.h"
-#include <lv2/lv2plug.in/ns/ext/midi/midi.h>
-#include <lv2/lv2plug.in/ns/ext/urid/urid.h>
-#include "lv2/lv2plug.in/ns/ext/patch/patch.h"
+#include <lv2/atom/util.h>
+#include <lv2/atom/forge.h>
+#include <lv2/midi/midi.h>
+#include <lv2/urid/urid.h>
+#include <lv2/patch/patch.h>
 #endif
 
 #ifndef LV2_UI__scaleFactor
@@ -57,20 +57,6 @@ typedef struct {
     unsigned char* data;
 } CairoImageData;
 
-// struct to define the knob pattern colors
-typedef struct {
-    double p1f[4];
-    double p2f[4];
-    double p3f[4];
-    double p4f[4];
-    double p5f[4];
-    double p1k[4];
-    double p2k[4];
-    double p3k[4];
-    double p4k[4];
-    double p5k[4];
-} KnobColors;
-
 typedef int PortIndex;
 
 // main window struct
@@ -88,7 +74,6 @@ typedef struct {
     Widget_t *widget[CONTROLS];
     Widget_t *elem[GUI_ELEMENTS];
     Widget_t *tab_elem[TAB_ELEMENTS];
-    KnobColors *kp;
     void *private_ptr;
     int need_resize;
     LV2_URID_Map* map;

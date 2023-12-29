@@ -298,7 +298,7 @@ static Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plug
             wid = add_knob(designer->ui, designer->new_label[designer->active_widget_num+1], x, y, 60, 80);
             set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min,
                 designer->lv2c.max, designer->lv2c.is_int_port? 1:designer->lv2c.step, designer->lv2c.is_log_port?
-                designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE :CL_CONTINUOS);
+                designer->lv2c.min>0.0000001 ? CL_LOGARITHMIC : CL_LOGSCALE : CL_CONTINUOS);
             set_controller_callbacks(designer, wid, false);
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
@@ -349,7 +349,7 @@ static Widget_t* create_controller(XUiDesigner *designer, const LilvPlugin* plug
             wid = add_vmeter(designer->ui, designer->new_label[designer->active_widget_num+1], false, x, y, 10, 120);
             set_adjustment(wid->adj, designer->lv2c.def, designer->lv2c.def, designer->lv2c.min, designer->lv2c.max,
                 designer->lv2c.is_int_port? 1:0.01, designer->lv2c.is_log_port?
-                designer->lv2c.min>0 ? CL_LOGARITHMIC : CL_LOGSCALE : CL_METER);
+                designer->lv2c.min>0.0000001 ? CL_LOGARITHMIC : CL_LOGSCALE : CL_METER);
             set_controller_callbacks(designer, wid, false);
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);

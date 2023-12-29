@@ -318,7 +318,6 @@ int main (int argc, char ** argv) {
 
     // init Xputty
     main_init(&ui->main);
-    ui->kp = (KnobColors*)malloc(sizeof(KnobColors));
     int w = 1;
     int h = 1;
     plugin_set_window_size(&w,&h,plugin_uri, 1.0);
@@ -336,7 +335,6 @@ int main (int argc, char ** argv) {
     widget_show_all(ui->win);
     main_run(&ui->main);
     
-    free(ui->kp);
     plugin_cleanup(ui);
     // Xputty free all memory used
     main_quit(&ui->main);

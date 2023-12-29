@@ -45,6 +45,44 @@ char *substr(const char *str, const char *p1, const char *p2) {
     }
     return NULL;
 }
+
+static int append(char **str, const char *buf, size_t size) {
+    char *pos;
+    if ((pos=strchr(buf, '\n')) != NULL)
+        *pos = '\0';
+
+    char *nstr = NULL;
+    if (*str == NULL) {
+        nstr = malloc(size + 1);
+        memcpy(nstr, buf, size);
+        nstr[size] = '\0';
+    } else {
+        if (asprintf(&nstr, "%s%s", *str, buf) == -1) return -1;
+        free(*str);
+    }
+    *str = nstr;
+    return 0;
+}
+
+char* command(char* cmd) {
+    char* data = NULL;
+    FILE * stream;
+    size_t outlen = 0;
+    char *buffer = NULL;
+
+    append(&cmd," 2>&1", 6);
+    stream = popen(cmd, "r");
+    if (stream) {
+        append(&data, "ERROR:|", 7);
+        while (getline(&buffer, &outlen, stream) >= 0) {
+            append(&data, buffer, outlen);
+            append(&data, "|", 1);
+        }
+        pclose(stream);
+    }
+    return data;
+}
+
 /*---------------------------------------------------------------------
 -----------------------------------------------------------------------    
                 load faust dsp file
@@ -59,8 +97,9 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
     char buf[128];
     FILE *fp;
     if((fp = fopen(tmp, "r")) == NULL) {
-        printf("Error opening pipe!\n");
-        return false;
+        open_message_dialog(designer->ui, ERROR_BOX, "",
+                "Fail to read faust file", NULL);
+        return is_synth;
     }
     while (fgets(buf, 128, fp) != NULL) {
         if (strstr(buf, "[midi:on]") != NULL) {
@@ -74,9 +113,10 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
         }
     }
     if (fclose(fp)) {
-        printf("Command not found or exited with error status\n");
+        open_message_dialog(designer->ui, ERROR_BOX, "",
+                "Fail to handle faust file", NULL);
         free(voices);
-        return false;
+        return is_synth;
     }
     if (is_synth) {
         if (voices == NULL) voices = strdup("8");
@@ -89,11 +129,15 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
         asprintf(&cmd, "faust2lv2 -nvoices %s -keep /tmp/%s", voices, b);
         ret = system(cmd);
         if (ret) {
-            open_message_dialog(designer->ui, ERROR_BOX, "",
-                "Fail to parse faust file", NULL);        
-            free(voices);
-            free(tmp);
-            return false;
+            char* ms = command(cmd);
+            if (ms) {
+                open_message_dialog(designer->ui, ERROR_BOX, "FAUST",
+                    ms, NULL);
+                free(ms);
+                free(voices);
+                free(tmp);
+                return is_synth;
+            }
         }
         if (designer->world) {
             lilv_world_free(designer->world);
