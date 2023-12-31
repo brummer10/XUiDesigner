@@ -1030,7 +1030,7 @@ static void run_save_as(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
     const char* home = getenv("HOME");
-    Widget_t *dia = open_directory_dialog(designer->ui, home);
+    Widget_t *dia = open_directory_dialog(designer->ui, home, NULL);
     os_resize_window(w->app->dpy, dia, 660, 570);
     XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
     designer->ui->func.dialog_callback = run_save;
@@ -1384,7 +1384,7 @@ int main (int argc, char ** argv) {
 
     //load_lv2_uris(designer, path);
 
-    designer->filter_lv2_uris = add_toggle_button(designer->w, "Filter", 250, 25, 40, 30);
+    designer->filter_lv2_uris = add_toggle_button(designer->w, "Filter", 240, 25, 50, 30);
     tooltip_set_text(designer->filter_lv2_uris,_("Show only UI-less plugins"));
     designer->filter_lv2_uris->parent_struct = designer;
     designer->filter_lv2_uris->func.value_changed_callback = filter_plugin_ui;
@@ -1394,7 +1394,7 @@ int main (int argc, char ** argv) {
     //designer->filter_by_word->func.value_changed_callback = filter_plugin_name;
     designer->filter_by_word->parent_struct = designer;
 
-    designer->search_plug = add_button(designer->w, _("Search"), 910, 25, 40, 30);
+    designer->search_plug = add_button(designer->w, _("Search"), 910, 25, 50, 30);
     tooltip_set_text(designer->search_plug,_("Show only plugins match the search string"));
     designer->search_plug->parent_struct = designer;
     designer->search_plug->func.value_changed_callback = filter_plugin_name;

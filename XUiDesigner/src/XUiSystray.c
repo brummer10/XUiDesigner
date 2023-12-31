@@ -56,7 +56,7 @@ static void systray_menu_response(void *w_, void* item_, void* UNUSED(user_data)
         case 0:
         {
             const char* home = getenv("HOME");
-            Widget_t* tmp = open_directory_dialog(designer->ui, home);
+            Widget_t* tmp = open_directory_dialog(designer->ui, home, NULL);
             Atom wmStateAbove = XInternAtom(w->app->dpy, "_NET_WM_STATE_ABOVE", 1 );
             Atom wmNetWmState = XInternAtom(w->app->dpy, "_NET_WM_STATE", 1 );
             XChangeProperty(w->app->dpy, tmp->widget, wmNetWmState, XA_ATOM, 32, 

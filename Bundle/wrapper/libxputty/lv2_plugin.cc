@@ -359,7 +359,9 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     // create the toplevel Window on the parentXwindow provided by the host
     ui->win = create_window(&ui->main, (Window)ui->parentXwindow, 0, 0, w, h);
     ui->win->parent_struct = ui;
+#ifdef __linux__
     ui->win->flags |= DONT_PROPAGATE;
+#endif
     ui->win->label = plugin_set_name();
     // connect the expose func
     ui->win->func.expose_callback = draw_window;

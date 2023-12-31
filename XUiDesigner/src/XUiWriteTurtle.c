@@ -192,33 +192,7 @@ void print_ttl(XUiDesigner *designer) {
                 add_comma = true;
             }
         }
-        if (designer->is_faust_file) {
-            i = 0;
-            bool have_bypass = false;
-            for (;i<MAX_CONTROLS;i++) {
-                if (designer->controls[i].wid != NULL) {
-                    if (designer->controls[i].destignation_enabled) {
-                        have_bypass = true;
-                        break;
-                    }
-                }
-            }
-            if (have_bypass) {
-                printf (", [\n"
-                    "      a lv2:InputPort ,\n"
-                    "          lv2:ControlPort ;\n"
-                    "      lv2:index %i ;\n"
-                    "      lv2:designation lv2:enabled ;\n"
-                    "      lv2:portProperty lv2:toggled, pprop:trigger ;\n"
-                    "      lv2:symbol \"Bypass\" ;\n"
-                    "      lv2:name \"bypass\" ;\n"
-                    "      lv2:default 1 ;\n"
-                    "      lv2:minimum 0 ;\n"
-                    "      lv2:maximum 1 ;\n"
-                    "   ]", p);
-                p++;
-            }
-        }
+
         i = 0;
         for (;i<MAX_CONTROLS;i++) {
             if (designer->controls[i].wid != NULL) {

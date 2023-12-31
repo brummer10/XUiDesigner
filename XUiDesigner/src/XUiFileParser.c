@@ -136,6 +136,7 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
                 free(ms);
                 free(voices);
                 free(tmp);
+                free(cmd);
                 return is_synth;
             }
         }
@@ -294,10 +295,13 @@ void parse_faust_effect(XUiDesigner *designer, bool bypass) {
                     }
                 }
             }
-            
+            float step = v[3];
+            if (v[3] < v[2] / 100.0) {
+                step = v[0] < 0.0 ? (fabs(v[1])+fabs(v[2]))*0.01:fabs(v[2])* 0.01;
+            } 
             asprintf(&designer->controls[designer->wid_counter].name, "%s", label);
             Widget_t *wid = add_knob(designer->ui, designer->controls[designer->wid_counter].name, 60*p + 10*p, 60, 60, 80);
-            set_adjustment(wid->adj, v[0], v[0], v[1], v[2], v[3], CL_CONTINUOS);
+            set_adjustment(wid->adj, v[0], v[0], v[1], v[2], step, CL_CONTINUOS);
             set_controller_callbacks(designer, wid, true);
             tooltip_set_text(wid, wid->label);
             add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
