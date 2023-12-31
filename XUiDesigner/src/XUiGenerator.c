@@ -551,7 +551,7 @@ void run_save(void *w_, void* user_data) {
         if (name == NULL) asprintf(&name, "%s", "noname");
         strdecode(name, " ", "_");
         char* filepath = NULL;
-        asprintf(&filepath, "%s%s_ui",*(const char**)user_data,name);
+        asprintf(&filepath, "%s/%s_ui",*(const char**)user_data,name);
         struct stat st = {0};
 
         if (stat(filepath, &st) == -1) {
