@@ -302,7 +302,6 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     ui->parentXwindow = 0;
     ui->private_ptr = NULL;
     ui->need_resize = 1;
-    LV2_Options_Option *opts = NULL;
 
     int i = 0;
     for(;i<CONTROLS;i++)

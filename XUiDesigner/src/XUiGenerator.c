@@ -641,33 +641,38 @@ void run_save(void *w_, void* user_data) {
         free(github_file);
         github_file = NULL;
 
-        FILE *fp;
+        FILE *fp = NULL;
         if((fp=freopen(filename, "w" ,stdout))==NULL) {
             printf("open failed\n");
+        } else {
+            print_yml();
+            fclose(fp);
+            fp = NULL;
         }
-
-        print_yml();
 
         free(filename);
         filename = NULL;
         free(filepath);
         filepath = NULL;
-        asprintf(&filepath, "%s%s_ui/%s",*(const char**)user_data, name, name);
+        asprintf(&filepath, "%s/%s_ui/%s",*(const char**)user_data, name, name);
 
         if (stat(filepath, &st) == -1) {
             mkdir(filepath, 0700);
+        } else {
+            fprintf(stderr, "fail to create %s\n", filepath);
         }
 
-        asprintf(&filename, "%s%s_ui/%s/%s.c",*(const char**)user_data,name,name, name );
+        asprintf(&filename, "%s/%s_ui/%s/%s.c",*(const char**)user_data,name,name, name );
         remove (filename);
 
         if((fp=freopen(filename, "w" ,stdout))==NULL) {
             printf("open failed\n");
+        } else {
+            fprintf(stderr, "save to %s\n", filename);
+            print_list(designer);
+            fclose(fp);
+            fp = NULL;
         }
-        fprintf(stderr, "save to %s\n", filename);
-        print_list(designer);
-        fclose(fp);
-        fp = NULL;
 
 
         if (!designer->regenerate_ui) {
@@ -675,15 +680,16 @@ void run_save(void *w_, void* user_data) {
                 free(filename);
                 filename = NULL;
                 if (!designer->is_faust_synth_file) {
-                    asprintf(&filename, "%s%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
+                    asprintf(&filename, "%s/%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
                     if((fp=freopen(filename, "w" ,stdout))==NULL) {
                         printf("open failed\n");
+                    } else {
+                        print_plugin(designer);
+                        fclose(fp);
+                        fp = NULL;
                     }
-                    print_plugin(designer);
-                    fclose(fp);
-                    fp = NULL;
                 } else {
-                    asprintf(&filename, "%s%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
+                    asprintf(&filename, "%s/%s_ui/%s/%s.cpp",*(const char**)user_data,name,name, name );
                     asprintf(&cmd, "cp %s %s", designer->faust_synth_file, filename);
                     ret = system(cmd);
                     free(cmd);
@@ -693,24 +699,26 @@ void run_save(void *w_, void* user_data) {
             } else {
                 free(filename);
                 filename = NULL;
-                asprintf(&filename, "%s%s_ui/%s/%s_ui.ttl",*(const char**)user_data,name,name,name);
+                asprintf(&filename, "%s/%s_ui/%s/%s_ui.ttl",*(const char**)user_data,name,name,name);
             }
 
             if((fp=freopen(filename, "w" ,stdout))==NULL) {
                 printf("open failed\n");
+            } else {
+                print_ttl(designer);
+                fclose(fp);
+                fp = NULL;
             }
-            print_ttl(designer);
-            fclose(fp);
-            fp = NULL;
             free(filename);
             filename = NULL;
-            asprintf(&filename, "%s%s_ui/%s/manifest.ttl",*(const char**)user_data,name,name);
+            asprintf(&filename, "%s/%s_ui/%s/manifest.ttl",*(const char**)user_data,name,name);
             if((fp=freopen(filename, "w" ,stdout))==NULL) {
                 printf("open failed\n");
+            } else {
+                print_manifest(designer);
+                fclose(fp);
+                fp = NULL;
             }
-            print_manifest(designer);
-            fclose(fp);
-            fp = NULL;
             free(filename);
             filename = NULL;
             if (system(NULL)) {
@@ -805,7 +813,7 @@ void run_save(void *w_, void* user_data) {
 
         cmd = NULL;
         if (have_image || designer->image != NULL) {
-            asprintf(&filepath, "%s%s_ui/resources",*(const char**)user_data,name);
+            asprintf(&filepath, "%s/%s_ui/resources",*(const char**)user_data,name);
             if (stat(filepath, &st) == -1) {
                 mkdir(filepath, 0700);
             } else if (!designer->regenerate_ui) {
@@ -953,7 +961,7 @@ void run_save(void *w_, void* user_data) {
             }
             free(filepath);
             filepath = NULL;
-            asprintf(&filepath, "%s%s_ui",*(const char**)user_data,name);
+            asprintf(&filepath, "%s/%s_ui",*(const char**)user_data,name);
             char* cmdc = NULL;
             asprintf(&cmdc, "cd %s && git add .", filepath);
             ret = system(cmdc);
