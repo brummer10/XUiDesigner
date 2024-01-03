@@ -25,7 +25,7 @@
 	# set bundle name
 	NAME = XUiDesigner
 	EXEC_NAME  = $(shell echo $(NAME) | tr A-Z a-z)
-	BUILD_DIR = build
+	BUILD_DIR = build/
 	VER = 0.9
 
 	LIB_DIR := ../libxputty/libxputty/
@@ -48,7 +48,8 @@
 	# -pedantic -Wextra -Wshadow -Wpadded -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes
 	DEBUG_CXXFLAGS += -g -D DEBUG -DSHARE_DIR=\"$(SHARE_DIR)\"
 	# invoke build files
-	OBJECTS = $(wildcard $(SOURCE_DIR)*.c)
+	SOURCE = $(wildcard $(SOURCE_DIR)*.c)
+	OBJECTS := $(addprefix $(BUILD_DIR),$(notdir $(patsubst %.c,%.o,$(SOURCE))))
 	LOCALIZE = $(LOCALIZE_DIR)xfile-dialog.c $(LOCALIZE_DIR)xmessage-dialog.c $(LOCALIZE_DIR)xsavefile-dialoge.c
 	## output style (bash colours)
 	BLUE = "\033[1;34m"
@@ -59,9 +60,8 @@
 
 all : check $(NAME)
 	@cd ../libxputty/Build && $(MAKE) shared
-	@mkdir -p ./$(BUILD_DIR)
 	@mv ./$(EXEC_NAME) ./$(BUILD_DIR)
-	@if [ -f ./$(BUILD_DIR)/$(EXEC_NAME) ]; then \
+	@if [ -f ./$(BUILD_DIR)$(EXEC_NAME) ]; then \
 		$(B_ECHO) "=================== DONE =======================$(reset)"; \
 	else \
 		$(R_ECHO)"sorry, build failed$(reset)"; \
@@ -87,7 +87,7 @@ locale/%/LC_MESSAGES/$(EXEC_NAME).mo: po/%.po
 
 updatepot:
 	$(QUIET)mkdir -p ./po/
-	$(QUIET)xgettext --keyword=_ --language=C++ --add-comments --sort-output --package-name=$(EXEC_NAME) --package-version=$(VER) -o po/$(EXEC_NAME).pot $(OBJECTS) $(LOCALIZE)
+	$(QUIET)xgettext --keyword=_ --language=C++ --add-comments --sort-output --package-name=$(EXEC_NAME) --package-version=$(VER) -o po/$(EXEC_NAME).pot $(SOURCE) $(LOCALIZE)
 	$(QUIET)for POFILE in $(MSGLANGS) ; do msgmerge --update po/$$POFILE po/$(EXEC_NAME).pot ; done
 
 po:
@@ -95,12 +95,14 @@ po:
 	@$(ECHO) "$(LANG)$(reset)"
 
 check :
+	@mkdir -p ./$(BUILD_DIR)
 ifdef ARMCPU
 	@$(R_ECHO) "ARM CPU DEDECTED, please check the optimization flags$(reset)"
 endif
 
 clean :
-	$(QUIET)rm -f ./$(BUILD_DIR)/$(EXEC_NAME)
+	$(QUIET)rm -f ./$(BUILD_DIR)$(EXEC_NAME)
+	$(QUIET)rm -f ./$(OBJECTS)
 	$(QUIET)rm -rf ./$(BUILD_DIR)
 	@$(ECHO) "clean up$(reset)"
 
@@ -109,7 +111,7 @@ ifneq ("$(wildcard ./$(BUILD_DIR))","")
 	$(QUIET)cd ../libxputty/Build && $(MAKE) install
 	@$(B_ECHO) "Install XUiDesigner$(reset)"
 	$(QUIET)mkdir -p $(DESTDIR)$(BIN_DIR)
-	$(QUIET)cp ./$(BUILD_DIR)/$(EXEC_NAME) $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
+	$(QUIET)cp ./$(BUILD_DIR)$(EXEC_NAME) $(DESTDIR)$(BIN_DIR)/$(EXEC_NAME)
 	$(QUIET)install -m 0755 ../tools/dsp2cc $(DESTDIR)$(BIN_DIR)/dsp2cc
 	$(QUIET)mkdir -p $(DESTDIR)$(DESKAPPS_DIR)
 	$(QUIET)cp $(NAME).desktop $(DESTDIR)$(DESKAPPS_DIR)
@@ -146,7 +148,11 @@ uninstall :
 	$(QUIET)rm -rf $(addprefix $(SHARE_DIR)/, $(MSGOBJS))
 	@$(B_ECHO) ". . , done$(reset)"
 
-$(NAME) :
+$(OBJECTS) : $(SOURCE)
+	@$(ECHO) "Building object file $@ $(reset)"
+	$(QUIET)$(CC) $(CXXFLAGS) -Wall -c $(addprefix $(SOURCE_DIR),$(notdir $(patsubst %.o,%.c,$@))) -o $@ $(LDFLAGS)
+
+$(NAME) : $(OBJECTS)
 	@$(B_ECHO) "Compile $(EXEC_NAME) $(reset)"
 	$(QUIET)$(CC) $(CXXFLAGS) $(OBJECTS) -L. ../libxputty/libxputty/libxputty.a -o $(EXEC_NAME) $(LDFLAGS)
 

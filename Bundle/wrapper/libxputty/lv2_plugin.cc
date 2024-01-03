@@ -301,6 +301,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
 
     ui->parentXwindow = 0;
     ui->private_ptr = NULL;
+    ui->need_resize = 1;
     LV2_Options_Option *opts = NULL;
 
     int i = 0;
@@ -337,25 +338,11 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     ui->midiatom.size = 3;
 #endif
 
-    float scale = 1.0;
-    if (opts != NULL) {
-        const LV2_URID ui_scaleFactor = ui->map->map(ui->map->handle, LV2_UI__scaleFactor);
-        const LV2_URID atom_Float = ui->map->map(ui->map->handle, LV2_ATOM__Float);
-        for (const LV2_Options_Option* o = opts; o->key; ++o) {
-            if (o->context == LV2_OPTIONS_INSTANCE &&
-              o->key == ui_scaleFactor && o->type == atom_Float) {
-                scale = *(float*)o->value;
-                break;
-            }
-        }
-        if (scale <= 0) scale = 1.0;
-    }
-
     // init Xputty
     main_init(&ui->main);
     int w = 1;
     int h = 1;
-    plugin_set_window_size(&w,&h,plugin_uri, scale);
+    plugin_set_window_size(&w,&h,plugin_uri);
     // create the toplevel Window on the parentXwindow provided by the host
     ui->win = create_window(&ui->main, (Window)ui->parentXwindow, 0, 0, w, h);
     ui->win->parent_struct = ui;
@@ -366,7 +353,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     // connect the expose func
     ui->win->func.expose_callback = draw_window;
     // create controller widgets
-    plugin_create_controller_widgets(ui,plugin_uri, scale);
+    plugin_create_controller_widgets(ui,plugin_uri);
     // map all widgets into the toplevel Widget_t
     widget_show_all(ui->win);
     // set the widget pointer to the X11 Window from the toplevel Widget_t
@@ -428,6 +415,15 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
 // LV2 idle interface to host
 static int ui_idle(LV2UI_Handle handle) {
     X11_UI* ui = (X11_UI*)handle;
+    if (ui->need_resize == 1) {
+        ui->need_resize = 2;
+    } else if (ui->need_resize == 2) {
+        int i=0;
+        for (;i<CONTROLS;i++) {
+            os_move_window(ui->main.dpy, ui->widget[i], ui->widget[i]->x, ui->widget[i]->y);
+        }
+        ui->need_resize = 0;
+    }
     // Xputty event loop setup to run one cycle when called
     run_embedded(&ui->main);
     return 0;

@@ -33,10 +33,6 @@
 #include <lv2/patch/patch.h>
 #endif
 
-#ifndef LV2_UI__scaleFactor
-#define LV2_UI__scaleFactor  "http://lv2plug.in/ns/extensions/ui#scaleFactor"
-#endif
-
 // xwidgets.h includes xputty.h and all defined widgets from Xputty
 #include "xwidgets.h"
 #include "xfile-dialog.h"
@@ -86,13 +82,13 @@ typedef struct {
 void plugin_value_changed(X11_UI *ui, Widget_t *w, PortIndex index);
 
 // set the plugin initial window size
-void plugin_set_window_size(int *w,int *h,const char * plugin_uri, float scale);
+void plugin_set_window_size(int *w,int *h,const char * plugin_uri);
 
 // set the plugin name
 const char* plugin_set_name();
 
 // create all needed controller 
-void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri, float scale);
+void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri);
 
 
 Widget_t* add_lv2_knob(Widget_t *w, Widget_t *p, PortIndex index, const char * label,

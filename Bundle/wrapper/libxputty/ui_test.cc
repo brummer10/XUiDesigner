@@ -320,7 +320,7 @@ int main (int argc, char ** argv) {
     main_init(&ui->main);
     int w = 1;
     int h = 1;
-    plugin_set_window_size(&w,&h,plugin_uri, 1.0);
+    plugin_set_window_size(&w,&h,plugin_uri);
     // create the toplevel Window on the parentXwindow provided by the host
     ui->win = create_window(&ui->main, DefaultRootWindow(ui->main.dpy), 0, 0, w, h);
     ui->win->parent_struct = ui;
@@ -332,7 +332,7 @@ int main (int argc, char ** argv) {
     // connect the expose func
     ui->win->func.expose_callback = draw_window;
     // create controller widgets
-    plugin_create_controller_widgets(ui,plugin_uri, 1.0);
+    plugin_create_controller_widgets(ui,plugin_uri);
     // map all widgets into the toplevel Widget_t
     widget_show_all(ui->win);
     main_run(&ui->main);

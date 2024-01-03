@@ -683,14 +683,14 @@ void print_list(XUiDesigner *designer) {
         printf ("\nvoid plugin_value_changed(X11_UI *ui, Widget_t *w, PortIndex index) {\n"
         "    // do special stuff when needed\n"
         "}\n\n"
-        "void plugin_set_window_size(int *w,int *h,const char * plugin_uri, float scale) {\n"
-        "    (*w) = %i * scale; //set initial width of main window\n"
-        "    (*h) = %i * scale; //set initial height of main window\n"
+        "void plugin_set_window_size(int *w,int *h,const char * plugin_uri) {\n"
+        "    (*w) = %i; //set initial width of main window\n"
+        "    (*h) = %i; //set initial height of main window\n"
         "}\n\n"
         "const char* plugin_set_name() {\n"
         "    return \"%s\"; //set plugin name to display on UI\n"
         "}\n\n"
-        "void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri, float scale) {\n"
+        "void plugin_create_controller_widgets(X11_UI *ui, const char * plugin_uri) {\n"
         "    set_costum_theme(ui->win);\n"
         , designer->ui->width, designer->ui->height, name? name:"Test");
 
@@ -748,7 +748,7 @@ void print_list(XUiDesigner *designer) {
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL) {
             if (designer->controls[i].is_type == IS_FRAME || designer->controls[i].is_type == IS_IMAGE ) {
-                printf ("    ui->elem[%i] = %s (ui->elem[%i], ui->win, %i, \"%s\", ui, %i,  %i, %i * scale, %i * scale);\n", 
+                printf ("    ui->elem[%i] = %s (ui->elem[%i], ui->win, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
                     j, designer->controls[i].type, j,
                     designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
@@ -780,7 +780,7 @@ void print_list(XUiDesigner *designer) {
                 }
                 j++;
             } else if (designer->controls[i].is_type == IS_TABBOX) {
-                printf ("    ui->elem[%i] = %s (ui->elem[%i], ui->win, %i, \"%s\", ui, %i,  %i, %i * scale, %i * scale);\n", 
+                printf ("    ui->elem[%i] = %s (ui->elem[%i], ui->win, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
                     j, designer->controls[i].type, j,
                     designer->is_project ? p : designer->controls[i].port_index, designer->controls[i].wid->label,
                     designer->controls[i].wid->x, designer->controls[i].wid->y,
@@ -822,7 +822,7 @@ void print_list(XUiDesigner *designer) {
                     designer->controls[i].in_frame ? asprintf(&parent,"ui->elem[%i]", designer->controls[i].in_frame-1) :
                         asprintf(&parent,"%s", "ui->win");
                 }
-                printf ("    ui->widget[%i] = %s (ui->widget[%i], %s, %i, \"%s\", ui, %i,  %i, %i * scale, %i * scale);\n", 
+                printf ("    ui->widget[%i] = %s (ui->widget[%i], %s, %i, \"%s\", ui, %i,  %i, %i, %i);\n", 
                     j, designer->controls[i].type, j, parent,
                     designer->controls[i].is_midi_patch ? -1 : designer->is_project ? designer->is_faust_file ?
                     designer->controls[i].port_index : p : designer->controls[i].port_index,
