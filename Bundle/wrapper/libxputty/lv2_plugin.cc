@@ -314,8 +314,6 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     for (; features[i]; ++i) {
         if (!strcmp(features[i]->URI, LV2_UI__parent)) {
             ui->parentXwindow = features[i]->data;
-        } else if(!strcmp(features[i]->URI, LV2_OPTIONS__options)) {
-            opts = features[i]->data;
         } else if (!strcmp(features[i]->URI, LV2_UI__resize)) {
             ui->resize = (LV2UI_Resize*)features[i]->data;
         } else if (!strcmp(features[i]->URI, LV2_URID_URI "#map")) {

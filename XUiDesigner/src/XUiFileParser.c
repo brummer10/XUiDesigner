@@ -129,16 +129,12 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
         asprintf(&cmd, "faust2lv2 -nvoices %s -keep /tmp/%s", voices, b);
         ret = system(cmd);
         if (ret) {
-            char* ms = command(cmd);
-            if (ms) {
-                open_message_dialog(designer->ui, ERROR_BOX, "FAUST",
-                    ms, NULL);
-                free(ms);
-                free(voices);
-                free(tmp);
-                free(cmd);
-                return is_synth;
-            }
+            open_message_dialog(designer->ui, ERROR_BOX, "FAUST",
+                "Fail to parse faust file", NULL);
+            free(voices);
+            free(tmp);
+            free(cmd);
+            return is_synth;
         }
         if (designer->world) {
             lilv_world_free(designer->world);
