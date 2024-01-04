@@ -279,7 +279,7 @@ void print_makefile(XUiDesigner *designer) {
             "	TTLUPDATE = sed -i '/lv2:binary/ s/\\.so/\\.dll/ ' ../bin/$(BUNDLE)/manifest.ttl\n"
             "	TTLUPDATEGUI = sed -i '/a guiext:X11UI/ s/X11UI/WindowsUI/ ; /guiext:binary/ s/\\.so/\\.dll/ ' ../bin/$(BUNDLE)/$(NAME).ttl\n"
             "endif\n\n"
-            "	FAUSTFLAGS := %s%s%s\n\n"
+            "	FAUSTFLAGS := %s \\\n	%s%s \\\n	%s\n\n"
             ".PHONY : all install uninstall\n\n"
             ".NOTPARALLEL:\n\n"
             "all: $(RESOURCEHEADER) $(EXEC_NAME)\n\n"
@@ -352,6 +352,7 @@ void print_makefile(XUiDesigner *designer) {
             name, "\%","\%","\%","\%","\%","\%", designer->is_faust_synth_file ? uri : "",
                 designer->is_faust_synth_file ? " -DFAUST_META=1 -DFAUST_MIDICC=1 -DFAUST_MTS=1 -DFAUST_UI=0 -DVOICE_CTRLS=1 " : "",
                 designer->is_faust_synth_file ?  voices  : "",
+                designer->is_faust_synth_file ? "-Wno-sign-compare -Wno-unused-variable -Wno-unknown-pragmas -Wno-unused-function" : "",
                 "\%","\%","\%","\%","\%","\%","\%","\%","\%","\%","\%",
                 "\%","\%","\%","\%","\%", use_atom ? "-DUSE_ATOM" : "",
                 use_midi ? "-DUSE_MIDI" : "",
