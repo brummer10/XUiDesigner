@@ -26,6 +26,7 @@
 #include "XUiTurtleView.h"
 #include "XUiWritePlugin.h"
 #include "XUiReadJson.h"
+#include "XUiSettings.h"
 
 char *substr(const char *str, const char *p1, const char *p2) {
     const char *i1 = strstr(str, p1);
@@ -174,6 +175,10 @@ static bool check_synth(XUiDesigner *designer, const char* filename) {
         free(tmp2);
         tmp2 = NULL;
         designer->is_faust_synth_file = true;
+        free(designer->lv2c.plugintype);
+        designer->lv2c.plugintype = NULL;
+        asprintf(&designer->lv2c.plugintype, "%s","InstrumentPlugin");
+        set_project_type_by_name (designer->project_type, designer->lv2c.plugintype);
     }
     free(tmp);
     return is_synth;
