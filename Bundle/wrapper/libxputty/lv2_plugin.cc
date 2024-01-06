@@ -27,6 +27,56 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+#ifdef USE_MIDI
+void messenger_init(MidiMessenger *mm) {
+    int i = 0;
+    for (; i < 25; i++) {
+        mm->send_cc[i] &= ~_FULL;
+        mm->send_cc[i] |= _EMPTY;
+    }
+}
+
+int next(MidiMessenger *mm, int i) {
+    while (++i < 25) {
+        if (mm->send_cc[i] & _FULL) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void fill(MidiMessenger *mm, uint8_t *midi_send, int i) {
+    if (mm->me_num[i] == 3) {
+        midi_send[2] =  mm->bg_num[i];
+    }
+    midi_send[1] = mm->pg_num[i];    // program value
+    midi_send[0] = mm->cc_num[i];    // controller+ channel
+    mm->send_cc[i] &= ~_FULL;
+    mm->send_cc[i] |= _EMPTY;
+}
+
+bool send_midi_cc(MidiMessenger *mm, uint8_t _cc, const uint8_t _pg,
+                            const uint8_t _bgn, const uint8_t _num) {
+
+    for(int i = 0; i < 25; i++) {
+        if (mm->send_cc[i] & _FULL) {
+            if (mm->cc_num[i] == _cc && mm->pg_num[i] == _pg &&
+                mm->bg_num[i] == _bgn && mm->me_num[i] == _num)
+                return true;
+        } else if (mm->send_cc[i] & _EMPTY) {
+            mm->cc_num[i] = _cc;
+            mm->pg_num[i] = _pg;
+            mm->bg_num[i] = _bgn;
+            mm->me_num[i] = _num;
+            mm->send_cc[i] &= ~_EMPTY;
+            mm->send_cc[i] |=_FULL;
+            return true;
+        }
+    }
+    return false;
+}
+#endif
+
 // draw the window
 static void draw_window(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
@@ -333,6 +383,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     ui->midi_MidiEvent = ui->map->map(ui->map->handle, LV2_MIDI__MidiEvent);
     ui->midiatom.type = ui->midi_MidiEvent;
     ui->midiatom.size = 3;
+    messenger_init(&ui->mm);
 #endif
 
     // init Xputty
@@ -409,6 +460,28 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
    plugin_port_event(handle, port_index, buffer_size, format, buffer);
 }
 
+#ifdef USE_MIDI
+// send midi data to the midi output port 
+void send_midi_data(X11_UI* ui, uint8_t controller,
+                             uint8_t note, uint8_t velocity) {
+
+    uint8_t obj_buf[OBJ_BUF_SIZE];
+    uint8_t vec[3];
+    vec[0] = controller;
+    vec[1] = note;
+    vec[2] = velocity; 
+    lv2_atom_forge_set_buffer(&ui->forge, obj_buf, OBJ_BUF_SIZE);
+
+    lv2_atom_forge_frame_time(&ui->forge,0);
+    LV2_Atom* msg = (LV2_Atom*)lv2_atom_forge_raw(&ui->forge,&ui->midiatom,sizeof(LV2_Atom));
+    lv2_atom_forge_raw(&ui->forge,vec, sizeof(vec));
+    lv2_atom_forge_pad(&ui->forge,sizeof(vec)+sizeof(LV2_Atom));
+
+    ui->write_function(ui->controller, ui->midi_port, lv2_atom_total_size(msg),
+                       ui->atom_eventTransfer, msg);
+}
+#endif
+
 // LV2 idle interface to host
 static int ui_idle(LV2UI_Handle handle) {
     X11_UI* ui = (X11_UI*)handle;
@@ -423,6 +496,15 @@ static int ui_idle(LV2UI_Handle handle) {
     }
     // Xputty event loop setup to run one cycle when called
     run_embedded(&ui->main);
+#ifdef USE_MIDI
+    int i = next(&ui->mm, -1);
+    uint8_t data[3] = {0};
+    while (i >= 0) {
+        fill(&ui->mm, data, i);
+        send_midi_data(ui, data[0], data[1], data[2]);
+        i = next(&ui->mm, i);
+    }
+#endif
     return 0;
 }
 

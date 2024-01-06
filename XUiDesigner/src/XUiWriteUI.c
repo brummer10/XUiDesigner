@@ -545,41 +545,31 @@ void print_list(XUiDesigner *designer) {
         
         if (have_midi_in && MIDI_PORT > -1) {
             printf ("#ifdef USE_MIDI\n");
-            printf("static void send_midi_data(Widget_t *w, const int *key, const int control) {\n"
+
+            printf("static void send_midi_note(Widget_t *w, const int *key, const int control) {\n"
             "    X11_UI *ui = (X11_UI*) w->parent_struct;\n"
             "    MidiKeyboard *keys = (MidiKeyboard*)ui->widget[%i]->private_struct;\n"
-            "    uint8_t obj_buf[OBJ_BUF_SIZE];\n"
-            "    uint8_t vec[3];\n"
-            "    vec[0] = (int)control;\n"// Note On/Off or controller number
-            "    vec[0] |= keys->channel;\n" //channel
-            "    vec[1] = (*key);\n" // note
-            "    vec[2] = keys->velocity;\n" // velocity
-            "    lv2_atom_forge_set_buffer(&ui->forge, obj_buf, OBJ_BUF_SIZE);\n\n"
+            "    send_midi_cc(&ui->mm, (int)control, (*key), keys->velocity, 3);\n"
+            "}\n\n",MIDIKEYBOARD);
 
-            "    lv2_atom_forge_frame_time(&ui->forge,0);\n"
-            "    LV2_Atom* msg = (LV2_Atom*)lv2_atom_forge_raw(&ui->forge,&ui->midiatom,sizeof(LV2_Atom));\n"
-            "    lv2_atom_forge_raw(&ui->forge,vec, sizeof(vec));\n"
-            "    lv2_atom_forge_pad(&ui->forge,sizeof(vec)+sizeof(LV2_Atom));\n\n"
-            "    ui->write_function(ui->controller, %i, lv2_atom_total_size(msg),\n"
-            "                       ui->atom_eventTransfer, msg);\n"
-            "}\n\n", MIDIKEYBOARD, MIDI_PORT);
 
             printf("static void send_all_notes_off(Widget_t *w, const int *value){\n"
-            "        X11_UI *ui = (X11_UI*) w->parent_struct;\n"
-            "        int key = 120;\n"
-            "        send_midi_data(ui->widget[%i], &key, 0xB0);\n"
+            "    X11_UI *ui = (X11_UI*) w->parent_struct;\n"
+            "    MidiKeyboard *keys = (MidiKeyboard*)ui->widget[%i]->private_struct;\n"
+            "    int key = 120;\n"
+            "    send_midi_cc(&ui->mm,  0xB0, key, keys->velocity, 3);\n"
             "}\n\n", MIDIKEYBOARD);
 
             printf("static void xkey_press(void *w_, void *key_, void *user_data) {\n"
-            "        Widget_t *w = (Widget_t*)w_;\n"
-            "        X11_UI *ui = (X11_UI*) w->parent_struct;\n"
-            "        ui->widget[%i]->func.key_press_callback(ui->widget[%i], key_, user_data);\n"
+            "    Widget_t *w = (Widget_t*)w_;\n"
+            "    X11_UI *ui = (X11_UI*) w->parent_struct;\n"
+            "    ui->widget[%i]->func.key_press_callback(ui->widget[%i], key_, user_data);\n"
             "}\n\n", MIDIKEYBOARD, MIDIKEYBOARD);
 
             printf("static void xkey_release(void *w_, void *key_, void *user_data) {\n"
-            "        Widget_t *w = (Widget_t*)w_;\n"
-            "        X11_UI *ui = (X11_UI*) w->parent_struct;\n"
-            "        ui->widget[%i]->func.key_release_callback(ui->widget[%i], key_, user_data);\n"
+            "    Widget_t *w = (Widget_t*)w_;\n"
+            "    X11_UI *ui = (X11_UI*) w->parent_struct;\n"
+            "    ui->widget[%i]->func.key_release_callback(ui->widget[%i], key_, user_data);\n"
             "}\n\n", MIDIKEYBOARD, MIDIKEYBOARD);
             
             printf("#endif\n");
@@ -894,9 +884,10 @@ void print_list(XUiDesigner *designer) {
             if (designer->controls[i].is_midi_patch && MIDI_PORT > -1) {
                 printf ("#ifdef USE_MIDI\n"
                         "    MidiKeyboard *keys = (MidiKeyboard*)ui->widget[%i]->private_struct;\n"
-                        "    keys->mk_send_note = send_midi_data;\n"
+                        "    set_midi_port(ui, %i);\n"
+                        "    keys->mk_send_note = send_midi_note;\n"
                         "    keys->mk_send_all_sound_off = send_all_notes_off;\n"
-                        "#endif\n", j);
+                        "#endif\n", j, MIDI_PORT);
                 p--;
             }
             if (have_midi_in && MIDI_PORT > -1 && ! designer->controls[i].is_midi_patch) {

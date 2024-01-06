@@ -55,6 +55,21 @@ typedef struct {
 
 typedef int PortIndex;
 
+#ifdef USE_MIDI
+enum {
+    _FULL          = 1<<0,
+    _EMPTY         = 1<<1,
+};
+
+typedef struct {
+    int send_cc[25];
+    uint8_t cc_num[25];
+    uint8_t pg_num[25];
+    uint8_t bg_num[25];
+    uint8_t me_num[25];
+} MidiMessenger;
+#endif
+
 // main window struct
 typedef struct {
 #ifdef USE_MIDI
@@ -63,6 +78,8 @@ typedef struct {
 
     LV2_Atom midiatom; 
     LV2_Atom_Forge forge;
+    MidiMessenger mm;
+    int midi_port;
 #endif
     void *parentXwindow;
     Xputty main;
@@ -77,6 +94,19 @@ typedef struct {
     LV2UI_Write_Function write_function;
     LV2UI_Resize* resize;
 } X11_UI;
+
+#ifdef USE_MIDI
+void messenger_init(MidiMessenger *mm);
+
+bool send_midi_cc(MidiMessenger *mm, uint8_t _cc, const uint8_t _pg,
+                            const uint8_t _bgn, const uint8_t _num);
+
+int next(MidiMessenger *mm, int i);
+
+void fill(MidiMessenger *mm, unsigned char *midi_send, const int i);
+
+void set_midi_port(X11_UI *ui, int p) {ui->midi_port = p;}
+#endif
 
 // controller value changed, forward value to host when needed
 void plugin_value_changed(X11_UI *ui, Widget_t *w, PortIndex index);
