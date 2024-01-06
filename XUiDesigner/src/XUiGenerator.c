@@ -48,6 +48,7 @@ void remove_from_list(XUiDesigner *designer, Widget_t *wid) {
     designer->controls[wid->data].in_frame = 0;
     designer->controls[wid->data].in_tab = 0;
     designer->controls[wid->data].is_atom_patch = false;
+    designer->controls[wid->data].is_midi_patch = false;
     designer->controls[wid->data].is_audio_input = false;
     designer->controls[wid->data].is_audio_output = false;
     designer->controls[wid->data].is_atom_input = false;
@@ -62,6 +63,16 @@ void add_to_list(XUiDesigner *designer, Widget_t *wid, const char* type,
     designer->controls[wid->data].have_adjustment = have_adjustment;
     designer->controls[wid->data].is_type = is_type;
     //show_list(designer);
+}
+
+bool have_keyboard(XUiDesigner *designer) {
+    int i = 0;
+    for (;i<MAX_CONTROLS;i++) {
+        if (designer->controls[i].is_midi_patch == true ) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void show_list(XUiDesigner *designer) {

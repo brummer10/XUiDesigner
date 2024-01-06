@@ -376,6 +376,11 @@ Widget_t *add_controller(XUiDesigner *designer, XButtonEvent *xbutton, Widget_t 
                                                 _("Couldn't add MIDI Keyboard when work with a json file, sorry"),NULL);
                 XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
                 return NULL;
+            } else if (have_keyboard(designer)) {
+                Widget_t *dia = open_message_dialog(w, ERROR_BOX, "MIDI Keyboard",
+                                                _("Couldn't add a 2 MIDI Keyboard, sorry"),NULL);
+                XSetTransientForHint(w->app->dpy, dia->widget, designer->ui->widget);
+                return NULL;
             }
             asprintf(&designer->controls[designer->wid_counter].name, "Midikeyboard%i", designer->wid_counter);
             wid = add_midi_keyboard(w, designer->controls[designer->wid_counter].name, xbutton->x-73, xbutton->y-30, 147, 60);
