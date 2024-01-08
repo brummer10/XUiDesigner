@@ -462,23 +462,26 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
 
 #ifdef USE_MIDI
 // send midi data to the midi output port 
-void send_midi_data(X11_UI* ui, uint8_t controller,
-                             uint8_t note, uint8_t velocity) {
+void send_midi_data(X11_UI* ui) {
 
+    int i = next(&ui->mm, -1);
+    if (i < 0) return;
     uint8_t obj_buf[OBJ_BUF_SIZE];
     uint8_t vec[3];
-    vec[0] = controller;
-    vec[1] = note;
-    vec[2] = velocity; 
     lv2_atom_forge_set_buffer(&ui->forge, obj_buf, OBJ_BUF_SIZE);
 
-    lv2_atom_forge_frame_time(&ui->forge,0);
-    LV2_Atom* msg = (LV2_Atom*)lv2_atom_forge_raw(&ui->forge,&ui->midiatom,sizeof(LV2_Atom));
-    lv2_atom_forge_raw(&ui->forge,vec, sizeof(vec));
-    lv2_atom_forge_pad(&ui->forge,sizeof(vec)+sizeof(LV2_Atom));
+    while (i >= 0) {
+        memset(vec, 0, 3 * sizeof(uint8_t));
+        fill(&ui->mm, vec, i);
 
-    ui->write_function(ui->controller, ui->midi_port, lv2_atom_total_size(msg),
-                       ui->atom_eventTransfer, msg);
+        lv2_atom_forge_frame_time(&ui->forge,0);
+        LV2_Atom* msg = (LV2_Atom*)lv2_atom_forge_raw(&ui->forge,&ui->midiatom,sizeof(LV2_Atom));
+        lv2_atom_forge_raw(&ui->forge,vec, sizeof(vec));
+        lv2_atom_forge_pad(&ui->forge,sizeof(vec)+sizeof(LV2_Atom));
+        ui->write_function(ui->controller, ui->midi_port, lv2_atom_total_size(msg),
+                                                        ui->atom_eventTransfer, msg);
+        i = next(&ui->mm, i);
+    }
 }
 #endif
 
@@ -497,13 +500,7 @@ static int ui_idle(LV2UI_Handle handle) {
     // Xputty event loop setup to run one cycle when called
     run_embedded(&ui->main);
 #ifdef USE_MIDI
-    int i = next(&ui->mm, -1);
-    uint8_t data[3] = {0};
-    while (i >= 0) {
-        fill(&ui->mm, data, i);
-        send_midi_data(ui, data[0], data[1], data[2]);
-        i = next(&ui->mm, i);
-    }
+    send_midi_data(ui);
 #endif
     return 0;
 }
