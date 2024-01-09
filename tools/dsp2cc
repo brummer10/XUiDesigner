@@ -100,7 +100,7 @@ class UIDefs(object):
             ast = d["id"].split(".")
             d["port"] = re.sub(r'\s+', '',ast[-1].upper())
             if not d["port"] in ports:
-                fp.write('   %(port)s, // %(tail)s \n' % d)
+                fp.write('   %(port)s, // %(variable)s %(tail)s \n' % d)
             ports.append(d["port"])
 
         def __getitem__(self, n):

@@ -254,7 +254,9 @@ void parse_faust_effect(XUiDesigner *designer, bool bypass) {
         printf("Error opening pipe!\n");
         return;
     }
+    int l = 1;
     int p = 1;
+    int k = 1;
     int j = 0;
     designer->lv2c.audio_input = 0;
     designer->lv2c.audio_output = 0;
@@ -269,7 +271,7 @@ void parse_faust_effect(XUiDesigner *designer, bool bypass) {
         } else if (strstr(buf, "bypass") != NULL) {
             designer->lv2c.bypass = 1;
             if (designer->lv2c.bypass) {
-                Widget_t *wid = add_toggle_button(designer->ui, "Bypass", 60*p, 60, 60, 60);
+                Widget_t *wid = add_toggle_button(designer->ui, "Bypass", 60*p, 60*k, 60, 60);
                 set_controller_callbacks(designer, wid, true);
                 designer->controls[designer->active_widget_num].destignation_enabled = true;
                 add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
@@ -287,6 +289,9 @@ void parse_faust_effect(XUiDesigner *designer, bool bypass) {
             float v[8] = {0,0,0,0};
             int i = 0;
             asprintf(&label, "%s", ptr);
+            ptr = strtok(NULL, ",");
+            char *control_type;
+            asprintf(&control_type, "%s", ptr);
             while(ptr != NULL) {
                 ptr = strtok(NULL, ",");
                 if (ptr != NULL) {
@@ -297,23 +302,73 @@ void parse_faust_effect(XUiDesigner *designer, bool bypass) {
                 }
             }
             float step = v[3];
-            if (v[3] < v[2] / 100.0) {
-                step = v[0] < 0.0 ? (fabs(v[1])+fabs(v[2]))*0.01:fabs(v[2])* 0.01;
+            if (v[3] < v[2] / 1000.0) {
+                step = v[0] < 0.0 ? (fabs(v[1])+fabs(v[2]))*0.001:fabs(v[2])* 0.001;
             } 
             asprintf(&designer->controls[designer->wid_counter].name, "%s", label);
-            Widget_t *wid = add_knob(designer->ui, designer->controls[designer->wid_counter].name, 60*p + 10*p, 60, 60, 80);
-            set_adjustment(wid->adj, v[0], v[0], v[1], v[2], step, CL_CONTINUOS);
-            set_controller_callbacks(designer, wid, true);
-            tooltip_set_text(wid, wid->label);
-            add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
-            designer->controls[designer->active_widget_num].port_index = j;
-            if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
-                load_single_controller_image(designer, designer->global_knob_image_file);
+
+            Widget_t *wid = NULL;
+            if (strstr(control_type, "Checkbox") != NULL) {
+                wid = add_toggle_button(designer->ui, designer->controls[designer->wid_counter].name, 60*p + 10*p, 60*k, 60, 60);
+                set_controller_callbacks(designer, wid, true);
+                tooltip_set_text(wid, wid->label);
+                add_to_list(designer, wid, "add_lv2_toggle_button", false, IS_TOGGLE_BUTTON);
+                designer->controls[designer->active_widget_num].port_index = j;
+                if (designer->global_switch_image_file != NULL && adj_get_value(designer->global_switch_image->adj))
+                    load_single_controller_image(designer, designer->global_switch_image_file);
+            } else if (strstr(control_type, "Button") != NULL) {
+                wid = add_button(designer->ui, designer->controls[designer->wid_counter].name, 60*p + 10*p, 60*k, 60, 60);
+                set_controller_callbacks(designer, wid, true);
+                tooltip_set_text(wid, wid->label);
+                add_to_list(designer, wid, "add_lv2_button", false, IS_BUTTON);
+                designer->controls[designer->active_widget_num].port_index = j;
+                if (designer->global_button_image_file != NULL && adj_get_value(designer->global_button_image->adj))
+                    load_single_controller_image(designer, designer->global_button_image_file);
+            } else if (strstr(control_type, "Entry") != NULL) {
+                wid = add_valuedisplay(designer->ui, designer->controls[designer->wid_counter].name, 60*p + 10*p, 60*k, 40, 30);
+                set_adjustment(wid->adj, v[0], v[0], v[1], v[2], step, CL_CONTINUOS);
+                set_controller_callbacks(designer, wid, true);
+                tooltip_set_text(wid, wid->label);
+                add_to_list(designer, wid,  "add_lv2_valuedisplay", true, IS_VALUE_DISPLAY);
+                designer->controls[designer->active_widget_num].port_index = j;
+            } else if (strstr(control_type, "Vbargraph") != NULL) {
+                wid = add_vmeter(designer->ui, designer->controls[designer->wid_counter].name, false, 60*p + 10*p, 60*k, 20, 80);
+                set_adjustment(wid->adj, v[0], v[0], v[1], v[2], step, CL_CONTINUOS);
+                set_controller_callbacks(designer, wid, true);
+                tooltip_set_text(wid, wid->label);
+                add_to_list(designer, wid, "add_lv2_vmeter", true, IS_VMETER);
+                designer->controls[designer->active_widget_num].port_index = j;
+            } else if (strstr(control_type, "Hbargraph") != NULL) {
+                wid = add_vmeter(designer->ui, designer->controls[designer->wid_counter].name, false, 60*p + 10*p, 60*k, 80, 20);
+                set_adjustment(wid->adj, v[0], v[0], v[1], v[2], step, CL_CONTINUOS);
+                set_controller_callbacks(designer, wid, true);
+                tooltip_set_text(wid, wid->label);
+                add_to_list(designer, wid, "add_lv2_hmeter", true, IS_HMETER);
+                designer->controls[designer->active_widget_num].port_index = j;
+                p++;
+            } else {
+                wid = add_knob(designer->ui, designer->controls[designer->wid_counter].name, 60*p + 10*p, 60*k, 60, 80);
+                set_adjustment(wid->adj, v[0], v[0], v[1], v[2], step, CL_CONTINUOS);
+                set_controller_callbacks(designer, wid, true);
+                tooltip_set_text(wid, wid->label);
+                add_to_list(designer, wid, "add_lv2_knob", true, IS_KNOB);
+                designer->controls[designer->active_widget_num].port_index = j;
+                if (designer->global_knob_image_file != NULL && adj_get_value(designer->global_knob_image->adj)) 
+                    load_single_controller_image(designer, designer->global_knob_image_file);
+            }
+
             p++;
             j++;
+            l = max(l, p);
+            if (p > 10) {
+                k +=2;
+                p = 1;
+            }
 
             free(label);
             label = NULL;
+            free(control_type);
+            control_type = NULL;
         }
         //printf("OUTPUT: %s", buf);
     }
@@ -321,9 +376,17 @@ void parse_faust_effect(XUiDesigner *designer, bool bypass) {
         printf("Command not found or exited with error status\n");
         return;
     }
-    designer->ui->width = min(1200, 60 + 70*p);
-    designer->ui->height = 120;
-    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height);
+    if (p == 1) {
+        designer->ui->width = 600;
+        designer->ui->height = 402;
+        widget_show_all(designer->ui);
+        open_message_dialog(designer->ui, INFO_BOX, "",
+            "Didn't find any usable control in dsp file", NULL);        
+    } else {
+        designer->ui->width = min(1200, 60 + 70*l);
+        designer->ui->height = 120*k+2;
+    }
+    XResizeWindow(designer->ui->app->dpy, designer->ui->widget, designer->ui->width, designer->ui->height-2);
 
     strdecode(outname, ".cc", "");
     free(designer->lv2c.name);
