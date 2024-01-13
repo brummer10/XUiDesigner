@@ -572,8 +572,15 @@ void move_wid(void *w_, void *xmotion_, void* UNUSED(user_data)) {
                         pos_x += designer->grid_width - pos_width;
                     }
                 }
-                pos_x = max(1, min(designer->ui->width - w->width, pos_x));
-                pos_y = max(1, min(designer->ui->height - w->height, pos_y));
+                // calculate bounds for moving
+                int x1, y1, w1, h1;
+                os_translate_coords(w, designer->ui->widget, p->widget, 1, 1, &x1, &y1);
+                os_translate_coords(w, designer->ui->widget, p->widget,
+                        designer->ui->width - w->width, designer->ui->height - w->height, &w1, &h1);
+
+                pos_x = max(x1, min(w1, pos_x));
+                pos_y = max(y1, min(h1, pos_y));
+
                 os_move_window(w->app->dpy,w,pos_x, pos_y);
             }
             xevfunc store = designer->x_axis->func.value_changed_callback;

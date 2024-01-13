@@ -44,10 +44,16 @@ void move_all_for_type(XUiDesigner *designer, WidgetType is_type, int x, int y) 
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && designer->controls[i].is_type == is_type) {
             Widget_t *wi = designer->controls[i].wid;
+            Widget_t *p = (Widget_t*)wi->parent;
             int pos_x = wi->x + x;
             int pos_y = wi->y + y;
-            pos_x = max(1, min(designer->ui->width - wi->width, pos_x));
-            pos_y = max(1, min(designer->ui->height - wi->height, pos_y));
+            // calculate bounds for moving
+            int x1, y1, w1, h1;
+            os_translate_coords(wi, designer->ui->widget, p->widget, 1, 1, &x1, &y1);
+            os_translate_coords(wi, designer->ui->widget, p->widget,
+                    designer->ui->width - wi->width, designer->ui->height - wi->height, &w1, &h1);
+            pos_x = max(x1, min(w1, pos_x));
+            pos_y = max(y1, min(h1, pos_y));
             int pos_width = wi->width;
             int snap_grid_x = pos_x/designer->grid_width;
             int snap_grid_y = pos_y/designer->grid_height;
