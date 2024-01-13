@@ -536,6 +536,39 @@ static void set_drag_icon(void *w_, void *xmotion_, void* UNUSED(user_data)) {
     //designer->ui->flags &= ~DONT_PROPAGATE;
 }
 
+void draw_drag_icon(XUiDesigner *designer, Widget_t *w, Widget_t *p, int pos_x, int pos_y) {
+    int x1, y1;
+    os_translate_coords(w, p->widget, designer->ui->widget, pos_x, pos_y, &x1, &y1);
+    int y2 = y1;
+    int h2 = w->height;
+    int x2 = x1;
+    int w2 = w->width;
+
+    if ((x1 < p->x || y1 < p->y) || (x1 + w->width > p->x + p->width ||
+                                    y1 + w->height > p->y + p->height)) {
+
+        if (y1 + w->height > p->y + p->height) {
+            y2 = max(y1, y1 + (w->height - ((y1 + w->height) - (p->y + p->height))));
+            h2 = w->height - (y2 - y1);
+        }
+        if (y1 < p->y) h2 = max(0, p->y - y1);
+
+        if (x1 + w->width > p->x + p->width) {
+            x2 = max(x1, x1 + (w->width - ((x1 + w->width) - (p->x + p->width))));
+            w2 = w->width - (x2 -x1);
+        }
+        if (x1 < p->x) w2 = max(0, p->x - x1);
+
+        designer->drag_icon.x = max(x1, x2);
+        designer->drag_icon.y = max(y1, y2);
+        designer->drag_icon.w = min(w->width, w2);
+        designer->drag_icon.h = min(w->height, h2);
+        designer->drag_icon.is_active = true;
+        widget_draw(designer->ui, NULL);
+        designer->drag_icon.is_active = false;
+    }
+}
+
 void move_wid(void *w_, void *xmotion_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
@@ -582,6 +615,9 @@ void move_wid(void *w_, void *xmotion_, void* UNUSED(user_data)) {
                 pos_y = max(y1, min(h1, pos_y));
 
                 os_move_window(w->app->dpy,w,pos_x, pos_y);
+                if (p != designer->ui) {
+                    draw_drag_icon(designer, w, p, pos_x, pos_y);
+                }
             }
             xevfunc store = designer->x_axis->func.value_changed_callback;
             designer->x_axis->func.value_changed_callback = null_callback;
