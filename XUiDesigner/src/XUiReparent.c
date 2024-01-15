@@ -240,7 +240,6 @@ static void reparent_widget(XUiDesigner *designer, Widget_t* parent, Widget_t *w
 
 void check_reparent(XUiDesigner *designer, XButtonEvent* UNUSED(xbutton), Widget_t *w) {
     Widget_t *p = (Widget_t*)w->parent;
-    Widget_t *pp = (Widget_t*)p->parent;
     XWindowAttributes attrs;
     XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
     int x = attrs.x;
@@ -249,7 +248,21 @@ void check_reparent(XUiDesigner *designer, XButtonEvent* UNUSED(xbutton), Widget
     int height = attrs.height;
     int i = 0;
     int j = 0;
+    // if parent widget is not the main window, translate position to main window 
+    // in case it have leave the old parent frame widget
+    if (p != designer->ui) {
+        int x1, y1;
+        Window child;
+        XTranslateCoordinates( w->app->dpy, p->widget, designer->ui->widget, x, y, &x1, &y1, &child );
+        if (x1 < p->x || y1 < p->y || x1+width >  p->x + p->width || y1+height >p->y + p->height) {
+            x = x1;
+            y = y1;
+        } else {
+            return;
+        }
+    }
     Widget_t *frame = NULL;
+    // check if the widget is still in a other frame widget, if so re-parent it
     for (;i<MAX_CONTROLS;i++) {
         if (designer->controls[i].wid != NULL && (designer->controls[i].is_type == IS_FRAME ||
             designer->controls[i].is_type == IS_TABBOX || designer->controls[i].is_type == IS_IMAGE )) {
@@ -261,27 +274,22 @@ void check_reparent(XUiDesigner *designer, XButtonEvent* UNUSED(xbutton), Widget
             int fwidth = attrs.width;
             int fheight = attrs.height;
             int v = 0;
-            if (x>fx && y>fy && x+width<fx+fwidth && y+height<fy+fheight && p != frame && pp != frame) {
+            if (x>fx && y>fy && x+width<fx+fwidth && y+height<fy+fheight ) {
                 if (designer->controls[i].is_type == IS_TABBOX) {
                     v = (int)adj_get_value(designer->controls[i].wid->adj);
                     frame = designer->controls[i].wid->childlist->childs[v];
-                    if (frame == NULL) break;
+                    if (frame == NULL) return;
                     v +=1;
                 }
-                if (p == frame || w == frame) break;
+                if (w == frame) return;
                 int x1, y1;
                 Window child;
                 XTranslateCoordinates( w->app->dpy, designer->ui->widget, frame->widget, x, y, &x1, &y1, &child );
                 reparent_widget(designer, frame, w, j, v, x1, y1, width, height);
-                break;
-            } else if ((p == frame || pp == frame) && (x<0 || y<0 || x>fwidth || y>fheight)) {
-                int x1, y1;
-                Window child;
-                XTranslateCoordinates( w->app->dpy, frame->widget, designer->ui->widget, x, y, &x1, &y1, &child );
-                reparent_widget(designer, designer->ui, w, 0, 0, x1, y1, width, height);
-                break;
+                return;
             }
         }
     }
-    
+    // seems the control widget is now a child of the main window
+    reparent_widget(designer, designer->ui, w, 0, 0, x, y, width, height);
 }

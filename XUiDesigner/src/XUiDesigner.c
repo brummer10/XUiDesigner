@@ -537,9 +537,15 @@ static void set_drag_icon(void *w_, void *xmotion_, void* UNUSED(user_data)) {
 }
 
 void draw_drag_icon(XUiDesigner *designer, Widget_t *w, Widget_t *p, int pos_x, int pos_y) {
+    int offset = 0;
+    if (designer->controls[w->data].in_tab) {
+        Widget_t *pp = (Widget_t*)p->parent;
+        p = pp;
+        offset = 20; // tab box header
+    }
     int x1, y1;
     os_translate_coords(w, p->widget, designer->ui->widget, pos_x, pos_y, &x1, &y1);
-    int y2 = y1;
+    int y2 = y1 + offset;
     int h2 = w->height;
     int x2 = x1;
     int w2 = w->width;
@@ -547,17 +553,23 @@ void draw_drag_icon(XUiDesigner *designer, Widget_t *w, Widget_t *p, int pos_x, 
     if ((x1 < p->x || y1 < p->y) || (x1 + w->width > p->x + p->width ||
                                     y1 + w->height > p->y + p->height)) {
 
-        if (y1 + w->height > p->y + p->height) {
+        if ((y1 + w->height > p->y + p->height) &&
+              (x1 < p->x + p->width) && ((x1 + w->width)  > p->x)) {
             y2 = max(y1, y1 + (w->height - ((y1 + w->height) - (p->y + p->height))));
             h2 = w->height - (y2 - y1);
+        } else if ((y1 < p->y) && (x1 < p->x + p->width) &&
+                                ((x1 + w->width)  > p->x)){
+            h2 = max(0, p->y - y1);
         }
-        if (y1 < p->y) h2 = max(0, p->y - y1);
 
-        if (x1 + w->width > p->x + p->width) {
+        if ((x1 + w->width > p->x + p->width) &&
+               (y1 < p->y + p->height) && ((y1 + w->height) > p->y)) {
             x2 = max(x1, x1 + (w->width - ((x1 + w->width) - (p->x + p->width))));
             w2 = w->width - (x2 -x1);
+        } else if ((x1 < p->x) && (y1 < p->y + p->height) &&
+                                ((y1 + w->height) > p->y)) {
+            w2 = max(0, p->x - x1);
         }
-        if (x1 < p->x) w2 = max(0, p->x - x1);
 
         designer->drag_icon.x = max(x1, x2);
         designer->drag_icon.y = max(y1, y2);
@@ -825,8 +837,8 @@ void fix_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
     Widget_t *p = (Widget_t*)w->parent;
     Metrics_t metrics;
     os_get_window_metrics(w, &metrics);
-    int x = metrics.x;
-    int y = metrics.y;
+    int x = max(1, min(p->width-metrics.width, metrics.x));
+    int y = max(1, min(p->height-metrics.height, metrics.y));
     int width = metrics.width;
     int height = metrics.height;
     XUiDesigner *designer = (XUiDesigner*)p->parent_struct;
@@ -879,6 +891,7 @@ void fix_pos_wid(void *w_, void *button_, void* UNUSED(user_data)) {
                 
             }
         expose_widget(p);
+        if (p != designer->ui) expose_widget(designer->ui);
     } else if(xbutton->button == Button3) {
         designer->modify_mod = XUI_NONE;
         designer->active_widget = (Widget_t*)w_;
