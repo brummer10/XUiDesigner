@@ -32,9 +32,9 @@
 extern "C" {
 #endif
 
-void save_config(XUiDesigner *designer);
+void save_designer_config(XUiDesigner *designer);
 
-void read_config(XUiDesigner *designer);
+void read_designer_config(XUiDesigner *designer);
 
 #ifdef __cplusplus
 }

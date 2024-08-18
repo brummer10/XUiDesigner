@@ -606,6 +606,10 @@ void run_save(void *w_, void* user_data) {
             filename = NULL;
             asprintf(&cmd, "include libxputty/Build/Makefile.base\n\n"
 
+                "NOGOAL := mod install features\n\n"
+
+                "PASS := features\n\n"
+
                 "SUBDIR := %s\n\n"
 
                 ".PHONY: $(SUBDIR) libxputty  recurse\n\n"
@@ -615,10 +619,16 @@ void run_save(void *w_, void* user_data) {
                 "clean:\n\n"
 
                 "libxputty:\n"
-                "	@exec $(MAKE) --no-print-directory -j 1 -C $@ $(MAKECMDGOALS)\n\n"
+                "ifeq (,$(filter $(NOGOAL),$(MAKECMDGOALS)))\n"
+                "	@exec $(MAKE) --no-print-directory -j 1 -C $@ $(MAKECMDGOALS)\n"
+                "endif\n\n"
 
                 "$(SUBDIR): libxputty\n"
-                "	@exec $(MAKE) --no-print-directory -j 1 -C $@ $(MAKECMDGOALS)\n\n", name);
+                "ifeq (,$(filter $(PASS),$(MAKECMDGOALS)))\n"
+                "	@exec $(MAKE) --no-print-directory -j 1 -C $@ $(MAKECMDGOALS)\n"
+                "endif\n\n"
+
+                "features:\n\n", name);
 
             asprintf(&makefile, "%s/makefile",filepath);
             if((fpm=freopen(makefile, "w" ,stdout))==NULL) {
@@ -645,7 +655,7 @@ void run_save(void *w_, void* user_data) {
         json_file = NULL;
 
         char *github_file = NULL;
-        asprintf(&github_file, "%s/.github/workflow",filepath);
+        asprintf(&github_file, "%s/.github/workflows",filepath);
         if (stat(github_file, &st) == -1) {
             r_mkdir(github_file);
         }

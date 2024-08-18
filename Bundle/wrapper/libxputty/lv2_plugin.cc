@@ -408,7 +408,7 @@ static LV2UI_Handle instantiate(const LV2UI_Descriptor * descriptor,
     *widget = (void*)ui->win->widget;
     // request to resize the parentXwindow to the size of the toplevel Widget_t
     if (ui->resize){
-        ui->resize->ui_resize(ui->resize->handle, w, h);
+        ui->resize->ui_resize(ui->resize->handle, ui->win->width, ui->win->height);
     }
     // store pointer to the host controller
     ui->controller = controller;

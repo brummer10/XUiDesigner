@@ -1682,7 +1682,7 @@ int main (int argc, char ** argv) {
     widget_show_all(designer->w);
     widget_show_all(designer->ui);
     hide_show_as_needed(designer);
-    read_config(designer);
+    read_designer_config(designer);
     if (ffile != NULL) parse_faust_file(designer, ffile);
     
     pthread_t rf;
@@ -1690,7 +1690,7 @@ int main (int argc, char ** argv) {
 
     main_run(&app);
 
-    save_config(designer);
+    save_designer_config(designer);
     //print_ttl(designer);
     pthread_cancel(rf);
     pthread_join(rf, NULL);

@@ -27,12 +27,86 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
+void boxShadowInset(cairo_t* const cr, int x, int y, int width, int height, bool fill) {
+    cairo_pattern_t *pat = cairo_pattern_create_linear (x, y, x + width, y);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 1, 0.33, 0.33, 0.33, 1.0);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0.99, 0.33 * 0.6, 0.33 * 0.6, 0.33 * 0.6, 0.0);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0.05, 0.05 * 2.0, 0.05 * 2.0, 0.05 * 2.0, 0.0);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0, 0.05, 0.05, 0.05, 1.0);
+    cairo_set_source(cr, pat);
+    if (fill) cairo_fill_preserve (cr);
+    else cairo_paint (cr);
+    cairo_pattern_destroy (pat);
+    pat = NULL;
+    pat = cairo_pattern_create_linear (x, y, x, y + height);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 1, 0.33, 0.33, 0.33, 1.0);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0.97, 0.33 * 0.6, 0.33 * 0.6, 0.33 * 0.6, 0.0);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0.03, 0.05 * 2.0, 0.05 * 2.0, 0.05 * 2.0, 0.0);
+    cairo_pattern_add_color_stop_rgba 
+        (pat, 0, 0.05, 0.05, 0.05, 1.0);
+    cairo_set_source(cr, pat);
+    if (fill) cairo_fill_preserve (cr);
+    else cairo_paint (cr);
+    cairo_pattern_destroy (pat);
+}
+
+void boxShadowOutset(cairo_t* const cr, int x, int y, int width, int height, bool fill) {
+    cairo_pattern_t *pat = cairo_pattern_create_linear (x, y, x + width, y);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0,0.33,0.33,0.33, 1.0);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0.03,0.33 * 0.6,0.33 * 0.6,0.33 * 0.6, 0.0);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0.99, 0.05 * 2.0, 0.05 * 2.0, 0.05 * 2.0, 0.0);
+    cairo_pattern_add_color_stop_rgba 
+        (pat, 1, 0.05, 0.05, 0.05, 1.0);
+    cairo_set_source(cr, pat);
+    if (fill) cairo_fill_preserve (cr);
+    else cairo_paint (cr);
+    cairo_pattern_destroy (pat);
+    pat = NULL;
+    pat = cairo_pattern_create_linear (x, y, x, y + height);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0,0.33,0.33,0.33, 1.0);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0.03,0.33 * 0.6,0.33 * 0.6,0.33 * 0.6, 0.0);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 0.97, 0.05 * 2.0, 0.05 * 2.0, 0.05 * 2.0, 0.0);
+    cairo_pattern_add_color_stop_rgba
+        (pat, 1, 0.05, 0.05, 0.05, 1.0);
+    cairo_set_source(cr, pat);
+    if (fill) cairo_fill_preserve (cr);
+    else cairo_paint (cr);
+    cairo_pattern_destroy (pat);
+}
+
+void draw_outset_frame(cairo_t* const cr, int x, int y, int width, int height) {
+    cairo_rectangle(cr,x+10, y+10, width -20, height -20);
+    boxShadowInset(cr,x+10, y+10, width -20, height -20, true);
+    cairo_stroke(cr);
+    cairo_rectangle(cr,x, y, width, height);
+    boxShadowOutset(cr,x, y, width, height, true);
+    cairo_stroke(cr); 
+}
 
 void draw_window(void *w_, void* UNUSED(user_data)) {
     Widget_t *w = (Widget_t*)w_;
+    //Metrics_t metrics;
+    //os_get_window_metrics(w, &metrics);
+    //int width = metrics.width;
+    //int height = metrics.height;
+    //if (!metrics.visible) return;
     //use_bg_color_scheme(w, NORMAL_);
     cairo_set_source_rgba(w->crb,  0.13, 0.13, 0.13, 1.0);
     cairo_paint (w->crb);
+    //draw_outset_frame(w->crb, 0, 0, width, height);
 }
 
 void draw_ui(void *w_, void* UNUSED(user_data)) {
@@ -133,17 +207,19 @@ void draw_frame(void *w_, void* UNUSED(user_data)) {
     }
 
     cairo_text_extents_t extents;
-    use_text_color_scheme(w, get_color_state(w));
     cairo_set_font_size (w->crb, w->app->normal_font/w->scale.ascale);
     cairo_text_extents(w->crb,w->label , &extents);
-    cairo_move_to (w->crb, 30, extents.height);
-    cairo_show_text(w->crb, w->label);
-    cairo_new_path (w->crb);
 
     cairo_set_line_width(w->crb,3);
     use_frame_color_scheme(w, INSENSITIVE_);
     rounded_frame(w->crb, 5, 5, width_t-10, height_t-10, extents.width+10);
+    //boxShadowInset(w->crb,5, 5, width_t-10, height_t-10, true);
     cairo_stroke(w->crb);
+
+    use_text_color_scheme(w, get_color_state(w));
+    cairo_move_to (w->crb, 30, extents.height);
+    cairo_show_text(w->crb, w->label);
+    cairo_new_path (w->crb);
 
     if (designer->active_widget && designer->active_widget->parent == w) {
         XWindowAttributes attr;

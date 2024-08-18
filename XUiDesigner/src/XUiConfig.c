@@ -28,7 +28,7 @@
 ----------------------------------------------------------------------*/
 
 
-void save_config(XUiDesigner *designer) {
+void save_designer_config(XUiDesigner *designer) {
     char* config_file = NULL;
     asprintf(&config_file, "%s/.config/xuidesigner.conf", getenv("HOME"));
     FILE *fpm;
@@ -65,7 +65,7 @@ void save_config(XUiDesigner *designer) {
     free(config_file);
 }
 
-void read_config(XUiDesigner *designer) {
+void read_designer_config(XUiDesigner *designer) {
     char* config_file = NULL;
     asprintf(&config_file, "%s/.config/xuidesigner.conf", getenv("HOME"));
     FILE *fpm;
