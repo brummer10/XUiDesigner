@@ -1095,6 +1095,7 @@ static void run_save_as(void *w_, void* UNUSED(user_data)) {
 static void save_response(void *w_, void* user_data) {
     if(user_data !=NULL) {
         Widget_t *w = (Widget_t*)w_;
+        //show_settings(w);
         XUiDesigner *designer = (XUiDesigner*)w->parent_struct;
         int response = *(int*)user_data;
         if(response == 1) {
