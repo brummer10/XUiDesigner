@@ -292,7 +292,7 @@ static void check_for_Widget_color(XUiDesigner *designer, Widget_t * wid) {
     }
 }
 
-char *set_resource_path(XUiDesigner *designer, const char* image) {
+static char *set_resource_path(XUiDesigner *designer, const char* image) {
     char* tmp = strdup(image);
     char* xldl = strdup(basename(tmp));
     free(tmp);

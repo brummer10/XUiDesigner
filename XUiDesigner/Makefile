@@ -26,7 +26,7 @@
 	NAME = XUiDesigner
 	EXEC_NAME  = $(shell echo $(NAME) | tr A-Z a-z)
 	BUILD_DIR = build/
-	VER = 1.0
+	VER = 1.1
 
 	LIB_DIR := ../libxputty/libxputty/
 	HEADER_DIR := $(LIB_DIR)include/
@@ -43,10 +43,10 @@
 	# set compile flags
 	LDFLAGS += -fPIC -Wl,-z,noexecstack -Wl,--no-undefined -I./include/ -I../libxputty/libxputty/include/ \
 	`pkg-config --cflags --libs cairo x11 lilv-0` -lm -lpthread
-	CXXFLAGS += -O3 -D_FORTIFY_SOURCE=2 -Wall -Wextra -fstack-protector -fno-ident -Wno-unused-result \
+	MY_CFLAGS += -O3 $(CFLAGS) -D_FORTIFY_SOURCE=2 -Wall -Wextra -fstack-protector -fno-ident -Wno-unused-result \
 	-fno-asynchronous-unwind-tables -s -DNDEBUG -DSHARE_DIR=\"$(SHARE_DIR)\"
 	# -pedantic -Wextra -Wshadow -Wpadded -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes
-	DEBUG_CXXFLAGS += -g -D DEBUG -DSHARE_DIR=\"$(SHARE_DIR)\"
+	DEBUG_MY_CFLAGS += -g -D DEBUG -DSHARE_DIR=\"$(SHARE_DIR)\"
 	# invoke build files
 	SOURCE = $(wildcard $(SOURCE_DIR)*.c)
 	OBJECTS := $(addprefix $(BUILD_DIR),$(notdir $(patsubst %.c,%.o,$(SOURCE))))
@@ -67,7 +67,7 @@ all : check $(NAME)
 		$(R_ECHO)"sorry, build failed$(reset)"; \
 	fi 
 
-debug: CXXFLAGS = $(DEBUG_CXXFLAGS) 
+debug: MY_CFLAGS = $(DEBUG_MY_CFLAGS) 
 debug: all
 
 nls: LDFLAGS += -DENABLE_NLS -DGETTEXT_PACKAGE=\"$(EXEC_NAME)\" -DLOCAL_DIR=\"$(LOCAL_DIR)\"
@@ -150,11 +150,11 @@ uninstall :
 
 $(OBJECTS) : $(SOURCE)
 	@$(ECHO) "Building object file $@ $(reset)"
-	$(QUIET)$(CC) $(CXXFLAGS) -Wall -c $(addprefix $(SOURCE_DIR),$(notdir $(patsubst %.o,%.c,$@))) -o $@ $(LDFLAGS)
+	$(QUIET)$(CC) $(MY_CFLAGS) -Wall -c $(addprefix $(SOURCE_DIR),$(notdir $(patsubst %.o,%.c,$@))) -o $@ $(LDFLAGS)
 
 $(NAME) : $(OBJECTS)
 	@$(B_ECHO) "Compile $(EXEC_NAME) $(reset)"
-	$(QUIET)$(CC) $(CXXFLAGS) $(OBJECTS) -L. ../libxputty/libxputty/libxputty.a -o $(EXEC_NAME) $(LDFLAGS)
+	$(QUIET)$(CC) $(MY_CFLAGS) $(OBJECTS) -L. ../libxputty/libxputty/libxputty.a -o $(EXEC_NAME) $(LDFLAGS)
 
 doc:
 	#pass

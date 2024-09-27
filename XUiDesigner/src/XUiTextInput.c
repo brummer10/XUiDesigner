@@ -251,7 +251,7 @@ static void box_entry_set_curser_pos(Widget_t *w, int s) {
     expose_widget(w);
 }
 
-void remove_trailing_zeros(char* s) {
+static void remove_trailing_zeros(char* s) {
     unsigned int l = strlen(s)-1;
     for(;l>0;l--) {
         if (strstr(&s[l],"0")) {

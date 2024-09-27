@@ -143,6 +143,7 @@ typedef struct {
     bool is_atom_output;
     bool is_atom_input;
     bool have_adjustment;
+    char pad[4];
 } Controller;
 
 /*---------------------------------------------------------------------

@@ -48,6 +48,7 @@ typedef struct {
     int curser_mark2;
     int set_selection;
     bool in_double_click;
+    char pad[7];
 } TextBox_t;
 
 

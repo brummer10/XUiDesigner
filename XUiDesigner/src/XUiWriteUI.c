@@ -343,7 +343,7 @@ static void check_for_elem_colors(XUiDesigner *designer) {
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-int format(float value) {
+static int format(float value) {
     float v = value - (int)value;
     char s[30] = {0};
     snprintf(s, 29, "%f", v);
