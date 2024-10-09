@@ -5,6 +5,8 @@ BLUE = "\033[1;34m"
 RED =  "\033[1;31m"
 NONE = "\033[0m"
 
+DISTRO_CFLAGS = $(CFLAGS)
+
 SUBDIR := XUiDesigner
 
 .PHONY: $(SUBDIR) libxputty  recurse
@@ -23,7 +25,7 @@ clean:
 
 libxputty: check-and-reinit-submodules
 ifneq ($(MAKECMDGOALS),debug)
-	@exec $(MAKE) --no-print-directory -j 1 -C $@ $(MAKECMDGOALS) CFLAGS='-O3 -D_FORTIFY_SOURCE=2 -Wall \
+	@exec $(MAKE) --no-print-directory -j 1 -C $@ $(MAKECMDGOALS) CFLAGS='-O3 $(DISTRO_CFLAGS) -D_FORTIFY_SOURCE=2 -Wall \
 	-fstack-protector -fno-ident -fno-asynchronous-unwind-tables -s -DNDEBUG -Wno-unused-result'
 else
 	@exec $(MAKE) --no-print-directory -j 1 -C $@ $(MAKECMDGOALS)
