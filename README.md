@@ -1,5 +1,5 @@
 # XUiDesigner
-A WYSIWYG LV2 GUI/Plugin creator tool
+A **WYSIWYG** ('What you see is what you get' a.k.a. design to code) LV2 GUI / Plugin creator tool
 
 ![XUiDesigner](https://i.imgur.com/wKA2eqO.gif)
 
